@@ -2,6 +2,8 @@
 
 Groma est un outil de suivi de chantiers de rénovation pour une petite entreprise du BTP : de la signature du devis à la levée des réserves, avec la coordination entre l'équipe et les intervenants externes (client, architecte, syndic, fournisseur). Dessine-moi les maquettes des écrans principaux.
 
+**Étape 1 : des wireframes, pas des maquettes finies.** Uniquement en niveaux de gris, sans choix de police ni de couleur. On valide ici ce qu'il y a sur chaque écran, dans quel ordre, et comment on passe de l'un à l'autre. Le style viendra après, une fois la structure validée. La section « Direction visuelle » plus bas sert seulement à l'étape suivante.
+
 ## Qui s'en sert
 
 - **Le gérant** (le patron) : il voit tout, au bureau, sur ordinateur.
