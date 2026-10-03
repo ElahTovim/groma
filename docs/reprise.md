@@ -1,18 +1,21 @@
 # État de reprise
 
-## 3 octobre 2026
+## 4 octobre 2026
 
 **Fait**
 - Modèle arrêté : `docs/cycle-de-vie.md`.
-- Squelette Next.js créé en local, conventions écrites (`AGENTS.md`).
-- Comptes connectés : GitHub, Vercel, Neon, Resend, Sentry.
+- Dépôt public `ElahTovim/groma`, relié à Vercel. Production : https://groma-coral.vercel.app.
+- Base Neon `groma-db`, créée depuis Vercel ; première migration jouée (table `comptes`).
+- Connexion par courriel (Auth.js), page de première installation réservée à `ADMIN_EMAIL`, journalisation des connexions et des refus. Fusionné par la demande n° 1.
+- Compte gérant créé par Kerguelenn.
+- Huit tests sur la règle d'installation (`npm test`).
 
 **Reste**
-- Choisir le nom du projet.
-- Créer le dépôt GitHub, le relier à Vercel, première mise en ligne.
-- Créer la base Neon depuis Vercel.
-- Brancher Auth.js : la page de connexion doit répondre en ligne.
-- Compte UptimeRobot, une fois l'adresse en ligne.
+- Activer une base distincte par prévisualisation (réglage de l'intégration Neon dans Vercel) : aujourd'hui prévisualisations et production partagent la même base.
+- Rejouer les tests à chaque push (GitHub Actions).
+- Invitations par courriel (Resend), réinitialisation du mot de passe, rôles équipe et externe.
+- Les tables chantiers, lots, participants, fil, et le jeu de données fictif.
+- Compte UptimeRobot sur l'adresse de production ; brancher Sentry.
 
 **Cassé**
 - Rien.
