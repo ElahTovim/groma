@@ -1,6 +1,6 @@
 # État de reprise
 
-## 5 octobre 2026, nuit (branche `lot-b`, en prévisualisation)
+## 5 octobre 2026, nuit (lot B fusionné : demande n° 4, en production)
 
 **Fait**
 - Tranche 6 : tables `lots` et `fil` ; étapes du chantier avec refus motivés (`lib/regles.ts`) ; règle de clôture testée sur les trois cas ; pas de pose sans livraison ; retards calculés ; fil chronologique à six types, interne par défaut, partage par « Qui voit ça ? » ; qualification des signalements ; annulation avec motif ; bouton de l'étape suivante fixé sous le pouce sur téléphone.
@@ -9,10 +9,9 @@
 - 49 tests.
 
 **Reste**
-- Kerguelenn essaie le lot B, puis fusion.
 - Un document du fil n'a pas encore de fichier : il arrive avec la tranche des pièces jointes (Vercel Blob).
 - Les alertes au gérant (devis signé, réception, annulation) sont notées dans le journal (`alerte_gerant`) ; le courriel part avec la tranche Resend.
-- Clés Resend et OpenWeatherMap : présentes en Production sous `RESEND_GROMAA` et `OPENWEATHER_GROMAA`, à ajouter en Preview.
+- Clés Resend et OpenWeatherMap : en place en Production et en Preview, sous `RESEND_GROMAA` et `OPENWEATHER_GROMAA`. Prochaines tranches : invitations et alertes (Resend), météo.
 
 **Cassé**
 - Rien de connu.
