@@ -73,10 +73,15 @@ Un seul fil par chantier. Chaque apport a un auteur parmi les participants, vise
 | Type | Ce que c'est | Qui peut le créer |
 | --- | --- | --- |
 | demande | quelque chose qu'un participant doit rendre, avec un destinataire et une date | gérant, équipe |
+| message | un texte libre : une information, une nouvelle, un retard annoncé | tous |
 | réponse | la réponse à une demande | tous |
 | disponibilité | un créneau où le participant est présent | tous |
-| document | un fichier, **interne** par défaut ou **partagé** avec des participants choisis | tous |
+| document | un fichier : devis, plan, procès-verbal, photo | tous |
 | signalement | une anomalie constatée | tous |
+
+**Qui voit quoi.** Tout élément du fil, quel que soit son type, est **interne** par défaut : seuls le gérant et l'équipe le voient. Pour le montrer à des externes, le gérant ou un chef d'équipe ouvre la fenêtre « Qui voit ça ? » et coche, un par un, les participants du chantier qui le verront. Rien n'est réservé en dur à une qualité : le devis se partage au client en le cochant, pas parce qu'il est client. Deux réglages par défaut seulement :
+- une demande adressée à un externe arrive déjà cochée pour lui (on peut le décocher) ;
+- ce qu'écrit un externe est vu par son auteur, le gérant et l'équipe ; l'équipe peut ensuite le partager à d'autres.
 
 Un signalement suit son propre statut : `à qualifier` → `réserve ouverte` → `levée`, ou `à qualifier` → `écarté` avec un motif. Seuls le gérant et l'équipe qualifient, lèvent ou écartent.
 
@@ -88,17 +93,18 @@ Un signalement suit son propre statut : `à qualifier` → `réserve ouverte` �
    - cas piégé : un client signale une anomalie la veille de la clôture, la clôture est refusée.
 2. Pas de pose sans livraison.
 3. Pas de réception tant qu'un lot n'est pas fini.
-4. Un externe ne voit que ses chantiers, et seulement les documents qu'on lui a partagés.
-5. Un fournisseur dont l'établissement est fermé (Sirene) ne peut pas être invité.
+4. Un externe ne voit que ses chantiers, et dans le fil seulement ce qui a été coché pour lui.
+5. Les montants, les lots et leurs retards sont internes : un externe ne les voit jamais à l'écran. Pour l'informer d'un retard, l'équipe lui écrit un message dans le fil et coche son nom.
+6. Un fournisseur dont l'établissement est fermé (Sirene) ne peut pas être invité.
 
 ## Les tables
 
 | Table | Contient | Relié à |
 | --- | --- | --- |
-| chantiers | adresse, client, statut, dates, météo | — |
+| chantiers | adresse, client, statut, dates, **montant HT** (interne), météo | — |
 | lots | nom, statut, dates prévues et réelles | un chantier, un fournisseur |
 | participants | qui est invité sur quel chantier, à quel titre | un chantier, un compte |
-| fil | type, texte, fichier, partage, statut du signalement | un chantier, parfois un lot, un auteur |
+| fil | type, texte, fichier, statut du signalement, **liste des participants qui le voient** | un chantier, parfois un lot, un auteur |
 
 Les comptes sont gérés à part par Auth.js.
 
