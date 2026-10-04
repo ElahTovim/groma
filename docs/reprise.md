@@ -13,7 +13,8 @@
 - 63 tests.
 
 **Reste**
-- `SENTRY_API_KEY` ne contient pas un DSN : Sentry reste éteint. Mettre le DSN du projet Sentry (Settings, Client Keys).
+- Sentry branché en production (DSN corrigé dans `SENTRY_API_KEY`) : faire l'erreur de test depuis Réglages.
+- Une prévisualisation relancée à la main depuis le tableau de bord Vercel a utilisé la base de production (empreinte `b2017901`). N'essayer que sur les prévisualisations de branche (`groma-git-<branche>-…`), et vérifier l'empreinte dans `/api/sante`.
 - Avant la démo : rejouer le jeu de données en production (Réglages).
 - Mis de côté par Kerguelenn : Sirene, UptimeRobot.
 
