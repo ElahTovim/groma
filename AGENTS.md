@@ -43,6 +43,12 @@ Next.js sur Vercel (équipe `elah-s-projects`, offre Hobby), dépôt GitHub (com
 - **Une API externe qui ne répond pas ne bloque rien** : l'écran le dit et reste utilisable.
 - Ne jamais écrire l'authentification à la main : Auth.js.
 
+## La base et les migrations
+
+- Chaque prévisualisation reçoit sa propre copie de la base (réglage « Create Database Branch For Deployment : Preview » de l'intégration Neon dans Vercel). La production garde la vraie base.
+- Les migrations se jouent à chaque construction (`npm run build` lance `drizzle-kit migrate`) : une nouvelle table arrive dans la base de la prévisualisation, puis dans celle de la production à la fusion.
+- Si ce réglage était un jour décoché, une prévisualisation migrerait la base de production. `/api/sante` donne l'empreinte de la base utilisée : elle doit différer entre prévisualisation et production.
+
 ## Secrets et données
 
 - Aucun secret dans le dépôt, le navigateur ni le chat. Les clés vivent dans les variables d'environnement de Vercel, et en local dans `.env.local`, jamais commité. `.env.example` liste les noms des variables, sans valeurs.
