@@ -8,12 +8,13 @@
 
 - Wireframes Figma mis à jour selon les trois décisions : section 08 « Qui voit ça ? » (7 états), ligne « Vu par : … » et bouton sur chaque élément du fil, vue externe sans lots ni retards ni montant, liste vue par un externe, champ « Montant du devis HT » (interne) au formulaire de création.
 
+- Écarts tranchés par Kerguelenn et reportés dans la spécification, le modèle et le brief : bouton de l'étape suivante en bas sous le pouce sur téléphone, en haut sur ordinateur ; fil chronologique, le plus récent en bas ; nouveau type « message » (texte libre) dans le fil, pour prévenir un externe d'un retard.
+- Branche `interface` fusionnée dans `main`.
+
 **Reste**
-- Kerguelenn relit les wireframes Figma, puis l'étape style.
-- Écarts entre la spécification de la fiche et les wireframes, à trancher : bouton de l'étape suivante en haut (spec) ou en bas sous le pouce (wireframes) ; fil du plus récent au plus ancien (spec) ou chronologique (wireframes) ; libellés « Déclarer la réception » et « Retenir comme réserve ».
-- Le modèle n'a pas de type « message » dans le fil : quel type utilise l'équipe pour prévenir un externe d'un retard ?
-- Fusionner la branche `interface` dans `main`.
-- Puis, sur `main` : base distincte par prévisualisation, tests rejoués à chaque push, chantiers et participants.
+- Figma (à faire dans une session qui a accès à Figma, ou à la main) : ajouter le type « message » au menu « Ajouter au fil » et à un exemple du fil ; vérifier que le fil est bien chronologique partout ; corriger le débordement des lignes « Vu par » (ci-dessous). Puis l'étape style.
+- Libellés « Déclarer la réception » et « Retenir comme réserve » : à confirmer par Kerguelenn selon le vocabulaire du terrain.
+- Sur `main` : base distincte par prévisualisation, tests rejoués à chaque push, chantiers et participants.
 
 **Cassé**
 - Figma, fiche bureau (section 03) : les deux lignes « Vu par » du fil dépassent à droite de leur carte. Correctif d'une minute à la main : sélectionner les deux calques « Qui voit ça » et régler la largeur sur « Fill container ». La limite d'appels Figma de l'offre Starter a été atteinte avant le correctif.

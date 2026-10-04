@@ -73,6 +73,7 @@ Un seul fil par chantier. Chaque apport a un auteur parmi les participants, vise
 | Type | Ce que c'est | Qui peut le créer |
 | --- | --- | --- |
 | demande | quelque chose qu'un participant doit rendre, avec un destinataire et une date | gérant, équipe |
+| message | un texte libre : une information, une nouvelle, un retard annoncé | tous |
 | réponse | la réponse à une demande | tous |
 | disponibilité | un créneau où le participant est présent | tous |
 | document | un fichier : devis, plan, procès-verbal, photo | tous |
@@ -93,7 +94,7 @@ Un signalement suit son propre statut : `à qualifier` → `réserve ouverte` �
 2. Pas de pose sans livraison.
 3. Pas de réception tant qu'un lot n'est pas fini.
 4. Un externe ne voit que ses chantiers, et dans le fil seulement ce qui a été coché pour lui.
-5. Les montants, les lots et leurs retards sont internes : un externe ne les voit jamais à l'écran. Pour l'informer d'un retard, l'équipe lui écrit dans le fil et coche son nom.
+5. Les montants, les lots et leurs retards sont internes : un externe ne les voit jamais à l'écran. Pour l'informer d'un retard, l'équipe lui écrit un message dans le fil et coche son nom.
 6. Un fournisseur dont l'établissement est fermé (Sirene) ne peut pas être invité.
 
 ## Les tables
