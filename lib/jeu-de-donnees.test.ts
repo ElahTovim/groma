@@ -26,4 +26,19 @@ describe("le jeu de données fictif", () => {
     expect(c.some((x) => x.participants.length === 1)).toBe(true);
     expect(c.filter((x) => x.statut === "annule").every((x) => x.motifAnnulation)).toBe(true);
   });
+
+  it("chaque élément du fil est écrit, et partagé, par des participants du chantier", () => {
+    for (const c of genererChantiers()) {
+      for (const e of c.fil) {
+        expect(c.participants).toContain(e.auteur);
+        for (const v of e.visiblePar) expect(c.participants).toContain(v);
+      }
+    }
+  });
+
+  it("prépare la démo : une réception bloquée par un signalement, des lots en retard", () => {
+    const c = genererChantiers();
+    expect(c.some((x) => x.statut === "reception" && x.fil.some((e) => e.statutSignalement === "a_qualifier"))).toBe(true);
+    expect(c.some((x) => x.lots.some((l) => (l.statut === "commande" || l.statut === "a_commander") && l.livraisonPrevue! < "2026-10-05"))).toBe(true);
+  });
 });

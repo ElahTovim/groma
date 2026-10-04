@@ -63,7 +63,54 @@ export const participants = pgTable(
   (t) => [unique("participant_unique").on(t.chantierId, t.compteId)],
 );
 
+export const statutLot = pgEnum("statut_lot", ["a_commander", "commande", "livre", "pose", "fini"]);
+
+export const typeFil = pgEnum("type_fil", ["message", "demande", "reponse", "disponibilite", "document", "signalement"]);
+
+export const statutSignalement = pgEnum("statut_signalement", ["a_qualifier", "reserve_ouverte", "levee", "ecarte"]);
+
+// Un chantier se découpe en lots (carrelage, électricité…). Interne : un externe
+// ne voit jamais les lots ni leurs retards.
+export const lots = pgTable("lots", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  chantierId: uuid("chantier_id")
+    .notNull()
+    .references(() => chantiers.id, { onDelete: "cascade" }),
+  nom: text("nom").notNull(),
+  statut: statutLot("statut").notNull().default("a_commander"),
+  fournisseurId: uuid("fournisseur_id").references(() => comptes.id, { onDelete: "set null" }),
+  livraisonPrevue: date("livraison_prevue"),
+  finPrevue: date("fin_prevue"),
+  creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Le fil du chantier. Tout élément est interne par défaut ; « visible_par » liste
+// les comptes externes qui ont été cochés dans « Qui voit ça ? ».
+export const fil = pgTable("fil", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  chantierId: uuid("chantier_id")
+    .notNull()
+    .references(() => chantiers.id, { onDelete: "cascade" }),
+  lotId: uuid("lot_id").references(() => lots.id, { onDelete: "set null" }),
+  auteurId: uuid("auteur_id")
+    .notNull()
+    .references(() => comptes.id, { onDelete: "cascade" }),
+  type: typeFil("type").notNull(),
+  texte: text("texte").notNull(),
+  // Demande : à qui, et pour quand. Disponibilité : quel jour.
+  destinataireId: uuid("destinataire_id").references(() => comptes.id, { onDelete: "set null" }),
+  dateCible: date("date_cible"),
+  // Signalement : son statut, et le motif quand il est écarté.
+  statutSignalement: statutSignalement("statut_signalement"),
+  motif: text("motif"),
+  visiblePar: uuid("visible_par").array().notNull().default([]),
+  creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Compte = typeof comptes.$inferSelect;
 export type Chantier = typeof chantiers.$inferSelect;
 export type Role = (typeof role.enumValues)[number];
 export type StatutChantier = (typeof statutChantier.enumValues)[number];
+export type StatutLot = (typeof statutLot.enumValues)[number];
+export type TypeFil = (typeof typeFil.enumValues)[number];
+export type StatutSignalement = (typeof statutSignalement.enumValues)[number];

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { chantiers, comptes, participants } from "@/lib/db/schema";
+import { chantiers, comptes, fil, lots, participants } from "@/lib/db/schema";
 import { genererChantiers, PERSONNES } from "@/lib/jeu-de-donnees";
 
 // Rejoue le jeu de données : efface tout ce qui est marqué fictif, puis le recrée
@@ -23,9 +23,30 @@ export async function rejouerJeuDeDonnees(motDePasse: string) {
     db.insert(chantiers).values(
       lignesChantiers.map((c) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { participants: _, ...chantier } = c;
+        const { participants: _, lots: _l, fil: _f, ...chantier } = c;
         return { ...chantier, fictif: true };
       }),
+    ),
+    db.insert(lots).values(
+      lignesChantiers.flatMap((c) =>
+        c.lots.map((l) => ({ chantierId: c.id, nom: l.nom, statut: l.statut, livraisonPrevue: l.livraisonPrevue, finPrevue: l.finPrevue, fournisseurId: l.fournisseur === null ? null : idsComptes[l.fournisseur] })),
+      ),
+    ),
+    db.insert(fil).values(
+      lignesChantiers.flatMap((c) =>
+        c.fil.map((e, k) => ({
+          chantierId: c.id,
+          auteurId: idsComptes[e.auteur],
+          type: e.type,
+          texte: e.texte,
+          destinataireId: e.destinataire === undefined ? null : idsComptes[e.destinataire],
+          dateCible: e.dateCible ?? null,
+          statutSignalement: e.statutSignalement ?? null,
+          visiblePar: e.visiblePar.map((i) => idsComptes[i]),
+          // Des heures décalées, pour que le fil se lise dans l'ordre.
+          creeLe: new Date(Date.UTC(2026, 9, 1, 8 + k, 0)),
+        })),
+      ),
     ),
     db.insert(participants).values(
       lignesChantiers.flatMap((c) =>
