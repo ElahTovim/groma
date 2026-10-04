@@ -1,4 +1,4 @@
-import { boolean, date, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, doublePrecision, integer, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 // Les trois rôles de docs/cycle-de-vie.md. La qualité d'un externe (client,
 // syndic…) n'est pas un rôle : elle vit sur la participation à un chantier.
@@ -39,6 +39,9 @@ export const chantiers = pgTable("chantiers", {
   debutPrevu: date("debut_prevu"),
   finPrevue: date("fin_prevue"),
   motifAnnulation: text("motif_annulation"),
+  // Coordonnées trouvées par l'API Adresse, pour la météo. Vides si l'adresse est introuvable.
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
   creePar: uuid("cree_par").references(() => comptes.id),
   fictif: boolean("fictif").notNull().default(false),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
@@ -104,6 +107,30 @@ export const fil = pgTable("fil", {
   statutSignalement: statutSignalement("statut_signalement"),
   motif: text("motif"),
   visiblePar: uuid("visible_par").array().notNull().default([]),
+  // Pièce jointe, rangée sur Vercel Blob ; servie seulement par /api/fichiers/[id], après vérification des droits.
+  fichierUrl: text("fichier_url"),
+  fichierNom: text("fichier_nom"),
+  fichierType: text("fichier_type"),
+  fichierTaille: integer("fichier_taille"),
+  creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const typeJeton = pgEnum("type_jeton", ["invitation", "reinitialisation"]);
+
+// Les liens à usage unique envoyés par courriel. On ne garde que l'empreinte du
+// jeton : même avec la base, on ne peut pas reconstituer un lien.
+export const jetons = pgTable("jetons", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  type: typeJeton("type").notNull(),
+  empreinte: text("empreinte").notNull().unique(),
+  email: text("email").notNull(),
+  // Invitation : sur quel chantier, avec quel rôle et quelle qualité.
+  chantierId: uuid("chantier_id").references(() => chantiers.id, { onDelete: "cascade" }),
+  role: role("role"),
+  qualite: text("qualite"),
+  creePar: uuid("cree_par").references(() => comptes.id, { onDelete: "set null" }),
+  expireLe: timestamp("expire_le", { withTimezone: true }).notNull(),
+  utiliseLe: timestamp("utilise_le", { withTimezone: true }),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
 });
 

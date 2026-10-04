@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function PageConnexion({ searchParams }: PageProps<"/connexion">) {
   if (await auth()) redirect("/");
   const [{ n }] = await db.select({ n: count() }).from(comptes);
-  const { installe } = await searchParams;
+  const { installe, invite, reinitialise } = await searchParams;
+  const annonce = installe ? "Compte gérant créé. Connectez-vous." : invite ? "Compte créé. Connectez-vous pour voir votre chantier." : reinitialise ? "Mot de passe changé. Connectez-vous." : null;
 
   return (
     <main className="flex flex-1 items-center justify-center p-4">
@@ -23,9 +24,9 @@ export default async function PageConnexion({ searchParams }: PageProps<"/connex
           <CardDescription>Suivi de chantiers de rénovation</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {installe && (
+          {annonce && (
             <Alert>
-              <AlertDescription>Compte gérant créé. Connectez-vous.</AlertDescription>
+              <AlertDescription>{annonce}</AlertDescription>
             </Alert>
           )}
           {n === 0 ? (
@@ -36,7 +37,12 @@ export default async function PageConnexion({ searchParams }: PageProps<"/connex
               </Link>
             </p>
           ) : (
-            <FormulaireConnexion />
+            <>
+              <FormulaireConnexion />
+              <Link href="/mot-de-passe-oublie" className="text-sm text-muted-foreground underline">
+                Mot de passe oublié ?
+              </Link>
+            </>
           )}
         </CardContent>
       </Card>

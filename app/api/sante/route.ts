@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { dsnSentry } from "@/lib/sentry-dsn";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET() {
   const base = createHash("sha256").update(hote).digest("hex").slice(0, 8);
   try {
     await db.execute(sql`select 1`);
-    return Response.json({ ok: true, base });
+    return Response.json({ ok: true, base, sentry: Boolean(dsnSentry()), meteo: Boolean(process.env.OPENWEATHER_GROMAA), courriel: Boolean(process.env.RESEND_GROMAA), fichiers: Boolean(process.env.BLOB_READ_WRITE_TOKEN) });
   } catch {
     return Response.json({ ok: false, base, erreur: "La base ne répond pas." }, { status: 503 });
   }

@@ -34,3 +34,16 @@ export async function rejouerJeu(_: EtatJeu, formData: FormData): Promise<EtatJe
     return { erreur: "Le jeu de données n'a pas pu être rejoué. Rien n'a été modifié." };
   }
 }
+
+// Pour vérifier en vrai que Sentry reçoit les erreurs : une alerte jamais testée n'existe pas.
+export async function erreurDeTest(): Promise<EtatJeu> {
+  const qui = await appelant();
+  if (!qui || qui.role !== "gerant") return { erreur: "Seul le gérant peut envoyer une erreur de test." };
+  const Sentry = await import("@sentry/nextjs");
+  const { dsnSentry } = await import("@/lib/sentry-dsn");
+  if (!dsnSentry()) return { erreur: "Sentry n'est pas branché : la variable ne contient pas un DSN valable." };
+  Sentry.captureException(new Error(`Erreur de test envoyée depuis les réglages par ${qui.id}`));
+  await Sentry.flush(3000);
+  journal("sentry_test", { compte: qui.id });
+  return { message: "Erreur de test envoyée à Sentry. Elle doit apparaître dans Issues d'ici une minute." };
+}

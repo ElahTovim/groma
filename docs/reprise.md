@@ -1,5 +1,25 @@
 # État de reprise
 
+## 5 octobre 2026, nuit (branche `lot-c`, en prévisualisation)
+
+**Fait**
+- Météo : adresse géolocalisée à la création (API Adresse), ou à la première ouverture de la fiche ; trois jours de prévisions OpenWeatherMap (`OPENWEATHER_GROMAA`), alertes gel, pluie, vent ; panne sans blocage. Vérifié sur la prévisualisation avec la vraie clé.
+- Invitations par lien à usage unique (`jetons`, empreinte seulement), courriel Resend quand c'est possible, lien affiché sinon ; page `/invitation/[jeton]`.
+- Mot de passe oublié (`/mot-de-passe-oublie`, `/reinitialiser/[jeton]`, une heure).
+- Alertes au gérant par courriel : nouveau devis, signé, réception, annulé.
+- Pièces jointes privées sur Vercel Blob (`groma-fichiers`, accès privé), servies par `/api/fichiers/[id]` après vérification des droits.
+- Sentry côté serveur (`instrumentation.ts`), bouton d'erreur de test dans Réglages, état dans `/api/sante`.
+- `docs/revue-securite.md`, README.
+- 63 tests.
+
+**Reste**
+- `SENTRY_API_KEY` ne contient pas un DSN : Sentry reste éteint. Mettre le DSN du projet Sentry (Settings, Client Keys).
+- Kerguelenn essaie le lot C, puis fusion.
+- Mis de côté par Kerguelenn : Sirene, UptimeRobot.
+
+**Cassé**
+- Rien de connu.
+
 ## 5 octobre 2026, nuit (lot B fusionné : demande n° 4, en production)
 
 **Fait**

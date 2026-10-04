@@ -20,6 +20,8 @@ export type ChantierVu = {
   debutPrevu: string | null;
   finPrevue: string | null;
   montantHt: string | null | undefined;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 function filtrerPour(qui: Appelant, c: typeof chantiers.$inferSelect): ChantierVu {
@@ -35,6 +37,8 @@ function filtrerPour(qui: Appelant, c: typeof chantiers.$inferSelect): ChantierV
     debutPrevu: c.debutPrevu,
     finPrevue: c.finPrevue,
     montantHt: voitLInterne(qui.role) ? c.montantHt : undefined,
+    latitude: c.latitude,
+    longitude: c.longitude,
   };
 }
 
