@@ -1,6 +1,6 @@
 # État de reprise
 
-## 5 octobre 2026, nuit (branche `lot-c`, en prévisualisation)
+## 5 octobre 2026, nuit (lot C fusionné : demande n° 5, en production)
 
 **Fait**
 - Météo : adresse géolocalisée à la création (API Adresse), ou à la première ouverture de la fiche ; trois jours de prévisions OpenWeatherMap (`OPENWEATHER_GROMAA`), alertes gel, pluie, vent ; panne sans blocage. Vérifié sur la prévisualisation avec la vraie clé.
@@ -14,7 +14,7 @@
 
 **Reste**
 - `SENTRY_API_KEY` ne contient pas un DSN : Sentry reste éteint. Mettre le DSN du projet Sentry (Settings, Client Keys).
-- Kerguelenn essaie le lot C, puis fusion.
+- Avant la démo : rejouer le jeu de données en production (Réglages).
 - Mis de côté par Kerguelenn : Sirene, UptimeRobot.
 
 **Cassé**
