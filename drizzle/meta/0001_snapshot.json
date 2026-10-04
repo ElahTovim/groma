@@ -1,0 +1,320 @@
+{
+  "id": "0e718d20-335b-40a1-927c-5a1f8a4b6d11",
+  "prevId": "2630ee8a-dd7f-414a-a2aa-4923ff807f2b",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.chantiers": {
+      "name": "chantiers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reference": {
+          "name": "reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client": {
+          "name": "client",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code_postal": {
+          "name": "code_postal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ville": {
+          "name": "ville",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant_ht": {
+          "name": "montant_ht",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_chantier",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'devis'"
+        },
+        "debut_prevu": {
+          "name": "debut_prevu",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fin_prevue": {
+          "name": "fin_prevue",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motif_annulation": {
+          "name": "motif_annulation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_par": {
+          "name": "cree_par",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fictif": {
+          "name": "fictif",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "chantiers_cree_par_comptes_id_fk": {
+          "name": "chantiers_cree_par_comptes_id_fk",
+          "tableFrom": "chantiers",
+          "tableTo": "comptes",
+          "columnsFrom": [
+            "cree_par"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "chantiers_reference_unique": {
+          "name": "chantiers_reference_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "reference"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.comptes": {
+      "name": "comptes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mot_de_passe_hash": {
+          "name": "mot_de_passe_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fictif": {
+          "name": "fictif",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "comptes_email_unique": {
+          "name": "comptes_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.participants": {
+      "name": "participants",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chantier_id": {
+          "name": "chantier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "compte_id": {
+          "name": "compte_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "qualite": {
+          "name": "qualite",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invite_le": {
+          "name": "invite_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "participants_chantier_id_chantiers_id_fk": {
+          "name": "participants_chantier_id_chantiers_id_fk",
+          "tableFrom": "participants",
+          "tableTo": "chantiers",
+          "columnsFrom": [
+            "chantier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "participants_compte_id_comptes_id_fk": {
+          "name": "participants_compte_id_comptes_id_fk",
+          "tableFrom": "participants",
+          "tableTo": "comptes",
+          "columnsFrom": [
+            "compte_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "participant_unique": {
+          "name": "participant_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "chantier_id",
+            "compte_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "gerant",
+        "equipe",
+        "externe"
+      ]
+    },
+    "public.statut_chantier": {
+      "name": "statut_chantier",
+      "schema": "public",
+      "values": [
+        "devis",
+        "signe",
+        "planifie",
+        "en_cours",
+        "reception",
+        "clos",
+        "annule"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
