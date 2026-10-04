@@ -6,13 +6,17 @@
 - Trois décisions de Kerguelenn reportées dans `docs/cycle-de-vie.md` et `docs/brief-maquettes.md` : montant HT interne sur le chantier ; chaque élément du fil est partagé au cas par cas, coché dans une fenêtre « Qui voit ça ? » ; les lots et leurs retards restent internes.
 - Rendus semaine 1 : `docs/spec-fiche-chantier.md` (spécification d'une page) et `docs/schema-produit.md` (schéma du produit, trajet du clic à la base).
 
+- Wireframes Figma mis à jour selon les trois décisions : section 08 « Qui voit ça ? » (7 états), ligne « Vu par : … » et bouton sur chaque élément du fil, vue externe sans lots ni retards ni montant, liste vue par un externe, champ « Montant du devis HT » (interne) au formulaire de création.
+
 **Reste**
-- Kerguelenn relit les wireframes Figma à la lumière des trois décisions (la fenêtre « Qui voit ça ? » est à ajouter), puis l'étape style.
+- Kerguelenn relit les wireframes Figma, puis l'étape style.
+- Écarts entre la spécification de la fiche et les wireframes, à trancher : bouton de l'étape suivante en haut (spec) ou en bas sous le pouce (wireframes) ; fil du plus récent au plus ancien (spec) ou chronologique (wireframes) ; libellés « Déclarer la réception » et « Retenir comme réserve ».
+- Le modèle n'a pas de type « message » dans le fil : quel type utilise l'équipe pour prévenir un externe d'un retard ?
 - Fusionner la branche `interface` dans `main`.
 - Puis, sur `main` : base distincte par prévisualisation, tests rejoués à chaque push, chantiers et participants.
 
 **Cassé**
-- Rien.
+- Figma, fiche bureau (section 03) : les deux lignes « Vu par » du fil dépassent à droite de leur carte. Correctif d'une minute à la main : sélectionner les deux calques « Qui voit ça » et régler la largeur sur « Fill container ». La limite d'appels Figma de l'offre Starter a été atteinte avant le correctif.
 
 ## 4 octobre 2026, après-midi (branche `interface`)
 
