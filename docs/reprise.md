@@ -1,5 +1,18 @@
 # État de reprise
 
+## 4 octobre 2026
+
+**Fait**
+- Wireframes en niveaux de gris dans Figma, fichier « Groma — Wireframes » : https://www.figma.com/design/pDSXYULaNMPiiM94ldE54c
+  Sections 00 (principes UX et accessibilité, parcours, vocabulaire des statuts) puis 01 à 07, un écran du brief par section, chacun avec ses états et des notes « À vérifier ».
+
+**Reste**
+- Kerguelenn relit les wireframes et tranche les questions ouvertes (ci-dessous) ; ensuite seulement, l'étape style.
+- Questions ouvertes : le montant HT (demandé par le brief, absent de `cycle-de-vie.md`) ; ce qu'un externe voit du fil en dehors des documents et des demandes qui lui sont adressées ; s'il voit les retards des lots.
+
+**Cassé**
+- Rien.
+
 ## 3 octobre 2026
 
 **Fait**
