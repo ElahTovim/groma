@@ -8,15 +8,21 @@ import { appelant } from "@/lib/session";
 
 export type EtatJeu = { message?: string; erreur?: string };
 
-export async function rejouerJeu(): Promise<EtatJeu> {
+const MOT_DE_PASSE_JEU_MIN = 8;
+
+// Le gérant choisit le mot de passe des comptes fictifs au moment du rejeu :
+// il le connaît, et il ne vit nulle part ailleurs que dans les comptes (haché).
+export async function rejouerJeu(_: EtatJeu, formData: FormData): Promise<EtatJeu> {
   const qui = await appelant();
   if (!qui) redirect("/connexion");
   if (qui.role !== "gerant") {
     journal("jeu_refuse", { compte: qui.id, role: qui.role });
     return { erreur: "Seul le gérant peut rejouer le jeu de données." };
   }
-  const motDePasse = process.env.JEU_MOT_DE_PASSE;
-  if (!motDePasse) return { erreur: "Le mot de passe des comptes fictifs n'est pas réglé (JEU_MOT_DE_PASSE)." };
+  const motDePasse = String(formData.get("motDePasse") ?? "");
+  if (motDePasse.length < MOT_DE_PASSE_JEU_MIN) {
+    return { erreur: `Le mot de passe des comptes fictifs doit faire au moins ${MOT_DE_PASSE_JEU_MIN} caractères.` };
+  }
 
   try {
     const n = await rejouerJeuDeDonnees(motDePasse);
