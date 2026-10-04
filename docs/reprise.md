@@ -4,7 +4,7 @@
 
 **Fait**
 - Modèle arrêté : `docs/cycle-de-vie.md`.
-- Dépôt public `ElahTovim/groma`, relié à Vercel. Production : https://groma-coral.vercel.app.
+- Dépôt public `ElahTovim/groma`, relié à Vercel. Production : https://gromaa.vercel.app.
 - Base Neon `groma-db`, créée depuis Vercel ; première migration jouée (table `comptes`).
 - Connexion par courriel (Auth.js), page de première installation réservée à `ADMIN_EMAIL`, journalisation des connexions et des refus. Fusionné par la demande n° 1.
 - Compte gérant créé par Kerguelenn.
