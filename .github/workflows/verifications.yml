@@ -1,0 +1,24 @@
+# Rejoue les vérifications à chaque envoi de code, sur toutes les branches.
+# Une coche verte sur GitHub = le code se lit sans faute, les types sont cohérents, les tests passent.
+name: Vérifications
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Relecture du code
+        run: npm run lint
+      - name: Cohérence des types
+        run: npx next typegen && npx tsc --noEmit
+      - name: Tests
+        run: npm test
