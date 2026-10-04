@@ -14,7 +14,10 @@ Groma est un outil de suivi de chantiers de rénovation pour une petite entrepri
 
 - **Chantier** : statuts `devis → signé → planifié → en cours → réception → clos`, ou `annulé` (avec un motif, impossible une fois en cours). Il a une adresse, un client, des dates et la météo des 3 prochains jours.
 - **Lot** (carrelage, électricité, menuiseries…) : statuts `à commander → commandé → livré → posé → fini`. Il a une date de livraison prévue et une date de fin prévue. **En retard** quand une date prévue est dépassée : le produit le calcule, il faut que ça se voie.
-- **Fil** : un seul fil par chantier, comme une conversation. Chaque message a un auteur et un type : demande (avec un destinataire et une date), réponse, disponibilité, document (interne ou partagé avec des participants choisis), signalement.
+- **Chantier** porte aussi un **montant HT**, visible du gérant et de l'équipe seulement.
+- **Fil** : un seul fil par chantier, comme une conversation. Chaque message a un auteur et un type : demande (avec un destinataire et une date), réponse, disponibilité, document, signalement.
+- **Qui voit ça ?** Tout élément du fil est interne par défaut. Sur chaque élément, un bouton ouvre une fenêtre dédiée où le gérant ou le chef d'équipe coche, un par un, les participants qui le verront (avec leur nom et leur qualité). Une demande adressée à un externe arrive déjà cochée pour lui. Chaque élément affiche discrètement qui le voit.
+- **Lots, retards et montants** ne s'affichent jamais pour un externe. Pour l'informer d'un retard, l'équipe lui écrit dans le fil.
 - **Signalement** : `à qualifier → réserve ouverte → levée`, ou `écarté` avec un motif.
 - **Règle phare** : on ne peut pas clore un chantier tant qu'un signalement est à qualifier ou qu'une réserve est ouverte. L'écran doit dire clairement pourquoi c'est refusé et ce qui bloque.
 
@@ -27,6 +30,7 @@ Groma est un outil de suivi de chantiers de rénovation pour une petite entrepri
 5. **Inviter un participant** : courriel, qualité (client, architecte, syndic, fournisseur…). Pour un fournisseur, le SIRET remplit la fiche automatiquement.
 6. **Le chantier vu par un externe** : la même fiche, réduite à ce qui lui est partagé, sans aucun bouton de statut.
 7. **Clôture refusée** : la fiche au moment où on tente de clore avec une réserve ouverte.
+8. **Qui voit ça ?** : la fenêtre de partage d'un élément du fil, avec la liste des participants du chantier à cocher.
 
 ## Pour chaque écran, les quatre états
 

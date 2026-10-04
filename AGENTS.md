@@ -18,6 +18,8 @@ Suivi de chantiers de rénovation pour une entreprise du BTP : de la signature d
 
 Le modèle complet (rôles, statuts, transitions, règles, tables) est dans `docs/cycle-de-vie.md`. C'est la référence : un écart entre le code et ce document est un bogue, ou une décision à faire valider puis à reporter dans le document.
 
+Production : https://gromaa.vercel.app (aussi groma-coral.vercel.app ; `groma.vercel.app`, avec un seul a, appartient à un autre projet).
+
 Construit dans le cadre d'un séminaire en cinq semaines : consignes dans `docs/consignes/`. Sujet du flux de nuit : `chantiers`.
 
 ## Qui fait quoi
