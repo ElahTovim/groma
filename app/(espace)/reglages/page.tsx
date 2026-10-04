@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { equipeVoitTout } from "@/lib/acces";
 import { appelantObligatoire } from "@/lib/session";
 import { BoutonJeu } from "./bouton-jeu";
+import { BoutonSentry } from "./bouton-sentry";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,15 @@ export default async function Reglages() {
         </CardHeader>
         <CardContent>
           <BoutonJeu />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Suivi des erreurs</CardTitle>
+          <CardDescription>Envoie une erreur fictive à Sentry, pour vérifier que les vraies erreurs y arriveront.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BoutonSentry />
         </CardContent>
       </Card>
       <Card>

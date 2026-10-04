@@ -1,13 +1,18 @@
 "use server";
 
+import { put } from "@vercel/blob";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { voitLInterne } from "@/lib/acces";
 import { lireChantier } from "@/lib/chantiers";
 import { db } from "@/lib/db";
-import { chantiers, comptes, fil, lots, type StatutChantier, type StatutLot, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
+import { chantiers, comptes, fil, lots, participants, type StatutChantier, type StatutLot, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
+import { adresseDuSite, alerterGerants, envoyerCourriel } from "@/lib/courriel";
 import { contexteChantier, estParticipant } from "@/lib/fiche";
+import { nomPropre, verifierFichier } from "@/lib/fichiers";
+import { formulaireInvitation } from "@/lib/invitation";
+import { creerJeton } from "@/lib/jetons";
 import { journal } from "@/lib/journal";
 import {
   ETAPES_ALERTE,
@@ -67,6 +72,12 @@ export async function avancerChantier(chantierId: string, vers: StatutChantier):
   if (fait.length === 0) return { ok: false, erreur: "Ce chantier a changé entre-temps. La page va se recharger." };
 
   journal("etape", { compte: qui.id, chantier: chantierId, de: chantier.statut, vers, alerte_gerant: ETAPES_ALERTE.includes(vers) });
+  if (ETAPES_ALERTE.includes(vers)) {
+    await alerterGerants(
+      `${chantier.reference} : ${libelle(vers)}`,
+      `${qui.nom} a passé le chantier « ${chantier.nom} » (${chantier.ville}) en ${libelle(vers)}.\n\n${await adresseDuSite()}/chantiers/${chantierId}`,
+    );
+  }
   rafraichir(chantierId);
   return { ok: true, message: `Chantier passé en ${libelle(vers)}.` };
 }
@@ -86,6 +97,10 @@ export async function annulerChantier(chantierId: string, motif: string): Promis
   if (fait.length === 0) return { ok: false, erreur: "Ce chantier a changé entre-temps. La page va se recharger." };
 
   journal("etape", { compte: qui.id, chantier: chantierId, de: chantier.statut, vers: "annule", alerte_gerant: true });
+  await alerterGerants(
+    `${chantier.reference} : annulé`,
+    `${qui.nom} a annulé le chantier « ${chantier.nom} » (${chantier.ville}).\nMotif : ${motif.trim()}\n\n${await adresseDuSite()}/chantiers/${chantierId}`,
+  );
   rafraichir(chantierId);
   return { ok: true, message: "Chantier annulé." };
 }
@@ -159,11 +174,18 @@ const formulaireFil = z.object({
   lotId: z.string().trim(),
 });
 
-export async function ecrireDansLeFil(chantierId: string, donnees: Record<string, string>): Promise<Resultat> {
+export async function ecrireDansLeFil(chantierId: string, formData: FormData): Promise<Resultat> {
   const p = await porte(chantierId, false);
   if ("ok" in p) return p;
   const { qui } = p;
-  const lu = formulaireFil.safeParse(donnees);
+  const champ = (k: string) => (typeof formData.get(k) === "string" ? String(formData.get(k)) : "");
+  const lu = formulaireFil.safeParse({
+    type: champ("type"),
+    texte: champ("texte"),
+    destinataireId: champ("destinataireId"),
+    dateCible: champ("dateCible"),
+    lotId: champ("lotId"),
+  });
   if (!lu.success) return { ok: false, erreur: lu.error.issues[0].message };
   const e = lu.data;
   if (!peutEcrire(qui.role, e.type)) return { ok: false, erreur: "Votre rôle ne permet pas ce type d'élément." };
@@ -183,7 +205,25 @@ export async function ecrireDansLeFil(chantierId: string, donnees: Record<string
     if (!l) return { ok: false, erreur: "Lot introuvable." };
   }
 
+  // Un document arrive avec son fichier : rangé sur Vercel Blob en accès privé,
+  // il ne sera servi que par /api/fichiers/[id], après vérification des droits.
+  let fichier: { fichierUrl: string; fichierNom: string; fichierType: string; fichierTaille: number } | null = null;
+  if (e.type === "document") {
+    const f = formData.get("fichier");
+    if (!(f instanceof File) || f.size === 0) return { ok: false, erreur: "Joignez le fichier du document." };
+    const v = verifierFichier(f);
+    if (!v.ok) return { ok: false, erreur: v.raison };
+    try {
+      const b = await put(`chantiers/${chantierId}/${nomPropre(f.name)}`, f, { access: "private", addRandomSuffix: true, contentType: f.type });
+      fichier = { fichierUrl: b.url, fichierNom: f.name.slice(0, 200), fichierType: f.type, fichierTaille: f.size };
+    } catch (err) {
+      journal("fichier_echec", { compte: qui.id, chantier: chantierId, erreur: String(err) });
+      return { ok: false, erreur: "Le fichier n'a pas pu être enregistré. Réessayez." };
+    }
+  }
+
   await db.insert(fil).values({
+    ...fichier,
     chantierId,
     lotId,
     auteurId: qui.id,
@@ -240,6 +280,50 @@ export async function qualifierSignalement(chantierId: string, elementId: string
     a_qualifier: "",
   };
   return { ok: true, message: messages[vers] };
+}
+
+// ——— Inviter ———
+
+export type ResultatInvitation = Resultat & { lien?: string };
+
+// Inviter quelqu'un sur ce chantier. Un compte existant y est ajouté tout de suite ;
+// sinon, un lien d'invitation est créé, envoyé par courriel quand c'est possible,
+// et toujours affiché pour pouvoir le transmettre à la main.
+export async function inviter(chantierId: string, donnees: Record<string, string>): Promise<ResultatInvitation> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p;
+  const { qui, chantier } = p;
+  const lu = formulaireInvitation.safeParse(donnees);
+  if (!lu.success) return { ok: false, erreur: lu.error.issues[0].message };
+  const { email, role, qualite } = lu.data;
+
+  const [existant] = await db.select({ id: comptes.id, nom: comptes.nom }).from(comptes).where(eq(comptes.email, email)).limit(1);
+  if (existant) {
+    if (await estParticipant(chantierId, existant.id)) return { ok: false, erreur: `${existant.nom} est déjà invité sur ce chantier.` };
+    await db.insert(participants).values({ chantierId, compteId: existant.id, qualite });
+    journal("participant_ajoute", { compte: qui.id, chantier: chantierId, invite: existant.id, qualite });
+    await envoyerCourriel({
+      a: email,
+      sujet: `Vous êtes invité sur le chantier ${chantier.nom}`,
+      texte: `${qui.nom} vous a ajouté au chantier « ${chantier.nom} » (${chantier.ville}).\n\n${await adresseDuSite()}/chantiers/${chantierId}`,
+    });
+    rafraichir(chantierId);
+    return { ok: true, message: `${existant.nom} a été ajouté au chantier.` };
+  }
+
+  const jeton = await creerJeton({ type: "invitation", email, chantierId, role, qualite, creePar: qui.id });
+  const lien = `${await adresseDuSite()}/invitation/${jeton}`;
+  const envoi = await envoyerCourriel({
+    a: email,
+    sujet: `Invitation sur le chantier ${chantier.nom}`,
+    texte: `${qui.nom} vous invite sur le chantier « ${chantier.nom} » (${chantier.ville}), en tant que ${qualite}.\n\nCréez votre compte ici (lien valable 7 jours, une seule fois) :\n${lien}`,
+  });
+  journal("invitation", { compte: qui.id, chantier: chantierId, role, qualite, courriel_parti: envoi.ok });
+  return {
+    ok: true,
+    message: envoi.ok ? "Invitation envoyée par courriel." : "Invitation créée. Le courriel n'est pas parti : transmettez le lien à la main.",
+    lien,
+  };
 }
 
 const LIBELLE_LOT: Record<StatutLot, string> = {

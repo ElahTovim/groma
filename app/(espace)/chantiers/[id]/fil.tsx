@@ -121,8 +121,8 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
       className="flex flex-col gap-3 rounded-lg border p-3"
       onSubmit={(e) => {
         e.preventDefault();
-        const d = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
-        lancer(() => ecrireDansLeFil(props.chantierId, { destinataireId: "", dateCible: "", lotId: "", ...d }), () => {
+        const d = new FormData(e.currentTarget);
+        lancer(() => ecrireDansLeFil(props.chantierId, d), () => {
           setType("message");
           setCle((c) => c + 1);
         });
@@ -162,6 +162,14 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
           </select>
         )}
       </div>
+      {type === "document" && (
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="fichier" className="text-xs text-muted-foreground">
+            Fichier (PDF ou photo, 4 Mo au plus)
+          </Label>
+          <Input id="fichier" name="fichier" type="file" required accept="application/pdf,image/jpeg,image/png,image/webp,image/heic" />
+        </div>
+      )}
       <Textarea
         name="texte"
         required
@@ -169,7 +177,7 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
           type === "signalement"
             ? "Décrivez l'anomalie constatée."
             : type === "document"
-              ? "Titre du document (le fichier joint arrive avec la tranche des pièces jointes)."
+              ? "Titre du document : devis signé, plan, procès-verbal…"
               : type === "disponibilite"
                 ? "Par exemple : présent de 8 h à 12 h."
                 : "Écrire dans le fil…"
@@ -212,6 +220,11 @@ export function Fil(props: { chantierId: string; interne: boolean; elements: Ele
                   {e.lot && <span>· {e.lot}</span>}
                 </div>
                 <p className="text-sm whitespace-pre-wrap">{e.texte}</p>
+                {e.fichier && (
+                  <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="w-fit text-sm underline">
+                    Ouvrir {e.fichier.nom} ({Math.max(1, Math.round(e.fichier.taille / 1024))} Ko)
+                  </a>
+                )}
                 {(e.destinataire || e.dateCible) && (
                   <p className="text-xs text-muted-foreground">
                     {e.destinataire ? `Pour ${e.destinataire}` : ""}

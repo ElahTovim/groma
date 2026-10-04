@@ -27,6 +27,7 @@ export type ElementVu = {
   statutSignalement: StatutSignalement | null;
   motif: string | null;
   visiblePar: string[];
+  fichier: { nom: string; type: string; taille: number } | null;
   creeLe: string;
 };
 
@@ -87,6 +88,8 @@ export async function lireFil(qui: Appelant, chantierId: string): Promise<Elemen
     motif: e.motif,
     // Un externe n'a pas à savoir qui d'autre voit l'élément.
     visiblePar: voitLInterne(qui.role) ? e.visiblePar : [],
+    // L'adresse du fichier ne part jamais vers le navigateur : seulement son nom.
+    fichier: e.fichierUrl ? { nom: e.fichierNom ?? "fichier", type: e.fichierType ?? "", taille: e.fichierTaille ?? 0 } : null,
     creeLe: e.creeLe.toISOString(),
   }));
 }

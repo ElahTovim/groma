@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { BadgeStatut } from "@/components/badge-statut";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { voitLInterne } from "@/lib/acces";
 import { lireChantier } from "@/lib/chantiers";
 import { lireFil, lireLots, lireParticipants } from "@/lib/fiche";
@@ -11,7 +13,9 @@ import { appelantObligatoire } from "@/lib/session";
 import { AnnonceCreation } from "./annonce-creation";
 import { EtapeChantier } from "./etape";
 import { Fil } from "./fil";
+import { Inviter } from "./inviter";
 import { Lots } from "./lots";
+import { Meteo } from "./meteo";
 
 export const dynamic = "force-dynamic";
 
@@ -81,12 +85,17 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
             </CardContent>
           </Card>
 
+          <Suspense fallback={<Skeleton className="h-36" />}>
+            <Meteo chantier={chantier} />
+          </Suspense>
+
           {interne && <Lots chantierId={chantier.id} lots={lots} participants={participants} modifiable={!termine} />}
 
           {interne && (
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between gap-3">
                 <CardTitle className="text-base">Participants</CardTitle>
+                {!termine && <Inviter chantierId={chantier.id} />}
               </CardHeader>
               <CardContent>
                 {participants.length === 0 ? (
