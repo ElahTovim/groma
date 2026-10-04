@@ -1,4 +1,4 @@
-import type { StatutChantier } from "@/lib/db/schema";
+import type { StatutChantier, StatutLot, StatutSignalement, TypeFil } from "@/lib/db/schema";
 
 // Le jeu de données fictif : dix personnes, cinquante chantiers, des cas normaux
 // et des cas tordus. Tiré au sort avec une graine fixe : rejouer donne
@@ -99,7 +99,25 @@ export type ChantierFictif = {
   motifAnnulation: string | null;
   // Index dans PERSONNES des participants, avec leur qualité sur ce chantier.
   participants: number[];
+  lots: LotFictif[];
+  fil: ElementFictif[];
 };
+
+export type LotFictif = { nom: string; statut: StatutLot; livraisonPrevue: string | null; finPrevue: string | null; fournisseur: number | null };
+
+export type ElementFictif = {
+  auteur: number; // index dans PERSONNES ; -1 = le gérant (premier compte gérant trouvé)
+  type: TypeFil;
+  texte: string;
+  destinataire?: number;
+  dateCible?: string;
+  lot?: number; // index dans lots
+  statutSignalement?: StatutSignalement;
+  visiblePar: number[];
+};
+
+const NOMS_LOTS = ["Démolition", "Plomberie", "Électricité", "Carrelage", "Peinture", "Menuiseries"];
+const FOURNISSEUR = 9; // Carrelages du Marais
 
 function jour(depart: Date, decalage: number): string {
   const d = new Date(depart);
@@ -119,6 +137,40 @@ export function genererChantiers(aujourdhui = new Date("2026-10-05")): ChantierF
     const chef = Math.floor(tirer() * 3); // un des trois chefs d'équipe
     const client = 3 + Math.floor(tirer() * 3); // un des trois clients
     const autres = [6, 7, 8, 9].filter(() => tirer() < 0.3);
+    const enPlace: StatutLot[] =
+      statut === "reception" || statut === "clos"
+        ? ["fini", "fini", "fini"]
+        : statut === "en_cours"
+          ? ["fini", parmi<StatutLot>(["livre", "pose", "commande"]), parmi<StatutLot>(["commande", "a_commander"])]
+          : statut === "planifie"
+            ? ["commande", "a_commander"]
+            : [];
+    const lotsDuChantier: LotFictif[] = enPlace.map((s, k) => {
+      const nom = NOMS_LOTS[(i + k * 2) % NOMS_LOTS.length];
+      // Une livraison prévue dans le passé pour un lot pas encore livré = un retard visible.
+      const decalage = s === "commande" || s === "a_commander" ? (tirer() < 0.5 ? -6 : 9) : -20;
+      return {
+        nom,
+        statut: s,
+        livraisonPrevue: jour(aujourdhui, decalage),
+        finPrevue: jour(aujourdhui, decalage + 12),
+        fournisseur: nom === "Carrelage" && autres.includes(FOURNISSEUR) ? FOURNISSEUR : null,
+      };
+    });
+    const filDuChantier: ElementFictif[] = [];
+    if (statut !== "devis" && statut !== "annule") {
+      filDuChantier.push({ auteur: chef, type: "document", texte: "Devis signé (version 2)", visiblePar: [client] });
+    }
+    if (statut === "en_cours" || statut === "planifie") {
+      filDuChantier.push({ auteur: chef, type: "message", texte: "Accès au chantier par la cour, code du portail transmis par le client.", visiblePar: [] });
+      filDuChantier.push({ auteur: chef, type: "demande", texte: "Pouvez-vous confirmer le choix de la faïence ?", destinataire: client, dateCible: jour(aujourdhui, 3), visiblePar: [client] });
+      filDuChantier.push({ auteur: client, type: "disponibilite", texte: "Présente de 8 h à 12 h.", dateCible: jour(aujourdhui, 2), visiblePar: [] });
+    }
+    if (statut === "reception") {
+      filDuChantier.push({ auteur: client, type: "signalement", texte: "Joint de la douche mal fini dans l'angle.", statutSignalement: i % 2 ? "a_qualifier" : "levee", visiblePar: [] });
+      if (i % 3 === 0) filDuChantier.push({ auteur: chef, type: "signalement", texte: "Plinthe abîmée dans le couloir.", statutSignalement: "reserve_ouverte", visiblePar: [] });
+    }
+
     resultat.push({
       reference: `CH-2026-F${String(i + 1).padStart(3, "0")}`,
       nom: parmi(TRAVAUX),
@@ -132,12 +184,14 @@ export function genererChantiers(aujourdhui = new Date("2026-10-05")): ChantierF
       finPrevue: debut ? jour(new Date(debut), 20 + Math.round(tirer() * 80)) : null,
       motifAnnulation: statut === "annule" ? "Le client a renoncé après le devis." : null,
       participants: [chef, client, ...autres],
+      lots: lotsDuChantier,
+      fil: filDuChantier,
     });
   }
 
   // Les cas tordus, à la main.
-  resultat[0] = { ...resultat[0], nom: "Chantier sans aucun participant externe", participants: [0] };
-  resultat[1] = { ...resultat[1], nom: "Devis sans montant", montantHt: null, statut: "devis", debutPrevu: null, finPrevue: null };
+  resultat[0] = { ...resultat[0], nom: "Chantier sans aucun participant externe", participants: [0], fil: resultat[0].fil.filter((e) => e.auteur === 0).map((e) => ({ ...e, visiblePar: [] })) };
+  resultat[1] = { ...resultat[1], nom: "Devis sans montant", montantHt: null, statut: "devis", debutPrevu: null, finPrevue: null, lots: [], fil: [] };
   resultat[2] = { ...resultat[2], nom: "Rénovation d'un appartement au nom très long, avec cave, parking et deux chambres de bonne au sixième étage sans ascenseur", participants: [1, 3, 6, 7, 8, 9] };
   resultat[3] = { ...resultat[3], client: "Mme Élise d'Aubigné-Saint-Éxupéry", adresse: "3 bis impasse de l'Œuvre", nom: "Salle d'eau" };
   resultat[4] = { ...resultat[4], nom: "Chantier en cours sans date de fin", statut: "en_cours", finPrevue: null };
