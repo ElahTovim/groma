@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { BadgeStatut } from "@/components/badge-statut";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { peutCreerChantier, voitLInterne } from "@/lib/acces";
-import { LIBELLE_STATUT, STATUTS } from "@/lib/chantier-forme";
 import { listerChantiers } from "@/lib/chantiers";
 import { dateCourte, euros } from "@/lib/format";
 import { appelantObligatoire } from "@/lib/session";
+import { FiltresChantiers } from "./filtres";
 
 export const dynamic = "force-dynamic";
 
@@ -31,31 +30,7 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
         )}
       </div>
 
-      {/* Un simple formulaire GET : les filtres vivent dans l'adresse, on peut la partager. */}
-      <form className="flex flex-wrap gap-2" role="search">
-        <Input name="q" defaultValue={q} placeholder="Rechercher : nom, client, ville, référence" className="min-w-0 flex-1 basis-60" aria-label="Rechercher" />
-        <select
-          name="statut"
-          defaultValue={statut}
-          aria-label="Filtrer par statut"
-          className="h-9 rounded-md border bg-background px-3 text-sm"
-        >
-          <option value="">Tous les statuts</option>
-          {STATUTS.map((s) => (
-            <option key={s} value={s}>
-              {LIBELLE_STATUT[s]}
-            </option>
-          ))}
-        </select>
-        <Button type="submit" variant="secondary">
-          Filtrer
-        </Button>
-        {filtre && (
-          <Link href="/chantiers" className={buttonVariants({ variant: "ghost" })}>
-            Effacer
-          </Link>
-        )}
-      </form>
+      <FiltresChantiers />
 
       {liste.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center">
