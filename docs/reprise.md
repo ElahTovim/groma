@@ -1,14 +1,14 @@
 # État de reprise
 
-## 4 octobre 2026, nuit (branches `filet` puis `lot-a`)
+## 4 octobre 2026, nuit (filet et lot A, fusionnés : demande n° 3)
 
 **Fait**
 - Tranche 1, le filet : vérifications GitHub à chaque envoi (lecture, types, tests) ; une base Neon distincte par prévisualisation (réglage « Create Database Branch For Deployment : Preview ») ; migrations jouées par Vercel à chaque construction (`vercel.json`) ; page `/api/sante` qui donne l'empreinte de la base utilisée.
-- Lot A, en prévisualisation, pas encore fusionné : tables `chantiers` et `participants` ; règle d'accès unique (`lib/acces.ts`, réglage `EQUIPE_VOIT_TOUT`) ; rôle relu en base à chaque demande ; liste filtrable, fiche, formulaire « Nouveau chantier », états vide, chargement, erreur ; jeu de données fictif rejouable depuis Réglages (50 chantiers, 10 personnes, mot de passe commun `JEU_MOT_DE_PASSE` dans Vercel) ; `acces_refuse` dans le journal.
+- Lot A, en production : tables `chantiers` et `participants` ; règle d'accès unique (`lib/acces.ts`, réglage `EQUIPE_VOIT_TOUT`) ; rôle relu en base à chaque demande ; liste filtrable, fiche, formulaire « Nouveau chantier », états vide, chargement, erreur ; jeu de données fictif rejouable depuis Réglages (50 chantiers, 10 personnes ; le gérant tape le mot de passe des comptes fictifs au moment du rejeu) ; filtres immédiats sur la liste ; `acces_refuse` dans le journal.
 - 25 tests.
 
 **Reste**
-- Kerguelenn essaie le lot A sur sa prévisualisation, puis fusion.
+- En production, la base n'a pas encore de chantiers : rejouer le jeu de données depuis Réglages avant la démo.
 - Lot B : invitations (Resend) et mot de passe oublié, lots, fil avec « Qui voit ça ? », étapes du chantier et règle de clôture, pièces jointes.
 - Lot C : météo et Sirene, Sentry, UptimeRobot, revue de sécurité, README.
 - Figma : type « message », fil chronologique, débordement « Vu par ».
