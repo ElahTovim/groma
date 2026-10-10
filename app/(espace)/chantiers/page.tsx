@@ -31,7 +31,10 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Chantiers</h1>
+        <h1 className="text-[2.5rem] leading-[0.95] font-bold tracking-tighter md:text-6xl">
+          Chantiers
+          <span className="block text-muted-foreground/70">{total} au total</span>
+        </h1>
         {peutCreerChantier(qui.role) && (
           <Link href="/chantiers/nouveau" className={buttonVariants({ size: "lg" })}>
             Nouveau chantier
@@ -42,7 +45,7 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
       <FiltresChantiers compteurs={compteurs as Record<string, number>} total={total} aTraiter={nbATraiter} />
 
       {liste.length === 0 ? (
-        <div className="border border-dashed p-10 text-center">
+        <div className="rounded-3xl bg-card p-10 text-center">
           {filtre ? (
             <p className="text-muted-foreground">{statut === "a_traiter" ? "Rien à traiter : aucun retard, aucun signalement en attente." : "Aucun chantier ne correspond à ces filtres."}</p>
           ) : (
@@ -57,87 +60,54 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
           )}
         </div>
       ) : (
-        <>
-          {/* Téléphone : une ligne par chantier, facile à toucher, ce qui est à traiter en premier. */}
-          <ul className="-mx-4 flex flex-col divide-y border-y md:hidden">
-            {liste.map((c) => (
+        // Une carte par chantier : la photo (la couleur viendra des images), le nom en
+        // grand, ce qui est à traiter en aplat noir. Une colonne sur téléphone, trois sur ordinateur.
+        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {liste.map((c) => {
+            const urgent = poidsATraiter(c.aTraiter) > 0;
+            return (
               <li key={c.id}>
-                <Link href={`/chantiers/${c.id}`} className="flex gap-3 px-4 py-3 active:bg-muted">
-                  <Vignette chantierId={c.id} aPhoto={c.aPhoto} alt="" className="size-14" />
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="line-clamp-2 min-w-0 font-medium">{c.nom}</span>
+                <Link
+                  href={`/chantiers/${c.id}`}
+                  className="flex h-full flex-col gap-4 rounded-3xl bg-card p-3 pb-5 transition-shadow hover:shadow-lg active:scale-[0.99] md:p-3 md:pb-5"
+                >
+                  <div className="relative">
+                    <Vignette chantierId={c.id} aPhoto={c.aPhoto} alt="" className="aspect-[16/10] w-full rounded-2xl" />
+                    <div className="absolute top-3 left-3">
                       <BadgeStatut statut={c.statut} />
                     </div>
-                    <span className="truncate text-sm text-muted-foreground">
-                      {c.client} · {c.ville}
-                    </span>
-                    <ResumeATraiter a={c.aTraiter} compact />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-3 px-2">
+                    <div className="flex flex-col gap-1">
+                      <span className="line-clamp-2 text-2xl leading-tight font-bold tracking-tight">{c.nom}</span>
+                      <span className="truncate text-muted-foreground">
+                        {c.ville} · {c.client}
+                      </span>
+                    </div>
+                    {interne && (
+                      <div className="mt-auto flex items-end justify-between gap-3">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground">Montant HT</span>
+                          <span className="text-xl font-bold tracking-tight tabular-nums">{euros(c.montantHt)}</span>
+                        </div>
+                        <span className="text-right text-sm text-muted-foreground tabular-nums">
+                          Début
+                          <br />
+                          {dateCourte(c.debutPrevu)}
+                        </span>
+                      </div>
+                    )}
+                    {urgent && (
+                      <div className="rounded-2xl bg-foreground px-3 py-2 text-background">
+                        <ResumeATraiter a={c.aTraiter} compact />
+                      </div>
+                    )}
                   </div>
                 </Link>
               </li>
-            ))}
-          </ul>
-
-          {/* Ordinateur : un tableau, chaque colonne bornée pour que rien ne déborde. */}
-          <div className="hidden md:block">
-            <table className="w-full table-fixed border-collapse text-sm">
-              <colgroup>
-                <col className="w-14" />
-                <col />
-                <col className="w-44" />
-                <col className="w-36" />
-                <col className="w-28" />
-                {interne && <col className="w-28" />}
-                {interne && <col className="w-44" />}
-                <col className="w-28" />
-              </colgroup>
-              <thead>
-                <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="py-2 font-medium">
-                    <span className="sr-only">Photo</span>
-                  </th>
-                  <th className="py-2 font-medium">Chantier</th>
-                  <th className="py-2 font-medium">Client</th>
-                  <th className="py-2 font-medium">Ville</th>
-                  <th className="py-2 font-medium">Début prévu</th>
-                  {interne && <th className="py-2 text-right font-medium">Montant HT</th>}
-                  {interne && <th className="py-2 pl-6 font-medium">À traiter</th>}
-                  <th className="py-2 font-medium">Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {liste.map((c) => (
-                  <tr key={c.id} className="border-b align-top hover:bg-muted/60">
-                    <td className="py-2.5">
-                      <Vignette chantierId={c.id} aPhoto={c.aPhoto} alt="" className="size-10" />
-                    </td>
-                    <td className="py-2.5 pr-4">
-                      <Link href={`/chantiers/${c.id}`} className="line-clamp-2 font-medium hover:underline" title={c.nom}>
-                        {c.nom}
-                      </Link>
-                      <span className="font-mono text-xs text-muted-foreground">{c.reference}</span>
-                    </td>
-                    <td className="truncate py-2.5 pr-4" title={c.client}>
-                      {c.client}
-                    </td>
-                    <td className="truncate py-2.5 pr-4">{c.ville}</td>
-                    <td className="py-2.5 tabular-nums">{dateCourte(c.debutPrevu)}</td>
-                    {interne && <td className="py-2.5 text-right tabular-nums">{euros(c.montantHt)}</td>}
-                    {interne && (
-                      <td className="py-2.5 pl-6">
-                        <ResumeATraiter a={c.aTraiter} />
-                      </td>
-                    )}
-                    <td className="py-2.5">
-                      <BadgeStatut statut={c.statut} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

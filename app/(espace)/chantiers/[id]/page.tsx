@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { BadgeStatut } from "@/components/badge-statut";
+import { LIBELLE_STATUT } from "@/lib/chantier-forme";
 import { Section } from "@/components/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { voitLInterne } from "@/lib/acces";
@@ -13,6 +14,7 @@ import { aujourdhuiParis, etapeSuivante, verifierPassage } from "@/lib/regles";
 import { appelantObligatoire } from "@/lib/session";
 import { AnnonceCreation } from "./annonce-creation";
 import { ATraiterFiche } from "./a-traiter";
+import { Chiffres } from "./chiffres";
 import { EtapeChantier } from "./etape";
 import { Fil } from "./fil";
 import { FriseEtapes } from "./frise";
@@ -74,25 +76,21 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
         <PhotoChantier chantierId={chantier.id} aPhoto={chantier.aPhoto} nom={chantier.nom} modifiable={interne && !termine} />
       )}
 
-      <header className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between md:gap-10">
-        <div className="flex min-w-0 flex-col gap-2">
+      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-10">
+        <div className="flex min-w-0 flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            <span className="whitespace-nowrap">{chantier.reference}</span>
-            {interne && chantier.montantHt && <> · {euros(chantier.montantHt)} HT</>}
+            <span className="whitespace-nowrap">{chantier.reference}</span> · Client : {chantier.client}
           </p>
-          <h1 className="text-[1.75rem] leading-tight font-bold text-balance md:text-[2.125rem]">{chantier.nom}</h1>
+          {/* Le titre sur deux tons : le chantier en noir, où et à quelle étape en gris. */}
+          <h1 className="text-[2.5rem] leading-[0.95] font-bold tracking-tighter text-balance md:text-6xl">
+            {chantier.nom}
+            <span className="block text-muted-foreground/70">
+              {chantier.ville} · {LIBELLE_STATUT[chantier.statut]}
+            </span>
+          </h1>
           <p className="text-muted-foreground">
             {chantier.adresse}, {chantier.codePostal} {chantier.ville}
-            {" · "}
-            Client : {chantier.client}
-            <span className="hidden md:inline">
-              {chantier.debutPrevu && <> · Début : {dateCourte(chantier.debutPrevu)}</>}
-              {chantier.finPrevue && <> · Fin prévue : {dateCourte(chantier.finPrevue)}</>}
-            </span>
           </p>
-          <div className="md:hidden">
-            <BadgeStatut statut={chantier.statut} />
-          </div>
         </div>
         {interne && !termine && (
           <div className="md:w-96 md:shrink-0">
@@ -100,6 +98,8 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
           </div>
         )}
       </header>
+
+      {interne && <Chiffres lots={lots} montantHt={chantier.montantHt} finPrevue={chantier.finPrevue} />}
 
       <FriseEtapes statut={chantier.statut} />
       {chantier.statut === "annule" && <BadgeStatut statut={chantier.statut} />}
@@ -118,7 +118,7 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
           titre: "Infos",
           contenu: (
             <div className="flex flex-col gap-6">
-              <Section titre="Le chantier" className="md:hidden">
+              <Section titre="Le chantier" carte className="md:hidden">
                 <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
                   <dt className="text-muted-foreground">Début prévu</dt>
                   <dd>{dateCourte(chantier.debutPrevu)}</dd>
@@ -133,7 +133,7 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
                 </dl>
               </Section>
               {interne && (
-                <Section titre={`Participants (${participants.length})`}>
+                <Section titre={`Participants (${participants.length})`} carte>
                   {participants.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Personne n&apos;est encore invité sur ce chantier.</p>
                   ) : (

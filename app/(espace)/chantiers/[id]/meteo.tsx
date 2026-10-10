@@ -27,7 +27,7 @@ export async function Meteo({ chantier }: { chantier: ChantierVu }) {
   const resultat = coords ? await previsions(coords.latitude, coords.longitude, aujourdhuiParis()) : null;
 
   return (
-    <Section titre="Météo sur place">
+    <Section titre="Météo sur place" carte>
         {!coords ? (
           <p className="text-sm text-muted-foreground">Adresse introuvable : météo impossible. Vérifiez l&apos;adresse du chantier.</p>
         ) : !resultat || !resultat.ok ? (
@@ -35,7 +35,7 @@ export async function Meteo({ chantier }: { chantier: ChantierVu }) {
         ) : (
           <ul className="grid grid-cols-3 gap-2">
             {resultat.jours.map((j) => (
-              <li key={j.date} className="flex min-w-0 flex-col gap-1 rounded-lg border p-3">
+              <li key={j.date} className="flex min-w-0 flex-col gap-1 rounded-2xl bg-muted p-3">
                 <span className="text-sm font-semibold capitalize">{jourCourt(j.date)}</span>
                 <span className="font-bold first-letter:uppercase">{j.ciel}</span>
                 <span className="tabular-nums">

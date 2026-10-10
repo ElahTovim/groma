@@ -25,8 +25,8 @@ function jours(n: number) {
 
 function Retard({ texte }: { texte: React.ReactNode }) {
   return (
-    <span className="flex w-fit items-center gap-2 rounded-md border-2 border-foreground px-2.5 py-1.5 font-bold md:py-1 md:text-sm">
-      <span aria-hidden className="flex size-5 shrink-0 items-center justify-center rounded bg-foreground text-xs leading-none text-background">
+    <span className="flex w-fit items-center gap-2 rounded-full bg-foreground py-1.5 pr-3.5 pl-1.5 font-semibold text-background md:py-1 md:text-sm">
+      <span aria-hidden className="flex size-5 shrink-0 items-center justify-center rounded-full bg-background text-xs font-bold leading-none text-foreground">
         !
       </span>
       {texte}
@@ -44,8 +44,8 @@ function LigneLot(props: { lot: LotVu; aujourdhui: string; replie: boolean; chil
       id={`lot-${l.id}`}
       className={cn(
         LIGNE,
-        "scroll-mt-24 flex-col gap-3 rounded-xl p-4 md:rounded-none md:border-0 md:border-t md:py-3.5",
-        l.enRetard ? "flex border-2 border-foreground" : "flex border-[1.5px]",
+        "scroll-mt-24 flex-col gap-3 rounded-3xl bg-card p-5 md:rounded-none md:border-0 md:border-t md:py-3.5",
+        l.enRetard ? "flex ring-2 ring-foreground md:ring-0" : "flex",
         props.replie && "hidden",
       )}
     >
@@ -111,7 +111,7 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
       <div className="flex flex-col gap-4">
         {ajout && (
           <form
-            className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2"
+            className="grid gap-3 rounded-3xl bg-card p-5 sm:grid-cols-2"
             onSubmit={(e) => {
               e.preventDefault();
               const d = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>;
@@ -157,8 +157,8 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
         ) : (
           <>
             {/* Une seule liste : cartes sur téléphone, lignes de tableau sur ordinateur. */}
-            <div className="flex flex-col gap-3 md:gap-0 md:overflow-hidden md:rounded-lg md:border">
-              <div aria-hidden className={cn(LIGNE, "hidden bg-muted py-2.5 text-[0.8125rem] font-semibold text-muted-foreground md:grid")}>
+            <div className="flex flex-col gap-3 md:gap-0 md:overflow-hidden md:rounded-3xl md:bg-card">
+              <div aria-hidden className={cn(LIGNE, "hidden py-3 text-[0.8125rem] font-semibold text-muted-foreground md:grid")}>
                 <span>Lot</span>
                 <span>Statut</span>
                 <span>Livraison prévue</span>
@@ -173,7 +173,7 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
                     {props.modifiable && etapeSuivanteLot(l.statut) && (
                       <Button
                         variant="outline"
-                        className="h-13 w-full border-[1.5px] text-base md:h-10 md:text-sm"
+                        className="h-13 w-full text-base md:h-10 md:text-sm"
                         disabled={enCours}
                         onClick={() => lancer(() => avancerLot(props.chantierId, l.id, etapeSuivanteLot(l.statut)!))}
                       >
@@ -185,7 +185,7 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
               </ul>
             </div>
             {finis > 0 && !voirFinis && (
-              <Button variant="outline" className="h-14 w-full justify-between px-4 text-base md:hidden" onClick={() => setVoirFinis(true)}>
+              <Button variant="outline" className="h-14 w-full justify-between border-0 bg-card px-5 text-base md:hidden" onClick={() => setVoirFinis(true)}>
                 Afficher {finis > 1 ? `les ${finis} lots finis` : "le lot fini"} <span aria-hidden>↓</span>
               </Button>
             )}

@@ -145,7 +145,7 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
   const gestes = GESTES.filter((g) => props.interne || !g.interneSeulement);
 
   return (
-    <div className="flex flex-col gap-3 border border-foreground/20 p-3">
+    <div className="flex flex-col gap-3 rounded-3xl bg-card p-5">
       {!props.interne && (
         <p className="text-sm">
           Vous pouvez écrire à l&apos;équipe, <strong>signaler un problème</strong>, joindre un document ou <strong>donner vos disponibilités</strong>. Seule l&apos;équipe voit ce que vous écrivez.
@@ -232,7 +232,7 @@ export function Fil(props: { chantierId: string; interne: boolean; elements: Ele
             const enAttente = e.statutSignalement === "a_qualifier" || e.statutSignalement === "reserve_ouverte";
             const estImage = e.fichier?.type.startsWith("image/");
             return (
-              <li key={e.id} id={`fil-${e.id}`} className={enAttente ? "flex scroll-mt-24 flex-col gap-2 rounded-xl border-2 border-foreground p-4" : "flex scroll-mt-24 flex-col gap-2 rounded-xl border-[1.5px] p-4"}>
+              <li key={e.id} id={`fil-${e.id}`} className={enAttente ? "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 ring-2 ring-foreground" : "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5"}>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1 font-semibold text-foreground">
                     <Icone className="size-3.5" aria-hidden /> {LIBELLE_TYPE[e.type]}
@@ -244,12 +244,12 @@ export function Fil(props: { chantierId: string; interne: boolean; elements: Ele
                   <span>{horodatage(e.creeLe)}</span>
                   {e.lot && <span>· {e.lot}</span>}
                 </div>
-                <p className="text-sm whitespace-pre-wrap">{e.texte}</p>
+                <p className="whitespace-pre-wrap">{e.texte}</p>
                 {e.fichier &&
                   (estImage ? (
                     <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="block w-fit">
                       {/* eslint-disable-next-line @next/next/no-img-element -- image privée, servie après vérification des droits */}
-                      <img src={`/api/fichiers/${e.id}`} alt={e.texte} loading="lazy" className="max-h-64 max-w-full border border-foreground/20 object-contain" />
+                      <img src={`/api/fichiers/${e.id}`} alt={e.texte} loading="lazy" className="max-h-64 max-w-full rounded-2xl object-contain" />
                     </a>
                   ) : (
                     <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="flex w-fit items-center gap-2 text-sm underline">
@@ -265,7 +265,7 @@ export function Fil(props: { chantierId: string; interne: boolean; elements: Ele
                 )}
                 {e.motif && <p className="text-xs text-muted-foreground">Motif : {e.motif}</p>}
                 {props.interne && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-foreground/10 pt-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
                     {/* Qui voit cet élément, dit en clair : c'est le cœur de « Qui voit ça ? ». */}
                     {e.visiblePar.length === 0 ? (
                       <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground">

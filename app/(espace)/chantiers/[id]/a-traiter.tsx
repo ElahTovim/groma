@@ -26,17 +26,17 @@ export function ATraiterFiche(props: { lots: LotVu[]; elements: ElementVu[]; auj
 
   return (
     <section aria-labelledby="a-traiter" className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-3">
-      <h2 id="a-traiter" className="font-bold">
+      <h2 id="a-traiter" className="text-xl font-bold tracking-tight md:text-base">
         À traiter <span className="md:hidden">({items.length})</span>
       </h2>
       <ul className="flex flex-col gap-2 md:flex-row md:flex-wrap md:gap-3">
         {items.map((i) => (
           <li key={i.texte}>
-            <a href={i.href} className="flex min-h-11 items-center gap-2 rounded-md border-2 border-foreground px-2.5 py-1.5 font-bold hover:bg-muted md:min-h-0">
-              <span aria-hidden className="flex size-5 shrink-0 items-center justify-center rounded bg-foreground text-xs leading-none text-background">
+            <a href={i.href} className="flex min-h-12 items-center gap-2.5 rounded-full bg-foreground py-2 pr-4 pl-2 font-semibold text-background hover:bg-foreground/85 md:min-h-10">
+              <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-background text-xs font-bold leading-none text-foreground">
                 !
               </span>
-              <span className="underline-offset-2 hover:underline">{i.texte}</span>
+              <span>{i.texte}</span>
             </a>
           </li>
         ))}

@@ -50,9 +50,10 @@
 
 /* Direction visuelle : noir et blanc, sans couleur. Un état se dit par la forme
    (plein, contour, pointillé) et par le texte, jamais par une teinte. Texte
-   secondaire assez foncé pour se lire en plein soleil (contraste d'au moins 7:1). */
+   secondaire assez foncé pour se lire en plein soleil (contraste d'au moins 7:1).
+   Des cartes blanches très arrondies posées sur un fond gris clair. */
 :root {
-  --background: oklch(0.99 0 0);
+  --background: oklch(0.94 0 0);
   --foreground: oklch(0.15 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.15 0 0);
@@ -75,7 +76,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.375rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.15 0 0);
   --sidebar-primary: oklch(0.15 0 0);
