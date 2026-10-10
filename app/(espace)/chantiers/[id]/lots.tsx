@@ -1,6 +1,5 @@
 "use client";
 
-import { Clock } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,31 +9,101 @@ import { Label } from "@/components/ui/label";
 import type { LotVu, ParticipantVu } from "@/lib/fiche";
 import { dateCourte } from "@/lib/format";
 import { ACTION_LOT, LIBELLE_LOT } from "@/lib/libelles";
-import { etapeSuivanteLot } from "@/lib/regles";
+import type { StatutLot } from "@/lib/db/schema";
+import { etapeSuivanteLot, retardsLot } from "@/lib/regles";
+import { cn } from "@/lib/utils";
 import { ajouterLot, avancerLot } from "./actions";
 import { useActionChantier } from "./use-action-chantier";
 
-export function Lots(props: { chantierId: string; lots: LotVu[]; participants: ParticipantVu[]; modifiable: boolean }) {
+const CYCLE_LOT: StatutLot[] = ["a_commander", "commande", "livre", "pose", "fini"];
+// Colonnes du tableau sur ordinateur : Lot, Statut, Livraison, Fin, Retard, action.
+const LIGNE = "md:grid md:grid-cols-[minmax(6rem,1.1fr)_6.5rem_8rem_8rem_6.5rem_8.5rem] md:items-center md:gap-2 md:px-4";
+
+function jours(n: number) {
+  return `${n} jour${n > 1 ? "s" : ""}`;
+}
+
+function Retard({ texte }: { texte: React.ReactNode }) {
+  return (
+    <span className="flex w-fit items-center gap-2 rounded-md border-2 border-foreground px-2.5 py-1.5 font-bold md:py-1 md:text-sm">
+      <span aria-hidden className="flex size-5 shrink-0 items-center justify-center rounded bg-foreground text-xs leading-none text-background">
+        !
+      </span>
+      {texte}
+    </span>
+  );
+}
+
+function LigneLot(props: { lot: LotVu; aujourdhui: string; replie: boolean; children: React.ReactNode }) {
+  const l = props.lot;
+  const r = retardsLot(l, props.aujourdhui);
+  const rang = CYCLE_LOT.indexOf(l.statut);
+  const livre = rang >= CYCLE_LOT.indexOf("livre");
+  return (
+    <li
+      id={`lot-${l.id}`}
+      className={cn(
+        LIGNE,
+        "scroll-mt-24 flex-col gap-3 rounded-xl p-4 md:rounded-none md:border-0 md:border-t md:py-3.5",
+        l.enRetard ? "flex border-2 border-foreground" : "flex border-[1.5px]",
+        props.replie && "hidden",
+      )}
+    >
+      <div className="flex items-center justify-between gap-3 md:contents">
+        <span className="text-lg font-bold md:text-[0.9375rem] md:font-semibold">{l.nom}</span>
+        <span>
+          <Badge variant="outline" className={cn("h-auto px-2.5 py-1 text-sm font-semibold md:text-[0.8125rem]", l.statut === "fini" ? "border-foreground bg-foreground text-background" : "border-foreground/60")}>
+            {LIBELLE_LOT[l.statut]}
+          </Badge>
+        </span>
+      </div>
+      {/* Avancement du lot, sur téléphone seulement : le tableau a déjà la colonne Statut. */}
+      <div className="flex flex-col gap-2 md:hidden">
+        <div className="grid grid-cols-5 gap-1" aria-hidden>
+          {CYCLE_LOT.map((s, i) => (
+            <span key={s} className={cn("h-2 rounded-full", i <= rang ? "bg-foreground" : "bg-foreground/10")} />
+          ))}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Étape {rang + 1} sur 5 : {CYCLE_LOT.map((s) => LIBELLE_LOT[s]).join(" · ")}
+        </p>
+      </div>
+      <span className="md:text-[0.9375rem]">
+        <span className="md:hidden">{livre ? "Livraison : " : "Livraison prévue : "}</span>
+        {l.statut === "fini" && !l.livraisonPrevue ? "—" : dateCourte(l.livraisonPrevue)}
+        {livre && l.livraisonPrevue && " ✓"}
+      </span>
+      <span className="-mt-2 md:mt-0 md:text-[0.9375rem]">
+        <span className="md:hidden">Fin prévue : </span>
+        {dateCourte(l.finPrevue)}
+        {l.statut === "fini" && l.finPrevue && " ✓"}
+      </span>
+      {l.fournisseur && <span className="text-muted-foreground md:hidden">Fournisseur : {l.fournisseur}</span>}
+      <span className="flex flex-col gap-2">
+        {r.livraison !== null && <Retard texte={<><span className="md:hidden">Livraison en retard de </span>{jours(r.livraison)}</>} />}
+        {r.fin !== null && <Retard texte={<><span className="md:hidden">Fin en retard de </span>{jours(r.fin)}</>} />}
+        {!l.enRetard && <span className="hidden md:inline">—</span>}
+      </span>
+      <span>{props.children}</span>
+    </li>
+  );
+}
+
+export function Lots(props: { chantierId: string; lots: LotVu[]; participants: ParticipantVu[]; modifiable: boolean; aujourdhui: string }) {
   const { enCours, lancer } = useActionChantier();
   const [ajout, setAjout] = useState(false);
-  const enRetard = props.lots.filter((l) => l.enRetard).length;
+  const [voirFinis, setVoirFinis] = useState(false);
+  const finis = props.lots.filter((l) => l.statut === "fini").length;
+  // Sur téléphone, les lots en retard d'abord (le tri est stable : l'ordre de création reste sinon).
+  const ordonnes = [...props.lots].sort((a, b) => Number(b.enRetard) - Number(a.enRetard));
 
   return (
     <Section
-      titre={
-        <>
-          Lots
-          {enRetard > 0 && (
-            <Badge className="ml-2 align-middle">
-              <Clock aria-hidden /> {enRetard} en retard
-            </Badge>
-          )}
-        </>
-      }
+      titre={`Lots (${props.lots.length})`}
       action={
         props.modifiable && !ajout ? (
-          <Button variant="outline" onClick={() => setAjout(true)}>
-            Ajouter un lot
+          <Button variant="outline" size="lg" onClick={() => setAjout(true)}>
+            + Ajouter un lot
           </Button>
         ) : undefined
       }
@@ -86,35 +155,41 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
         {props.lots.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucun lot pour l&apos;instant.</p>
         ) : (
-          <ul className="flex flex-col divide-y">
-            {props.lots.map((l) => {
-              const suivant = etapeSuivanteLot(l.statut);
-              return (
-                <li key={l.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{l.nom}</span>
-                      <Badge variant="outline">{LIBELLE_LOT[l.statut]}</Badge>
-                      {l.enRetard && (
-                        <Badge>
-                          <Clock aria-hidden /> En retard
-                        </Badge>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      Livraison {dateCourte(l.livraisonPrevue)} · fin {dateCourte(l.finPrevue)}
-                      {l.fournisseur ? ` · ${l.fournisseur}` : ""}
-                    </span>
-                  </div>
-                  {props.modifiable && suivant && (
-                    <Button variant="outline" disabled={enCours} onClick={() => lancer(() => avancerLot(props.chantierId, l.id, suivant))}>
-                      {`Marquer ${ACTION_LOT[suivant]?.toLowerCase()}`}
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {/* Une seule liste : cartes sur téléphone, lignes de tableau sur ordinateur. */}
+            <div className="flex flex-col gap-3 md:gap-0 md:overflow-hidden md:rounded-lg md:border">
+              <div aria-hidden className={cn(LIGNE, "hidden bg-muted py-2.5 text-[0.8125rem] font-semibold text-muted-foreground md:grid")}>
+                <span>Lot</span>
+                <span>Statut</span>
+                <span>Livraison prévue</span>
+                <span>Fin prévue</span>
+                <span>Retard</span>
+                <span />
+              </div>
+              <p className="text-sm text-muted-foreground md:hidden">Les lots en retard d&apos;abord</p>
+              <ul className="flex flex-col gap-3 md:gap-0">
+                {ordonnes.map((l) => (
+                  <LigneLot key={l.id} lot={l} aujourdhui={props.aujourdhui} replie={!voirFinis && l.statut === "fini"}>
+                    {props.modifiable && etapeSuivanteLot(l.statut) && (
+                      <Button
+                        variant="outline"
+                        className="h-13 w-full border-[1.5px] text-base md:h-10 md:text-sm"
+                        disabled={enCours}
+                        onClick={() => lancer(() => avancerLot(props.chantierId, l.id, etapeSuivanteLot(l.statut)!))}
+                      >
+                        {`Marquer ${ACTION_LOT[etapeSuivanteLot(l.statut)!]?.toLowerCase()}`}
+                      </Button>
+                    )}
+                  </LigneLot>
+                ))}
+              </ul>
+            </div>
+            {finis > 0 && !voirFinis && (
+              <Button variant="outline" className="h-14 w-full justify-between px-4 text-base md:hidden" onClick={() => setVoirFinis(true)}>
+                Afficher {finis > 1 ? `les ${finis} lots finis` : "le lot fini"} <span aria-hidden>↓</span>
+              </Button>
+            )}
+          </>
         )}
       </div>
     </Section>

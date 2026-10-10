@@ -222,7 +222,7 @@ export function Fil(props: { chantierId: string; interne: boolean; elements: Ele
   const nomDe = new Map(props.participants.map((p) => [p.compteId, p.nom]));
 
   return (
-    <Section titre="Fil du chantier">
+    <Section titre={`Fil (${props.elements.length})`}>
       {props.elements.length === 0 ? (
         <p className="text-sm text-muted-foreground">Le fil est vide. Écrivez le premier message.</p>
       ) : (
@@ -232,7 +232,7 @@ export function Fil(props: { chantierId: string; interne: boolean; elements: Ele
             const enAttente = e.statutSignalement === "a_qualifier" || e.statutSignalement === "reserve_ouverte";
             const estImage = e.fichier?.type.startsWith("image/");
             return (
-              <li key={e.id} className={enAttente ? "flex flex-col gap-2 border-2 border-foreground p-3" : "flex flex-col gap-2 border border-foreground/20 p-3"}>
+              <li key={e.id} id={`fil-${e.id}`} className={enAttente ? "flex scroll-mt-24 flex-col gap-2 rounded-xl border-2 border-foreground p-4" : "flex scroll-mt-24 flex-col gap-2 rounded-xl border-[1.5px] p-4"}>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1 font-semibold text-foreground">
                     <Icone className="size-3.5" aria-hidden /> {LIBELLE_TYPE[e.type]}
@@ -268,13 +268,13 @@ export function Fil(props: { chantierId: string; interne: boolean; elements: Ele
                   <div className="flex flex-wrap items-center justify-between gap-2 border-t border-foreground/10 pt-2">
                     {/* Qui voit cet élément, dit en clair : c'est le cœur de « Qui voit ça ? ». */}
                     {e.visiblePar.length === 0 ? (
-                      <span className="flex items-center gap-1.5 text-sm font-medium">
-                        <Lock className="size-3.5" aria-hidden /> Interne
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground">
+                        <Lock className="size-3.5 shrink-0" aria-hidden /> Vu par : l&apos;équipe seulement
                       </span>
                     ) : (
-                      <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+                      <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground">
                         <Users className="size-3.5 shrink-0" aria-hidden />
-                        <span className="truncate">Partagé avec {e.visiblePar.map((id) => nomDe.get(id) ?? "?").join(", ")}</span>
+                        <span className="min-w-0">Vu par : l&apos;équipe · {e.visiblePar.map((id) => nomDe.get(id) ?? "?").join(", ")}</span>
                       </span>
                     )}
                     <div className="flex flex-wrap items-center gap-2">

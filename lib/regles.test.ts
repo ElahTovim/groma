@@ -3,6 +3,7 @@ import {
   aujourdhuiParis,
   lotEnRetard,
   partageInitial,
+  retardsLot,
   peutAnnuler,
   poidsATraiter,
   peutEcrire,
@@ -87,6 +88,20 @@ describe("les lots", () => {
 
   it("un lot sans date n'est pas en retard", () => {
     expect(lotEnRetard({ statut: "a_commander", livraisonPrevue: null, finPrevue: null }, "2026-10-05")).toBe(false);
+  });
+});
+
+describe("de combien un lot est en retard", () => {
+  it("normal : livraison dépassée de 3 jours, fin pas encore atteinte", () => {
+    expect(retardsLot({ statut: "commande", livraisonPrevue: "2026-10-01", finPrevue: "2026-10-16" }, "2026-10-04")).toEqual({ livraison: 3, fin: null });
+  });
+
+  it("vide : sans date, aucun retard", () => {
+    expect(retardsLot({ statut: "a_commander", livraisonPrevue: null, finPrevue: null }, "2026-10-04")).toEqual({ livraison: null, fin: null });
+  });
+
+  it("piégé : un lot livré en retard ne l'est plus pour la livraison, seulement pour la fin", () => {
+    expect(retardsLot({ statut: "livre", livraisonPrevue: "2026-09-20", finPrevue: "2026-10-03" }, "2026-10-04")).toEqual({ livraison: null, fin: 1 });
   });
 });
 
