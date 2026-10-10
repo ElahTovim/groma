@@ -36,6 +36,13 @@
       "when": 1791645643454,
       "tag": "0004_photo_chantier",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791651618067,
+      "tag": "0005_securite",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,7 @@ import { contexteChantier, estParticipant } from "@/lib/fiche";
 import { nomPropre, verifierFichier } from "@/lib/fichiers";
 import { formulaireInvitation } from "@/lib/invitation";
 import { creerJeton } from "@/lib/jetons";
+import { atteinte, noter } from "@/lib/limites";
 import { journal } from "@/lib/journal";
 import {
   ETAPES_ALERTE,
@@ -213,6 +214,8 @@ export async function ecrireDansLeFil(chantierId: string, formData: FormData): P
     if (!(f instanceof File) || f.size === 0) return { ok: false, erreur: "Joignez le fichier du document." };
     const v = verifierFichier(f);
     if (!v.ok) return { ok: false, erreur: v.raison };
+    if (await atteinte("fichiersParJour", qui.id)) return { ok: false, erreur: "Plafond de dépôts atteint pour aujourd'hui. Réessayez demain." };
+    await noter("fichiersParJour", qui.id);
     try {
       const b = await put(`chantiers/${chantierId}/${nomPropre(f.name)}`, f, { access: "private", addRandomSuffix: true, contentType: f.type });
       fichier = { fichierUrl: b.url, fichierNom: f.name.slice(0, 200), fichierType: f.type, fichierTaille: f.size };
@@ -292,6 +295,8 @@ export async function changerPhoto(chantierId: string, formData: FormData): Prom
   const v = verifierFichier(f);
   if (!v.ok) return { ok: false, erreur: v.raison };
   if (!f.type.startsWith("image/")) return { ok: false, erreur: "La photo doit être une image (JPEG, PNG, WebP ou HEIC)." };
+  if (await atteinte("fichiersParJour", p.qui.id)) return { ok: false, erreur: "Plafond de dépôts atteint pour aujourd'hui. Réessayez demain." };
+  await noter("fichiersParJour", p.qui.id);
   const [avant] = await db.select({ photoUrl: chantiers.photoUrl }).from(chantiers).where(eq(chantiers.id, chantierId)).limit(1);
   try {
     const b = await put(`chantiers/${chantierId}/photo-${nomPropre(f.name)}`, f, { access: "private", addRandomSuffix: true, contentType: f.type });
@@ -320,6 +325,8 @@ export async function inviter(chantierId: string, donnees: Record<string, string
   const lu = formulaireInvitation.safeParse(donnees);
   if (!lu.success) return { ok: false, erreur: lu.error.issues[0].message };
   const { email, role, qualite } = lu.data;
+  if (await atteinte("invitationsParJour", qui.id)) return { ok: false, erreur: "Plafond d'invitations atteint pour aujourd'hui. Réessayez demain." };
+  await noter("invitationsParJour", qui.id);
 
   const [existant] = await db.select({ id: comptes.id, nom: comptes.nom }).from(comptes).where(eq(comptes.email, email)).limit(1);
   if (existant) {

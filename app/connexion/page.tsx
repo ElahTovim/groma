@@ -1,7 +1,7 @@
 import { count } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { appelant } from "@/lib/session";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { db } from "@/lib/db";
 import { comptes } from "@/lib/db/schema";
@@ -10,7 +10,7 @@ import { FormulaireConnexion } from "./formulaire";
 export const dynamic = "force-dynamic";
 
 export default async function PageConnexion({ searchParams }: PageProps<"/connexion">) {
-  if (await auth()) redirect("/");
+  if (await appelant()) redirect("/");
   const [{ n }] = await db.select({ n: count() }).from(comptes);
   const { installe, invite, reinitialise } = await searchParams;
   const annonce = installe ? "Compte gérant créé. Connectez-vous." : invite ? "Compte créé. Connectez-vous pour voir votre chantier." : reinitialise ? "Mot de passe changé. Connectez-vous." : null;

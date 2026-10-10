@@ -1,7 +1,7 @@
 "use server";
 
 import { AuthError } from "next-auth";
-import { signIn } from "@/auth";
+import { signIn, TropDeTentatives } from "@/auth";
 
 export type EtatConnexion = { erreur?: string };
 
@@ -14,6 +14,9 @@ export async function seConnecter(_: EtatConnexion, formData: FormData): Promise
     });
     return {};
   } catch (e) {
+    if (e instanceof TropDeTentatives || (e instanceof AuthError && (e as { code?: string }).code === "trop_de_tentatives")) {
+      return { erreur: "Trop de tentatives. Réessayez dans 15 minutes, ou utilisez « Mot de passe oublié ? »." };
+    }
     if (e instanceof AuthError) {
       return { erreur: "Adresse ou mot de passe incorrect." };
     }
