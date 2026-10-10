@@ -1,4 +1,5 @@
-import { boolean, date, doublePrecision, index, integer, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, date, doublePrecision, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 // Les trois rôles de docs/cycle-de-vie.md. La qualité d'un externe (client,
 // syndic…) n'est pas un rôle : elle vit sur la participation à un chantier.
@@ -47,6 +48,12 @@ export const chantiers = pgTable("chantiers", {
   longitude: doublePrecision("longitude"),
   // La photo du chantier, rangée en privé sur Vercel Blob, servie par /api/photos/[id].
   photoUrl: text("photo_url"),
+  // D'où vient le chantier : saisi dans groma, ou importé par le flux de nuit.
+  origine: text("origine").notNull().default("saisie"),
+  // Ce que le flux de nuit envoie en plus : le nom du chef (sans compte), la catégorie, l'avancement.
+  chefIndique: text("chef_indique"),
+  categorie: text("categorie"),
+  avancementPct: integer("avancement_pct"),
   creePar: uuid("cree_par").references(() => comptes.id),
   fictif: boolean("fictif").notNull().default(false),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
@@ -100,9 +107,9 @@ export const fil = pgTable("fil", {
     .notNull()
     .references(() => chantiers.id, { onDelete: "cascade" }),
   lotId: uuid("lot_id").references(() => lots.id, { onDelete: "set null" }),
-  auteurId: uuid("auteur_id")
-    .notNull()
-    .references(() => comptes.id, { onDelete: "cascade" }),
+  // L'auteur a un compte, ou bien (événements du flux de nuit) seulement un nom.
+  auteurId: uuid("auteur_id").references(() => comptes.id, { onDelete: "cascade" }),
+  auteurNom: text("auteur_nom"),
   type: typeFil("type").notNull(),
   texte: text("texte").notNull(),
   // Demande : à qui, et pour quand. Disponibilité : quel jour.
@@ -151,6 +158,47 @@ export const limites = pgTable(
   },
   (t) => [index("limites_sujet_cle_date").on(t.sujet, t.cle, t.creeLe)],
 );
+
+// ——— La machine de nuit (semaine 2) ———
+
+export const statutExecution = pgEnum("statut_execution", ["en_cours", "ok", "partiel", "echec"]);
+
+// Une ligne par exécution de l'import : c'est le journal et le tableau de bord de la nuit.
+export const executions = pgTable(
+  "executions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nuit: date("nuit").notNull(),
+    declencheur: text("declencheur").notNull(), // nuit, rattrapage, manuel
+    statut: statutExecution("statut").notNull().default("en_cours"),
+    debut: timestamp("debut", { withTimezone: true }).notNull().defaultNow(),
+    fin: timestamp("fin", { withTimezone: true }),
+    dureeMs: integer("duree_ms"),
+    recus: integer("recus").notNull().default(0),
+    doublons: integer("doublons").notNull().default(0),
+    appliques: integer("appliques").notNull().default(0),
+    rejetes: integer("rejetes").notNull().default(0),
+    appelsFlux: integer("appels_flux").notNull().default(0),
+    erreur: text("erreur"),
+  },
+  // Une seule exécution en cours à la fois pour une même nuit : deux déclenchements
+  // simultanés ne peuvent pas importer deux fois.
+  (t) => [uniqueIndex("une_execution_en_cours_par_nuit").on(t.nuit).where(sql`statut = 'en_cours'`)],
+);
+
+// Chaque événement reçu du flux, une seule fois : son identifiant est la clé.
+// C'est ce qui rend l'import idempotent (rejouer une nuit ne double rien).
+export const evenementsFlux = pgTable("evenements_flux", {
+  id: text("id").primaryKey(),
+  nuit: date("nuit").notNull(),
+  type: text("type").notNull(),
+  reference: text("reference"),
+  resultat: text("resultat").notNull(), // applique, rejete
+  raison: text("raison"),
+  donnees: jsonb("donnees"),
+  executionId: uuid("execution_id").references(() => executions.id, { onDelete: "set null" }),
+  recuLe: timestamp("recu_le", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export type Compte = typeof comptes.$inferSelect;
 export type Chantier = typeof chantiers.$inferSelect;

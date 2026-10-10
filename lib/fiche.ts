@@ -20,7 +20,7 @@ export type ElementVu = {
   type: TypeFil;
   texte: string;
   auteur: string;
-  auteurId: string;
+  auteurId: string | null;
   destinataire: string | null;
   dateCible: string | null;
   lot: string | null;
@@ -79,7 +79,8 @@ export async function lireFil(qui: Appelant, chantierId: string): Promise<Elemen
     id: e.id,
     type: e.type,
     texte: e.texte,
-    auteur: nomDe.get(e.auteurId) ?? "Compte supprimé",
+    // Un élément venu du flux de nuit n'a pas de compte, seulement un nom.
+    auteur: e.auteurId ? (nomDe.get(e.auteurId) ?? "Compte supprimé") : `${e.auteurNom ?? "Inconnu"} (flux de nuit)`,
     auteurId: e.auteurId,
     destinataire: e.destinataireId ? (nomDe.get(e.destinataireId) ?? null) : null,
     dateCible: e.dateCible,

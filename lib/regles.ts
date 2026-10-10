@@ -108,7 +108,7 @@ const INTERNE: Role[] = ["gerant", "equipe"];
 
 // Qui voit un élément du fil : l'interne voit tout ; un externe voit ce qu'il a
 // écrit et ce qui a été coché pour lui. Aucune condition sur la qualité.
-export function voitElement(qui: { id: string; role: Role }, e: { auteurId: string; visiblePar: string[] }): boolean {
+export function voitElement(qui: { id: string; role: Role }, e: { auteurId: string | null; visiblePar: string[] }): boolean {
   if (INTERNE.includes(qui.role)) return true;
   return e.auteurId === qui.id || e.visiblePar.includes(qui.id);
 }

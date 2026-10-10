@@ -43,6 +43,13 @@
       "when": 1791651618067,
       "tag": "0005_securite",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791652542260,
+      "tag": "0006_machine_de_nuit",
+      "breakpoints": true
     }
   ]
 }

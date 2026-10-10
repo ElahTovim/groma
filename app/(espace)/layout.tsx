@@ -32,9 +32,14 @@ export default async function Espace({ children }: LayoutProps<"/">) {
             <div className="absolute right-0 mt-1 flex w-56 flex-col border bg-background py-1 shadow-sm">
               <p className="px-3 py-2 text-xs text-muted-foreground">Connecté en tant que {LIBELLE_ROLE[qui.role]}</p>
               {qui.role === "gerant" && (
-                <Link href="/reglages" className="flex min-h-11 items-center px-3 text-sm hover:bg-muted">
-                  Réglages
-                </Link>
+                <>
+                  <Link href="/nuit" className="flex min-h-11 items-center px-3 text-sm hover:bg-muted">
+                    Machine de nuit
+                  </Link>
+                  <Link href="/reglages" className="flex min-h-11 items-center px-3 text-sm hover:bg-muted">
+                    Réglages
+                  </Link>
+                </>
               )}
               <form
                 action={async () => {
