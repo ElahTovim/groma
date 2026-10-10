@@ -142,3 +142,13 @@ export function verifierQualification(de: StatutSignalement, vers: StatutSignale
 export function aujourdhuiParis(maintenant = new Date()): string {
   return new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" }).format(maintenant);
 }
+
+// ——— Ce qui demande de l'attention (liste des chantiers) ———
+
+export type ATraiter = { lotsEnRetard: number; aQualifier: number; reservesOuvertes: number };
+
+// Un signalement à qualifier pèse le plus : tant qu'il attend, le chantier est bloqué
+// et quelqu'un attend une réponse. Puis les réserves ouvertes, puis les retards.
+export function poidsATraiter(a: ATraiter | null): number {
+  return a ? a.aQualifier * 3 + a.reservesOuvertes * 2 + a.lotsEnRetard : 0;
+}

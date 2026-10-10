@@ -1,8 +1,9 @@
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { equipeVoitTout, peutVoirChantier, voitLInterne } from "@/lib/acces";
 import { db } from "@/lib/db";
-import { chantiers, comptes, participants, type StatutChantier } from "@/lib/db/schema";
+import { chantiers, comptes, fil, lots, participants, type StatutChantier } from "@/lib/db/schema";
+import { aujourdhuiParis, lotEnRetard, poidsATraiter, type ATraiter } from "@/lib/regles";
 import { STATUTS } from "@/lib/chantier-forme";
 import type { Appelant } from "@/lib/session";
 
@@ -22,7 +23,10 @@ export type ChantierVu = {
   montantHt: string | null | undefined;
   latitude: number | null;
   longitude: number | null;
+  aPhoto: boolean;
 };
+
+export type ChantierListe = ChantierVu & { aTraiter: ATraiter | null };
 
 function filtrerPour(qui: Appelant, c: typeof chantiers.$inferSelect): ChantierVu {
   return {
@@ -39,6 +43,7 @@ function filtrerPour(qui: Appelant, c: typeof chantiers.$inferSelect): ChantierV
     montantHt: voitLInterne(qui.role) ? c.montantHt : undefined,
     latitude: c.latitude,
     longitude: c.longitude,
+    aPhoto: Boolean(c.photoUrl),
   };
 }
 
@@ -48,7 +53,9 @@ function conditionAcces(qui: Appelant) {
   return sql`exists (select 1 from ${participants} where ${participants.chantierId} = ${chantiers.id} and ${participants.compteId} = ${qui.id})`;
 }
 
-export async function listerChantiers(qui: Appelant, filtres: { statut?: string; q?: string }): Promise<ChantierVu[]> {
+export const ONGLET_A_TRAITER = "a_traiter";
+
+export async function listerChantiers(qui: Appelant, filtres: { statut?: string; q?: string }): Promise<ChantierListe[]> {
   const conditions = [conditionAcces(qui)];
   if (filtres.statut && (STATUTS as string[]).includes(filtres.statut)) {
     conditions.push(eq(chantiers.statut, filtres.statut as StatutChantier));
@@ -63,7 +70,35 @@ export async function listerChantiers(qui: Appelant, filtres: { statut?: string;
     .where(and(...conditions))
     .orderBy(desc(chantiers.creeLe))
     .limit(200);
-  return lignes.map((c) => filtrerPour(qui, c));
+  const vus = lignes.map((c) => filtrerPour(qui, c));
+  const aTraiter = voitLInterne(qui.role) ? await compterATraiter(vus.map((c) => c.id)) : new Map<string, ATraiter>();
+  const liste = vus.map((c) => ({ ...c, aTraiter: aTraiter.get(c.id) ?? (voitLInterne(qui.role) ? { lotsEnRetard: 0, aQualifier: 0, reservesOuvertes: 0 } : null) }));
+  const filtree = filtres.statut === ONGLET_A_TRAITER ? liste.filter((c) => poidsATraiter(c.aTraiter) > 0) : liste;
+  // Ce qui demande de l'attention remonte en tête ; à égalité, le plus récent d'abord.
+  return filtree.sort((a, b) => poidsATraiter(b.aTraiter) - poidsATraiter(a.aTraiter));
+}
+
+async function compterATraiter(ids: string[]): Promise<Map<string, ATraiter>> {
+  const resultat = new Map<string, ATraiter>();
+  if (ids.length === 0) return resultat;
+  const [lesLots, signalements] = await Promise.all([
+    db.select({ chantierId: lots.chantierId, statut: lots.statut, livraisonPrevue: lots.livraisonPrevue, finPrevue: lots.finPrevue }).from(lots).where(inArray(lots.chantierId, ids)),
+    db.select({ chantierId: fil.chantierId, statut: fil.statutSignalement }).from(fil).where(and(inArray(fil.chantierId, ids), eq(fil.type, "signalement"))),
+  ]);
+  const jour = aujourdhuiParis();
+  const de = (id: string) => resultat.get(id) ?? (resultat.set(id, { lotsEnRetard: 0, aQualifier: 0, reservesOuvertes: 0 }), resultat.get(id)!);
+  for (const l of lesLots) if (lotEnRetard(l, jour)) de(l.chantierId).lotsEnRetard++;
+  for (const s of signalements) {
+    if (s.statut === "a_qualifier") de(s.chantierId).aQualifier++;
+    if (s.statut === "reserve_ouverte") de(s.chantierId).reservesOuvertes++;
+  }
+  return resultat;
+}
+
+// Le nombre de chantiers visibles par statut, pour les onglets.
+export async function compterParStatut(qui: Appelant): Promise<Partial<Record<StatutChantier, number>>> {
+  const lignes = await db.select({ statut: chantiers.statut, n: count() }).from(chantiers).where(conditionAcces(qui)).groupBy(chantiers.statut);
+  return Object.fromEntries(lignes.map((l) => [l.statut, l.n]));
 }
 
 // null si le chantier n'existe pas OU si l'appelant n'y a pas accès : l'écran dit

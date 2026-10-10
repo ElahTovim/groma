@@ -1,7 +1,7 @@
 "use client";
 
+import { CircleAlert } from "lucide-react";
 import { useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,27 +12,32 @@ import { etapeSuivante, LIBELLE_ACTION, peutAnnuler } from "@/lib/regles";
 import { annulerChantier, avancerChantier, fixerDebut } from "./actions";
 import { useActionChantier } from "./use-action-chantier";
 
-// Le bouton de l'étape suivante : en haut sur ordinateur, fixé en bas sous le
-// pouce sur téléphone. Un refus dit pourquoi, point par point.
-export function EtapeChantier(props: { chantierId: string; statut: StatutChantier; debutPrevu: string | null }) {
+// L'étape suivante. Ce qui la bloque est calculé avant le clic, sur le serveur
+// (`blocages`) : le bouton reste grisé et la liste dit quoi faire. Le bouton est
+// en haut sur ordinateur, fixé en bas sous le pouce sur téléphone.
+export function EtapeChantier(props: { chantierId: string; statut: StatutChantier; debutPrevu: string | null; blocages: string[] }) {
   const { enCours, raisons, lancer } = useActionChantier();
   const suivante = etapeSuivante(props.statut);
   const [motif, setMotif] = useState("");
   const [ouvert, setOuvert] = useState(false);
+  // Si un refus arrive quand même (quelqu'un a changé le chantier entre-temps), il prime.
+  const aFaire = raisons.length ? raisons : props.blocages;
+  const bloque = aFaire.length > 0;
 
   return (
     <div className="flex flex-col gap-3">
-      {raisons.length > 0 && (
-        <Alert variant="destructive">
-          <AlertTitle>Impossible pour l&apos;instant</AlertTitle>
-          <AlertDescription>
+      {suivante && bloque && (
+        <div className="flex gap-3 border border-foreground p-3" role="status">
+          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <div className="flex flex-col gap-1 text-sm">
+            <p className="font-semibold">Pour « {LIBELLE_ACTION[suivante]?.toLowerCase()} », il reste :</p>
             <ul className="list-disc pl-4">
-              {raisons.map((r) => (
+              {aFaire.map((r) => (
                 <li key={r}>{r}</li>
               ))}
             </ul>
-          </AlertDescription>
-        </Alert>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-wrap items-end gap-3">
@@ -70,11 +75,7 @@ export function EtapeChantier(props: { chantierId: string; statut: StatutChantie
                 <Textarea id="motif" value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Par exemple : le client renonce après le devis." />
               </div>
               <DialogFooter>
-                <Button
-                  variant="destructive"
-                  disabled={enCours || !motif.trim()}
-                  onClick={() => lancer(() => annulerChantier(props.chantierId, motif), () => setOuvert(false))}
-                >
+                <Button disabled={enCours || !motif.trim()} onClick={() => lancer(() => annulerChantier(props.chantierId, motif), () => setOuvert(false))}>
                   Annuler le chantier
                 </Button>
               </DialogFooter>
@@ -84,11 +85,16 @@ export function EtapeChantier(props: { chantierId: string; statut: StatutChantie
       </div>
 
       {suivante && (
-        // Sur téléphone, la barre reste en bas de l'écran, au-dessus du contenu.
         <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:static md:border-0 md:bg-transparent md:p-0">
-          <Button size="lg" className="h-12 w-full text-base md:h-9 md:w-auto md:text-sm" disabled={enCours} onClick={() => lancer(() => avancerChantier(props.chantierId, suivante))}>
+          <Button
+            size="lg"
+            className="h-12 w-full text-base md:h-10 md:w-auto md:px-5 md:text-sm"
+            disabled={enCours || bloque}
+            onClick={() => lancer(() => avancerChantier(props.chantierId, suivante))}
+          >
             {enCours ? "Un instant…" : LIBELLE_ACTION[suivante]}
           </Button>
+          {bloque && <p className="mt-1 text-center text-xs text-muted-foreground md:hidden">Voir ce qui reste à faire en haut de la fiche.</p>}
         </div>
       )}
     </div>

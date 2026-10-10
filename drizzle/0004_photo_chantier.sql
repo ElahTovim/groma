@@ -1,0 +1,1 @@
+ALTER TABLE "chantiers" ADD COLUMN "photo_url" text;
