@@ -108,8 +108,7 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
                   </div>
                   {props.modifiable && suivant && (
                     <Button variant="outline" disabled={enCours} onClick={() => lancer(() => avancerLot(props.chantierId, l.id, suivant))}>
-                      Marquer 
-                      {ACTION_LOT[suivant]?.toLowerCase()}
+                      {`Marquer ${ACTION_LOT[suivant]?.toLowerCase()}`}
                     </Button>
                   )}
                 </li>

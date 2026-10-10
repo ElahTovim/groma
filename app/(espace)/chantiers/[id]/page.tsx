@@ -68,7 +68,7 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
             <BadgeStatut statut={chantier.statut} />
           </div>
           <p className="text-muted-foreground">
-            {chantier.adresse}, {chantier.codePostal} {chantier.ville} · <span className="font-mono text-xs">{chantier.reference}</span>
+            {chantier.adresse}, {chantier.codePostal} {chantier.ville} · <span className="font-mono text-xs whitespace-nowrap">{chantier.reference}</span>
           </p>
         </div>
         {interne && !termine && <EtapeChantier chantierId={chantier.id} statut={chantier.statut} debutPrevu={chantier.debutPrevu} blocages={blocages} />}
