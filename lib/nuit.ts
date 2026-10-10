@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
-import { and, desc, eq, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, lt, sum } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { chantiers, evenementsFlux, executions, fil } from "@/lib/db/schema";
+import { chantiers, evenementsFlux, executions, fil, recapitulatifs } from "@/lib/db/schema";
 import { appelerFlux, type ReponseFlux } from "@/lib/flux";
 import { decider, nuitsARattraper, type Decision } from "@/lib/flux-regles";
 import { journal } from "@/lib/journal";
@@ -158,7 +158,8 @@ async function appliquer(d: Exclude<Decision, { action: "rejeter" }>) {
 
 // Le rattrapage : les nuits manquantes depuis FLUX_DEPUIS, dans l'ordre, par paquets.
 export async function rattraper(declencheur: "nuit" | "rattrapage" | "manuel", maximum = 10): Promise<BilanNuit[]> {
-  const depuis = process.env.FLUX_DEPUIS ?? "2026-09-01";
+  // Les mises à jour du flux visent des chantiers créés dès août : on commence là.
+  const depuis = process.env.FLUX_DEPUIS ?? "2026-08-01";
   const reussies = new Set(
     (await db.select({ nuit: executions.nuit }).from(executions).where(and(isNotNull(executions.fin), inArray(executions.statut, ["ok", "partiel"])))).map((r) => r.nuit),
   );
@@ -182,4 +183,15 @@ export async function derniersRejets(n = 20) {
     .where(eq(evenementsFlux.resultat, "rejete"))
     .orderBy(desc(evenementsFlux.recuLe))
     .limit(n);
+}
+
+// Ce que la machine de nuit a consommé depuis le début du mois.
+export async function consommationDuMois() {
+  const debutMois = new Date();
+  debutMois.setUTCDate(1);
+  debutMois.setUTCHours(0, 0, 0, 0);
+  const [x] = await db.select({ duree: sum(executions.dureeMs), appels: sum(executions.appelsFlux), n: count() }).from(executions).where(gte(executions.debut, debutMois));
+  const [g] = await db.select({ n: count() }).from(evenementsFlux).where(and(gte(evenementsFlux.recuLe, debutMois), eq(evenementsFlux.type, "creation"), eq(evenementsFlux.resultat, "applique")));
+  const [r] = await db.select({ n: count() }).from(recapitulatifs).where(and(gte(recapitulatifs.envoyeLe, debutMois), eq(recapitulatifs.parti, true)));
+  return { executions: x.n, dureeMs: Number(x.duree ?? 0), appelsFlux: Number(x.appels ?? 0), geocodages: g.n, courriels: r.n };
 }

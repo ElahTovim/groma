@@ -1,0 +1,1139 @@
+{
+  "id": "d37262eb-1210-4328-a35e-c759f8a85484",
+  "prevId": "eeb0814f-3252-48b1-8c12-49c3c96483c7",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.chantiers": {
+      "name": "chantiers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reference": {
+          "name": "reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client": {
+          "name": "client",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adresse": {
+          "name": "adresse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code_postal": {
+          "name": "code_postal",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ville": {
+          "name": "ville",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "montant_ht": {
+          "name": "montant_ht",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_chantier",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'devis'"
+        },
+        "debut_prevu": {
+          "name": "debut_prevu",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fin_prevue": {
+          "name": "fin_prevue",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motif_annulation": {
+          "name": "motif_annulation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "latitude": {
+          "name": "latitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "longitude": {
+          "name": "longitude",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "photo_url": {
+          "name": "photo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "origine": {
+          "name": "origine",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'saisie'"
+        },
+        "chef_indique": {
+          "name": "chef_indique",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "categorie": {
+          "name": "categorie",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avancement_pct": {
+          "name": "avancement_pct",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_par": {
+          "name": "cree_par",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fictif": {
+          "name": "fictif",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "chantiers_cree_par_comptes_id_fk": {
+          "name": "chantiers_cree_par_comptes_id_fk",
+          "tableFrom": "chantiers",
+          "tableTo": "comptes",
+          "columnsFrom": [
+            "cree_par"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "chantiers_reference_unique": {
+          "name": "chantiers_reference_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "reference"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.comptes": {
+      "name": "comptes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mot_de_passe_hash": {
+          "name": "mot_de_passe_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fictif": {
+          "name": "fictif",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "version_session": {
+          "name": "version_session",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "comptes_email_unique": {
+          "name": "comptes_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.evenements_flux": {
+      "name": "evenements_flux",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nuit": {
+          "name": "nuit",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reference": {
+          "name": "reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resultat": {
+          "name": "resultat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raison": {
+          "name": "raison",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "donnees": {
+          "name": "donnees",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "execution_id": {
+          "name": "execution_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recu_le": {
+          "name": "recu_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "evenements_flux_execution_id_executions_id_fk": {
+          "name": "evenements_flux_execution_id_executions_id_fk",
+          "tableFrom": "evenements_flux",
+          "tableTo": "executions",
+          "columnsFrom": [
+            "execution_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.executions": {
+      "name": "executions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nuit": {
+          "name": "nuit",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "declencheur": {
+          "name": "declencheur",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_execution",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en_cours'"
+        },
+        "debut": {
+          "name": "debut",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "fin": {
+          "name": "fin",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "duree_ms": {
+          "name": "duree_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recus": {
+          "name": "recus",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "doublons": {
+          "name": "doublons",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "appliques": {
+          "name": "appliques",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rejetes": {
+          "name": "rejetes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "appels_flux": {
+          "name": "appels_flux",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "erreur": {
+          "name": "erreur",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "une_execution_en_cours_par_nuit": {
+          "name": "une_execution_en_cours_par_nuit",
+          "columns": [
+            {
+              "expression": "nuit",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "statut = 'en_cours'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fil": {
+      "name": "fil",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chantier_id": {
+          "name": "chantier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lot_id": {
+          "name": "lot_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "auteur_id": {
+          "name": "auteur_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "auteur_nom": {
+          "name": "auteur_nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "type_fil",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "texte": {
+          "name": "texte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "destinataire_id": {
+          "name": "destinataire_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_cible": {
+          "name": "date_cible",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statut_signalement": {
+          "name": "statut_signalement",
+          "type": "statut_signalement",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motif": {
+          "name": "motif",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "visible_par": {
+          "name": "visible_par",
+          "type": "uuid[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "fichier_url": {
+          "name": "fichier_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fichier_nom": {
+          "name": "fichier_nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fichier_type": {
+          "name": "fichier_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fichier_taille": {
+          "name": "fichier_taille",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fil_chantier_id_chantiers_id_fk": {
+          "name": "fil_chantier_id_chantiers_id_fk",
+          "tableFrom": "fil",
+          "tableTo": "chantiers",
+          "columnsFrom": [
+            "chantier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fil_lot_id_lots_id_fk": {
+          "name": "fil_lot_id_lots_id_fk",
+          "tableFrom": "fil",
+          "tableTo": "lots",
+          "columnsFrom": [
+            "lot_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "fil_auteur_id_comptes_id_fk": {
+          "name": "fil_auteur_id_comptes_id_fk",
+          "tableFrom": "fil",
+          "tableTo": "comptes",
+          "columnsFrom": [
+            "auteur_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fil_destinataire_id_comptes_id_fk": {
+          "name": "fil_destinataire_id_comptes_id_fk",
+          "tableFrom": "fil",
+          "tableTo": "comptes",
+          "columnsFrom": [
+            "destinataire_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jetons": {
+      "name": "jetons",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "type": {
+          "name": "type",
+          "type": "type_jeton",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "empreinte": {
+          "name": "empreinte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chantier_id": {
+          "name": "chantier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qualite": {
+          "name": "qualite",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_par": {
+          "name": "cree_par",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expire_le": {
+          "name": "expire_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "utilise_le": {
+          "name": "utilise_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "jetons_chantier_id_chantiers_id_fk": {
+          "name": "jetons_chantier_id_chantiers_id_fk",
+          "tableFrom": "jetons",
+          "tableTo": "chantiers",
+          "columnsFrom": [
+            "chantier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jetons_cree_par_comptes_id_fk": {
+          "name": "jetons_cree_par_comptes_id_fk",
+          "tableFrom": "jetons",
+          "tableTo": "comptes",
+          "columnsFrom": [
+            "cree_par"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "jetons_empreinte_unique": {
+          "name": "jetons_empreinte_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "empreinte"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.limites": {
+      "name": "limites",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "sujet": {
+          "name": "sujet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cle": {
+          "name": "cle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "limites_sujet_cle_date": {
+          "name": "limites_sujet_cle_date",
+          "columns": [
+            {
+              "expression": "sujet",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "cree_le",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.lots": {
+      "name": "lots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chantier_id": {
+          "name": "chantier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nom": {
+          "name": "nom",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statut": {
+          "name": "statut",
+          "type": "statut_lot",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'a_commander'"
+        },
+        "fournisseur_id": {
+          "name": "fournisseur_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livraison_prevue": {
+          "name": "livraison_prevue",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fin_prevue": {
+          "name": "fin_prevue",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cree_le": {
+          "name": "cree_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "lots_chantier_id_chantiers_id_fk": {
+          "name": "lots_chantier_id_chantiers_id_fk",
+          "tableFrom": "lots",
+          "tableTo": "chantiers",
+          "columnsFrom": [
+            "chantier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "lots_fournisseur_id_comptes_id_fk": {
+          "name": "lots_fournisseur_id_comptes_id_fk",
+          "tableFrom": "lots",
+          "tableTo": "comptes",
+          "columnsFrom": [
+            "fournisseur_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.participants": {
+      "name": "participants",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chantier_id": {
+          "name": "chantier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "compte_id": {
+          "name": "compte_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "qualite": {
+          "name": "qualite",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invite_le": {
+          "name": "invite_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "participants_chantier_id_chantiers_id_fk": {
+          "name": "participants_chantier_id_chantiers_id_fk",
+          "tableFrom": "participants",
+          "tableTo": "chantiers",
+          "columnsFrom": [
+            "chantier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "participants_compte_id_comptes_id_fk": {
+          "name": "participants_compte_id_comptes_id_fk",
+          "tableFrom": "participants",
+          "tableTo": "comptes",
+          "columnsFrom": [
+            "compte_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "participant_unique": {
+          "name": "participant_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "chantier_id",
+            "compte_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.recapitulatifs": {
+      "name": "recapitulatifs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "jour": {
+          "name": "jour",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "compte_id": {
+          "name": "compte_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "envoye_le": {
+          "name": "envoye_le",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "parti": {
+          "name": "parti",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "recapitulatifs_compte_id_comptes_id_fk": {
+          "name": "recapitulatifs_compte_id_comptes_id_fk",
+          "tableFrom": "recapitulatifs",
+          "tableTo": "comptes",
+          "columnsFrom": [
+            "compte_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "un_recap_par_jour": {
+          "name": "un_recap_par_jour",
+          "nullsNotDistinct": false,
+          "columns": [
+            "jour",
+            "compte_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "gerant",
+        "equipe",
+        "externe"
+      ]
+    },
+    "public.statut_chantier": {
+      "name": "statut_chantier",
+      "schema": "public",
+      "values": [
+        "devis",
+        "signe",
+        "planifie",
+        "en_cours",
+        "reception",
+        "clos",
+        "annule"
+      ]
+    },
+    "public.statut_execution": {
+      "name": "statut_execution",
+      "schema": "public",
+      "values": [
+        "en_cours",
+        "ok",
+        "partiel",
+        "echec"
+      ]
+    },
+    "public.statut_lot": {
+      "name": "statut_lot",
+      "schema": "public",
+      "values": [
+        "a_commander",
+        "commande",
+        "livre",
+        "pose",
+        "fini"
+      ]
+    },
+    "public.statut_signalement": {
+      "name": "statut_signalement",
+      "schema": "public",
+      "values": [
+        "a_qualifier",
+        "reserve_ouverte",
+        "levee",
+        "ecarte"
+      ]
+    },
+    "public.type_fil": {
+      "name": "type_fil",
+      "schema": "public",
+      "values": [
+        "message",
+        "demande",
+        "reponse",
+        "disponibilite",
+        "document",
+        "signalement"
+      ]
+    },
+    "public.type_jeton": {
+      "name": "type_jeton",
+      "schema": "public",
+      "values": [
+        "invitation",
+        "reinitialisation"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

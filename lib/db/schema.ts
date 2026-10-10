@@ -200,6 +200,22 @@ export const evenementsFlux = pgTable("evenements_flux", {
   recuLe: timestamp("recu_le", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Le récapitulatif du matin : une ligne par jour et par destinataire, posée avant
+// l'envoi. Une relance de la nuit ne peut donc rien envoyer deux fois.
+export const recapitulatifs = pgTable(
+  "recapitulatifs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    jour: date("jour").notNull(),
+    compteId: uuid("compte_id")
+      .notNull()
+      .references(() => comptes.id, { onDelete: "cascade" }),
+    envoyeLe: timestamp("envoye_le", { withTimezone: true }).notNull().defaultNow(),
+    parti: boolean("parti").notNull().default(false),
+  },
+  (t) => [unique("un_recap_par_jour").on(t.jour, t.compteId)],
+);
+
 export type Compte = typeof comptes.$inferSelect;
 export type Chantier = typeof chantiers.$inferSelect;
 export type Role = (typeof role.enumValues)[number];

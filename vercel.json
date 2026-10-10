@@ -1,7 +1,13 @@
 {
   "buildCommand": "drizzle-kit migrate && next build",
   "crons": [
-    { "path": "/api/nuit", "schedule": "0 4 * * *" },
-    { "path": "/api/nuit", "schedule": "0 5 * * *" }
+    {
+      "path": "/api/nuit",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/nuit?recap=1",
+      "schedule": "0 5 * * *"
+    }
   ]
 }

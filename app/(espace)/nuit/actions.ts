@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { journal } from "@/lib/journal";
+import { adresseDuSite } from "@/lib/courriel";
 import { importerNuit, rattraper, type BilanNuit } from "@/lib/nuit";
+import { envoyerRecapitulatifs } from "@/lib/recap";
 import { aujourdhuiParis } from "@/lib/regles";
 import { appelant } from "@/lib/session";
 
@@ -34,8 +36,20 @@ export async function relancerNuit(nuit: string): Promise<ResultatNuit> {
 export async function rattraperMaintenant(): Promise<ResultatNuit> {
   const qui = await gerant();
   if (!qui) return { ok: false, message: "Seul le gérant peut lancer un rattrapage." };
-  const bilans = await rattraper("manuel", 4);
+  const bilans = await rattraper("manuel", 10);
   revalidatePath("/nuit");
   if (bilans.length === 0) return { ok: true, message: "Rien à rattraper : toutes les nuits sont importées." };
   return { ok: !bilans.some((b) => b.statut === "echec"), message: bilans.map(resumer).join(" ") };
+}
+
+// Envoyer le récapitulatif du jour maintenant. Une seule fois par jour et par personne :
+// un second clic n'envoie rien.
+export async function envoyerRecapMaintenant(): Promise<ResultatNuit> {
+  const qui = await gerant();
+  if (!qui) return { ok: false, message: "Seul le gérant peut envoyer le récapitulatif." };
+  const b = await envoyerRecapitulatifs(await adresseDuSite());
+  revalidatePath("/nuit");
+  const parts = [`${b.envoyes} envoyé${b.envoyes > 1 ? "s" : ""}`, `${b.dejaEnvoyes} déjà envoyé${b.dejaEnvoyes > 1 ? "s" : ""} aujourd'hui`];
+  if (b.refuses) parts.push(`${b.refuses} refusé${b.refuses > 1 ? "s" : ""} par le service d'envoi`);
+  return { ok: b.refuses === 0, message: `Récapitulatif : ${parts.join(", ")}.` };
 }

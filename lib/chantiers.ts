@@ -78,7 +78,7 @@ export async function listerChantiers(qui: Appelant, filtres: { statut?: string;
   return filtree.sort((a, b) => poidsATraiter(b.aTraiter) - poidsATraiter(a.aTraiter));
 }
 
-async function compterATraiter(ids: string[]): Promise<Map<string, ATraiter>> {
+export async function compterATraiter(ids: string[]): Promise<Map<string, ATraiter>> {
   const resultat = new Map<string, ATraiter>();
   if (ids.length === 0) return resultat;
   const [lesLots, signalements] = await Promise.all([

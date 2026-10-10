@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
-import { dernieresExecutions, derniersRejets } from "@/lib/nuit";
+import { estimer, TARIFS_INDICATIFS } from "@/lib/couts";
+import { consommationDuMois, dernieresExecutions, derniersRejets } from "@/lib/nuit";
 import { aujourdhuiParis } from "@/lib/regles";
 import { appelantObligatoire } from "@/lib/session";
 import { BoutonsNuit } from "./boutons";
@@ -21,7 +22,8 @@ function heure(d: Date | null) {
 export default async function MachineDeNuit() {
   const qui = await appelantObligatoire();
   if (qui.role !== "gerant") notFound();
-  const [executions, rejets] = await Promise.all([dernieresExecutions(40), derniersRejets(20)]);
+  const [executions, rejets, conso] = await Promise.all([dernieresExecutions(40), derniersRejets(20), consommationDuMois()]);
+  const estimation = estimer(conso);
   const derniere = executions[0];
 
   return (
@@ -88,6 +90,29 @@ export default async function MachineDeNuit() {
             </table>
           </div>
         )}
+      </Section>
+
+      <Section titre="Ce que la nuit a coûté ce mois-ci">
+        <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-[auto_auto_auto_auto]">
+          <dt className="text-muted-foreground">Exécutions</dt>
+          <dd className="tabular-nums">{conso.executions}</dd>
+          <dt className="text-muted-foreground">Temps de calcul</dt>
+          <dd className="tabular-nums">{(conso.dureeMs / 1000).toFixed(0)} s</dd>
+          <dt className="text-muted-foreground">Appels au flux</dt>
+          <dd className="tabular-nums">{conso.appelsFlux}</dd>
+          <dt className="text-muted-foreground">Adresses géolocalisées</dt>
+          <dd className="tabular-nums">{conso.geocodages}</dd>
+          <dt className="text-muted-foreground">Récapitulatifs envoyés</dt>
+          <dd className="tabular-nums">{conso.courriels}</dd>
+        </dl>
+        <p className="text-sm">
+          <strong>Coût réel : 0 €</strong>, tout tient dans les offres gratuites (Vercel Hobby, Neon, Resend, flux de nuit et API Adresse gratuits).
+          Au-delà des offres gratuites, au tarif indicatif, ce mois coûterait environ{" "}
+          <strong className="tabular-nums">{estimation.total.toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 4 })}</strong>.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Tarifs indicatifs (lib/couts.ts) : {TARIFS_INDICATIFS.fonctionEuroParHeure} € l&apos;heure de fonction, {TARIFS_INDICATIFS.courrielEuro} € le courriel. À vérifier sur les pages de prix avant de décider.
+        </p>
       </Section>
 
       <Section titre="Événements mis de côté">
