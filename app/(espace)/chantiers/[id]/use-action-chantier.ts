@@ -20,8 +20,9 @@ export function useActionChantier() {
         toast.success(r.message);
         apres?.();
       } else {
-        toast.error(r.erreur);
-        setRaisons(r.raisons ?? []);
+        // Un refus motivé s'affiche une seule fois, dans l'encadré ; sinon, un message.
+        if (r.raisons?.length) setRaisons(r.raisons);
+        else toast.error(r.erreur);
         if (r.erreur.includes("entre-temps")) router.refresh();
       }
     });

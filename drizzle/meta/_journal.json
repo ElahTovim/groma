@@ -29,6 +29,13 @@
       "when": 1791152644463,
       "tag": "0003_meteo_fichiers_jetons",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791645643454,
+      "tag": "0004_photo_chantier",
+      "breakpoints": true
     }
   ]
 }

@@ -1,9 +1,10 @@
 "use client";
 
+import { Clock } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/section";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { LotVu, ParticipantVu } from "@/lib/fiche";
@@ -19,23 +20,26 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
   const enRetard = props.lots.filter((l) => l.enRetard).length;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle className="text-base">
+    <Section
+      titre={
+        <>
           Lots
           {enRetard > 0 && (
-            <Badge variant="destructive" className="ml-2 align-middle">
-              {enRetard} en retard
+            <Badge className="ml-2 align-middle">
+              <Clock aria-hidden /> {enRetard} en retard
             </Badge>
           )}
-        </CardTitle>
-        {props.modifiable && !ajout && (
-          <Button variant="outline" size="sm" onClick={() => setAjout(true)}>
+        </>
+      }
+      action={
+        props.modifiable && !ajout ? (
+          <Button variant="outline" onClick={() => setAjout(true)}>
             Ajouter un lot
           </Button>
-        )}
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-4">
         {ajout && (
           <form
             className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2"
@@ -91,7 +95,11 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{l.nom}</span>
                       <Badge variant="outline">{LIBELLE_LOT[l.statut]}</Badge>
-                      {l.enRetard && <Badge variant="destructive">En retard</Badge>}
+                      {l.enRetard && (
+                        <Badge>
+                          <Clock aria-hidden /> En retard
+                        </Badge>
+                      )}
                     </div>
                     <span className="text-xs text-muted-foreground">
                       Livraison {dateCourte(l.livraisonPrevue)} · fin {dateCourte(l.finPrevue)}
@@ -99,8 +107,8 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
                     </span>
                   </div>
                   {props.modifiable && suivant && (
-                    <Button variant="outline" size="sm" disabled={enCours} onClick={() => lancer(() => avancerLot(props.chantierId, l.id, suivant))}>
-                      {ACTION_LOT[suivant]}
+                    <Button variant="outline" disabled={enCours} onClick={() => lancer(() => avancerLot(props.chantierId, l.id, suivant))}>
+                      {`Marquer ${ACTION_LOT[suivant]?.toLowerCase()}`}
                     </Button>
                   )}
                 </li>
@@ -108,7 +116,7 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
             })}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }

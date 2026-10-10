@@ -1,6 +1,6 @@
 "use server";
 
-import { put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -280,6 +280,30 @@ export async function qualifierSignalement(chantierId: string, elementId: string
     a_qualifier: "",
   };
   return { ok: true, message: messages[vers] };
+}
+
+// ——— La photo du chantier ———
+
+export async function changerPhoto(chantierId: string, formData: FormData): Promise<Resultat> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p;
+  const f = formData.get("photo");
+  if (!(f instanceof File) || f.size === 0) return { ok: false, erreur: "Choisissez une photo." };
+  const v = verifierFichier(f);
+  if (!v.ok) return { ok: false, erreur: v.raison };
+  if (!f.type.startsWith("image/")) return { ok: false, erreur: "La photo doit être une image (JPEG, PNG, WebP ou HEIC)." };
+  const [avant] = await db.select({ photoUrl: chantiers.photoUrl }).from(chantiers).where(eq(chantiers.id, chantierId)).limit(1);
+  try {
+    const b = await put(`chantiers/${chantierId}/photo-${nomPropre(f.name)}`, f, { access: "private", addRandomSuffix: true, contentType: f.type });
+    await db.update(chantiers).set({ photoUrl: b.url }).where(eq(chantiers.id, chantierId));
+    if (avant?.photoUrl) await del(avant.photoUrl).catch(() => undefined);
+  } catch (err) {
+    journal("photo_echec", { compte: p.qui.id, chantier: chantierId, erreur: String(err) });
+    return { ok: false, erreur: "La photo n'a pas pu être enregistrée. Réessayez." };
+  }
+  journal("photo", { compte: p.qui.id, chantier: chantierId });
+  rafraichir(chantierId);
+  return { ok: true, message: "Photo du chantier enregistrée." };
 }
 
 // ——— Inviter ———

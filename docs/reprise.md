@@ -1,5 +1,23 @@
 # État de reprise
 
+## 10 octobre 2026 (branche `interface-2`, en prévisualisation)
+
+**Fait**
+- Audit de l'interface (`docs/audit-interface.md`, captures dans `docs/audit/`).
+- Direction visuelle choisie par Kerguelenn : noir et blanc, sans couleur ; les états se lisent par la forme (plein, contour, pointillé) et le texte. Les images viendront ensuite, de Kerguelenn.
+- Les 4 défauts corrigés : police (Geist au lieu de Times), débordement des noms, étape impossible proposée (blocages affichés avant le clic, un seul refus), cibles de 44 px sur téléphone.
+- Changements de structure : onglets par statut avec compteurs et onglet « À traiter » ; colonne « À traiter » et tri par urgence ; fiche dans l'ordre du terrain ; en-tête sur une ligne avec menu du compte ; fil à boutons directs ; « Interne » ou « Partagé avec » en clair ; gestes mis en avant pour l'externe ; adresse avec suggestions (API Adresse).
+- Place pour les images : photo de chantier privée (bandeau de la fiche, vignette de la liste, `/api/photos/[id]`) ; aperçu des photos jointes dans le fil ; image d'accueil de la connexion (`public/images/accueil.jpg`, voir `public/images/LISEZ-MOI.md`).
+- Vérifié par captures sur la prévisualisation, ordinateur et téléphone, gérant et externe, y compris l'envoi d'une photo.
+
+**Reste**
+- Kerguelenn essaie, puis fusion.
+- Figma : reporter la nouvelle structure dans les wireframes, puis l'import.
+- Images : déposer `public/images/accueil.jpg` et les photos des chantiers.
+
+**Cassé**
+- Rien de connu.
+
 ## 5 octobre 2026, nuit (lot C fusionné : demande n° 5, en production)
 
 **Fait**

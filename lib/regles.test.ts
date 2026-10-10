@@ -4,6 +4,7 @@ import {
   lotEnRetard,
   partageInitial,
   peutAnnuler,
+  poidsATraiter,
   peutEcrire,
   verifierPassage,
   verifierPassageLot,
@@ -131,4 +132,15 @@ describe("les signalements", () => {
 
 it("la date du jour est celle de Paris", () => {
   expect(aujourdhuiParis(new Date("2026-10-05T23:30:00Z"))).toBe("2026-10-06");
+});
+
+describe("ce qui demande de l'attention", () => {
+  it("un signalement à qualifier passe avant deux lots en retard", () => {
+    expect(poidsATraiter({ aQualifier: 1, reservesOuvertes: 0, lotsEnRetard: 0 })).toBeGreaterThan(poidsATraiter({ aQualifier: 0, reservesOuvertes: 0, lotsEnRetard: 2 }));
+  });
+
+  it("rien à traiter, ou un externe, pèse zéro", () => {
+    expect(poidsATraiter({ aQualifier: 0, reservesOuvertes: 0, lotsEnRetard: 0 })).toBe(0);
+    expect(poidsATraiter(null)).toBe(0);
+  });
 });

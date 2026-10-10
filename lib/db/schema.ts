@@ -42,6 +42,8 @@ export const chantiers = pgTable("chantiers", {
   // Coordonnées trouvées par l'API Adresse, pour la météo. Vides si l'adresse est introuvable.
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
+  // La photo du chantier, rangée en privé sur Vercel Blob, servie par /api/photos/[id].
+  photoUrl: text("photo_url"),
   creePar: uuid("cree_par").references(() => comptes.id),
   fictif: boolean("fictif").notNull().default(false),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
