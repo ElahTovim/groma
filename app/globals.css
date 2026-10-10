@@ -146,3 +146,55 @@
     min-height: 28px;
   }
 }
+
+/* Le ciel des cartes météo : seul endroit coloré et animé de l'interface. */
+.ciel-soleil {
+  background: radial-gradient(circle, rgb(255 244 214 / 0.9) 0%, rgb(255 226 150 / 0.35) 45%, transparent 70%);
+  animation: ciel-respire 6s ease-in-out infinite;
+}
+.ciel-nuage {
+  left: -50%;
+  animation: ciel-derive linear infinite;
+}
+.ciel-etoile {
+  animation: ciel-scintille 3.5s ease-in-out infinite;
+}
+.ciel-goutte {
+  animation: ciel-tombe linear infinite;
+  transform: rotate(12deg);
+}
+.ciel-flocon {
+  animation: ciel-neige linear infinite;
+}
+.ciel-rafale {
+  animation: ciel-souffle ease-in-out infinite;
+}
+@keyframes ciel-respire {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+@keyframes ciel-derive {
+  from { transform: translateX(0); }
+  to { transform: translateX(260%); }
+}
+@keyframes ciel-scintille {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+@keyframes ciel-tombe {
+  from { transform: translate3d(0, -2rem, 0) rotate(12deg); }
+  to { transform: translate3d(-3rem, 32rem, 0) rotate(12deg); }
+}
+@keyframes ciel-neige {
+  0% { transform: translate3d(0, -1rem, 0); }
+  50% { transform: translate3d(1.25rem, 15rem, 0); }
+  100% { transform: translate3d(-0.75rem, 32rem, 0); }
+}
+@keyframes ciel-souffle {
+  0% { transform: translateX(-120%); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateX(320%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ciel * { animation: none !important; }
+}

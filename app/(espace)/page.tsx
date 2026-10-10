@@ -5,8 +5,10 @@ import { BadgeStatut } from "@/components/badge-statut";
 import { ResumeATraiter } from "@/components/a-traiter";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CielAnime } from "@/components/ciel-anime";
 import { Vignette } from "@/components/vignette";
 import { peutCreerChantier } from "@/lib/acces";
+import { ambiance } from "@/lib/ambiance";
 import { euros } from "@/lib/format";
 import { LIBELLE_TYPE } from "@/lib/libelles";
 import { appelantObligatoire, type Appelant } from "@/lib/session";
@@ -156,9 +158,13 @@ function IconeCiel({ ciel, className, trait }: { ciel: string; className: string
   return <Cloud {...p} />;
 }
 
-// Une seule météo, celle de Paris, pour tous les chantiers. Le jour en très grand,
-// les deux suivants en petit ; une alerte (gel, pluie, vent fort) dit combien de
-// chantiers en cours elle concerne.
+function heureParis() {
+  return Number(new Intl.DateTimeFormat("fr-FR", { hour: "numeric", hourCycle: "h23", timeZone: PARIS }).format(new Date()));
+}
+
+// Une seule météo, celle de Paris, pour tous les chantiers : une fenêtre sur le ciel.
+// Le fond suit l'heure et le temps (lever, journée, soir, nuit ; pluie, neige…),
+// des particules l'animent. Le jour en très grand, les deux suivants en petit.
 function Meteo({ t, className }: { t: TableauDeBord; className?: string }) {
   const jours = t.meteo.jours;
   if (!jours || jours.length === 0) {
@@ -174,47 +180,58 @@ function Meteo({ t, className }: { t: TableauDeBord; className?: string }) {
     );
   }
   const [auj, ...suivants] = jours;
+  const a = ambiance({ description: auj.ciel, heure: heureParis(), alertes: auj.alertes });
   const concernes = t.actifs.length;
+  const doux = a.texteSombre ? "text-black/60" : "text-white/75";
 
   return (
-    <section className={cn("flex flex-col gap-5 rounded-3xl bg-card p-6", className)} aria-label={`Météo à ${t.meteo.lieu}`}>
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">
+    <section
+      className={cn("relative isolate flex min-h-80 flex-col gap-5 overflow-hidden rounded-3xl p-6", a.texteSombre ? "text-black" : "text-white", className)}
+      style={{ background: a.fond }}
+      aria-label={`Météo à ${t.meteo.lieu}`}
+    >
+      <CielAnime particules={a.particules} sombre={a.texteSombre} />
+      <div className="relative flex items-start justify-between gap-3">
+        <h2 className={cn("text-sm font-medium", doux)}>
           {t.meteo.lieu} · <span className="capitalize">{jourCourt(auj.date)}</span>
         </h2>
         <IconeCiel ciel={auj.ciel} className="size-14 shrink-0" trait={1.25} />
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="relative flex flex-col gap-1">
         <p className="text-7xl leading-none font-bold tracking-tighter tabular-nums md:text-8xl">{auj.max}°</p>
         <p className="text-lg font-semibold first-letter:uppercase">{auj.ciel}</p>
-        <p className="text-sm text-muted-foreground tabular-nums">
+        <p className={cn("text-sm tabular-nums", doux)}>
           Mini {auj.min}° · pluie {auj.pluieMm} mm · vent {auj.ventKmh} km/h
         </p>
       </div>
       {auj.alertes.length > 0 && concernes > 0 && (
-        <p className="flex w-fit items-center gap-2 rounded-full bg-foreground py-1.5 pr-4 pl-1.5 text-sm font-semibold text-background">
-          <span aria-hidden className="flex size-6 items-center justify-center rounded-full bg-background text-xs font-bold text-foreground">
+        <p className="relative flex w-fit items-center gap-2 rounded-full bg-black/80 py-1.5 pr-4 pl-1.5 text-sm font-semibold text-white backdrop-blur">
+          <span aria-hidden className="flex size-6 items-center justify-center rounded-full bg-white text-xs font-bold text-black">
             !
           </span>
           {auj.alertes.join(", ")} : {concernes} chantier{concernes > 1 ? "s" : ""} concerné{concernes > 1 ? "s" : ""}
         </p>
       )}
       {suivants.length > 0 && (
-        <ul className="mt-auto grid grid-cols-2 gap-2">
+        <ul className="relative mt-auto grid grid-cols-2 gap-2">
           {suivants.map((j) => {
             const alerte = j.alertes.length > 0;
             return (
-              <li key={j.date} className={cn("flex flex-col gap-2 rounded-2xl p-3", alerte ? "bg-foreground text-background" : "bg-muted")}>
+              <li
+                key={j.date}
+                className={cn(
+                  "flex flex-col gap-2 rounded-2xl p-3 backdrop-blur-md",
+                  alerte ? "bg-black/75 text-white" : a.texteSombre ? "bg-black/5" : "bg-white/15",
+                )}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold capitalize">{jourCourt(j.date)}</span>
                   <IconeCiel ciel={j.ciel} className="size-6" trait={1.5} />
                 </div>
                 <span className="text-2xl font-bold tracking-tight tabular-nums">
-                  {j.max}° <span className={cn("text-base font-medium", alerte ? "text-background/70" : "text-muted-foreground")}>/ {j.min}°</span>
+                  {j.max}° <span className="text-base font-medium opacity-70">/ {j.min}°</span>
                 </span>
-                <span className={cn("truncate text-sm", alerte ? "font-semibold" : "text-muted-foreground first-letter:uppercase")}>
-                  {alerte ? j.alertes.join(", ") : j.ciel}
-                </span>
+                <span className={cn("truncate text-sm", alerte ? "font-semibold" : "opacity-80 first-letter:uppercase")}>{alerte ? j.alertes.join(", ") : j.ciel}</span>
               </li>
             );
           })}
