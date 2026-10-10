@@ -17,8 +17,11 @@ export default async function Espace({ children }: LayoutProps<"/">) {
       <header className="sticky top-0 z-30 border-b bg-background">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
           <nav className="flex items-center gap-5 text-sm">
-            <Link href="/chantiers" className="text-lg font-bold tracking-tight">
+            <Link href="/" className="text-lg font-bold tracking-tight">
               groma
+            </Link>
+            <Link href="/" className="font-medium">
+              Accueil
             </Link>
             <Link href="/chantiers" className="font-medium">
               Chantiers
