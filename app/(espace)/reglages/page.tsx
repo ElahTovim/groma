@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { equipeVoitTout } from "@/lib/acces";
 import { appelantObligatoire } from "@/lib/session";
@@ -24,6 +26,17 @@ export default async function Reglages() {
         </CardHeader>
         <CardContent>
           <BoutonJeu />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Flux de nuit</CardTitle>
+          <CardDescription>Lire une nuit du flux telle quelle, sans rien importer.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/reglages/flux" className={buttonVariants({ variant: "outline" })}>
+            Lire le flux
+          </Link>
         </CardContent>
       </Card>
       <Card>
