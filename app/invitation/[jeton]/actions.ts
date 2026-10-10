@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { appelant } from "@/lib/session";
 import { db } from "@/lib/db";
 import { comptes, participants } from "@/lib/db/schema";
 import { formulaireCompte } from "@/lib/invitation";
@@ -13,7 +13,7 @@ import { journal } from "@/lib/journal";
 export type EtatInvitation = { erreur?: string };
 
 export async function accepterInvitation(jeton: string, _: EtatInvitation, formData: FormData): Promise<EtatInvitation> {
-  if ((await auth())?.user) return { erreur: "Déconnectez-vous d'abord : ce lien sert à créer le compte d'une autre personne." };
+  if (await appelant()) return { erreur: "Déconnectez-vous d'abord : ce lien sert à créer le compte d'une autre personne." };
   const lu = formulaireCompte.safeParse(Object.fromEntries(formData));
   if (!lu.success) return { erreur: lu.error.issues[0].message };
 

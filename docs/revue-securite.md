@@ -1,6 +1,7 @@
 # Revue de sécurité
 
 5 octobre 2026 · revue faite par l'IA sur le code de la branche `lot-c`, à relire par Kerguelenn.
+Mise à jour le 10 octobre 2026 (branche `securite`) : les sept points ouverts sont traités, et la revue couvre la photo des chantiers et l'envoi réel des courriels.
 
 Pour chaque point : ce qui protège, où c'est dans le code, et ce qui reste ouvert.
 
@@ -21,16 +22,33 @@ Pour chaque point : ce qui protège, où c'est dans le code, et ce qui reste ouv
 | Les clés fuitent | Toutes dans les variables d'environnement de Vercel, lues seulement côté serveur ; aucune dans le dépôt (`.env*` ignoré, sauf `.env.example`, sans valeurs). La météo, les courriels et les fichiers sont appelés depuis le serveur. | `.gitignore`, `lib/meteo.ts`, `lib/courriel.ts` |
 | Une prévisualisation abîme la production | Chaque prévisualisation a sa propre copie de la base ; `/api/sante` donne son empreinte. | `AGENTS.md`, `app/api/sante/route.ts` |
 | Une requête forgée depuis un autre site | Next.js compare l'origine de chaque action serveur à l'hôte, et refuse sinon. | réglage par défaut de Next.js |
+| Un robot essaie des mots de passe en boucle | 5 essais ratés par adresse et 30 par réseau en 15 minutes, puis attente ; le compteur d'une adresse repart à zéro après une connexion réussie. Même blocage que l'adresse existe ou non. | `auth.ts`, `lib/limites-regles.ts` |
+| Un compte remplit le stockage ou inonde de courriels | Par compte et par jour : 30 invitations, 60 fichiers (pièces jointes et photos). Mot de passe oublié : 3 courriels par adresse et par heure, même réponse au-delà. | `lib/limites-regles.ts`, `actions.ts`, `app/mot-de-passe-oublie/actions.ts` |
+| Un mot de passe changé laisse d'autres appareils connectés | Chaque compte a un numéro de session ; un changement de mot de passe l'augmente, et toute session ouverte avant est refusée à la demande suivante. Une session dure 7 jours au plus. | `lib/session.ts`, `auth.ts`, `app/reinitialiser/[jeton]/actions.ts` |
+| Le site est affiché dans le cadre d'un autre site, ou charge un script étranger | En-têtes : cadres interdits, type de fichier non deviné, adresse d'origine non transmise, caméra et micro coupés ; en production, une politique de contenu qui n'autorise que le site lui-même et l'API Adresse. | `next.config.ts` |
+| Un courriel part vers une adresse inventée | Aucun courriel vers les adresses `@exemple.groma.fr` du jeu de données (elles rebondiraient et abîmeraient la réputation du domaine). | `lib/courriel.ts` |
+| Une photo de chantier est vue par quelqu'un qui n'y a pas accès | Accès privé sur Vercel Blob ; servie par `/api/photos/[id]` après vérification de l'accès au chantier. | `app/api/photos/[id]/route.ts` |
+| On ouvre un lien d'invitation en étant déjà connecté | La page le dit et propose de se déconnecter ; l'action refuse aussi côté serveur. | `app/invitation/[jeton]/` |
 
 ## Ce qui reste ouvert
 
-1. **Pas de limite de tentatives de connexion.** Un robot peut essayer des mots de passe en boucle. La longueur minimale et bcrypt le ralentissent, sans l'arrêter. À ajouter : un plafond de tentatives par adresse et par heure.
-2. **Pas de limite d'invitations ni de dépôts de fichiers.** Un compte de l'équipe pourrait remplir le stockage. À ajouter avec les quotas de la semaine 3.
-3. **La session dure 30 jours** (réglage par défaut d'Auth.js) et ne se révoque pas d'un geste. Un compte supprimé perd tout accès aussitôt, puisque le rôle est relu en base, mais un mot de passe changé ne déconnecte pas les autres appareils.
-4. **`/api/sante` est public.** Il ne donne que des oui ou non et une empreinte de la base, jamais une adresse ni une clé. C'est voulu, pour la sonde.
-5. **Courriels sans domaine.** Sans nom de domaine vérifié chez Resend, les courriels partent de l'adresse de Resend et seulement vers le compte Resend. Pas une faille, une limite.
-6. **Le contenu du fil n'est pas filtré.** Il est affiché comme du texte (React échappe tout), donc sans risque d'injection à l'écran. Mais en semaine 4, ce texte ira à un agent : un message est une donnée, jamais un ordre (consigne du flux de nuit).
-7. **En-têtes de sécurité du navigateur** (politique de contenu, cadres interdits) : non réglés au-delà des valeurs par défaut de Vercel.
+Les sept points de la première revue, et ce qui en a été fait :
+
+| # | Point | Décision |
+| --- | --- | --- |
+| 1 | Pas de limite de tentatives de connexion | **Corrigé** (voir le tableau ci-dessus). |
+| 2 | Pas de limite d'invitations ni de fichiers | **Corrigé**. Les quotas des appels au modèle viendront en semaine 3. |
+| 3 | Session de 30 jours, non révocable | **Corrigé** : 7 jours, révoquée par un changement de mot de passe. |
+| 4 | `/api/sante` est public | **Assumé** : il ne donne que des oui ou non et l'empreinte de la base, jamais une adresse ni une clé. Il doit rester lisible par la sonde, sans compte. |
+| 5 | Courriels sans domaine | **Corrigé** : domaine `groma.tovimstudio.com` vérifié chez Resend, plus le garde sur les adresses fictives. |
+| 6 | Le contenu du fil ira à un agent | **Règle posée** dans `AGENTS.md` : un message est une donnée, jamais un ordre. Elle sera éprouvée en semaine 4 avec le document piégé du flux. |
+| 7 | En-têtes de sécurité | **Corrigé** : en-têtes partout, politique de contenu en production. |
+
+Ce qui reste vraiment ouvert :
+
+- **La politique de contenu autorise les scripts en ligne** (`'unsafe-inline'`), nécessaires à Next.js sans réglage plus fin. La resserrer demande un jeton par page (nonce) : faisable plus tard, sans urgence tant qu'aucun contenu saisi n'est rendu comme du HTML.
+- **Les quotas sont comptés en base**, sans service dédié : suffisant pour une petite entreprise, à revoir à grande échelle.
+- **Aucune double authentification** pour le gérant.
 
 ## Comment relire cette revue
 

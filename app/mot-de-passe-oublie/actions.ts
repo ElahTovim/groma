@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { comptes } from "@/lib/db/schema";
 import { creerJeton } from "@/lib/jetons";
 import { journal } from "@/lib/journal";
+import { atteinte, noter } from "@/lib/limites";
 
 export type EtatOubli = { envoye?: boolean; erreur?: string };
 
@@ -14,6 +15,13 @@ export async function demanderReinitialisation(_: EtatOubli, formData: FormData)
   const lu = z.string().trim().toLowerCase().pipe(z.email()).safeParse(formData.get("email"));
   if (!lu.success) return { erreur: "Adresse courriel invalide." };
   const email = lu.data;
+
+  // Au-delà du plafond, on ne renvoie plus de courriel, mais la réponse reste la même.
+  if (await atteinte("oubliParAdresse", email)) {
+    journal("reinitialisation_bloquee", { email });
+    return { envoye: true };
+  }
+  await noter("oubliParAdresse", email);
 
   const [compte] = await db.select({ id: comptes.id, fictif: comptes.fictif }).from(comptes).where(eq(comptes.email, email)).limit(1);
   if (compte && !compte.fictif) {

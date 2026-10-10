@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { auth, signOut } from "@/auth";
+import { signOut } from "@/auth";
+import { appelant } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { FormulaireMotDePasse } from "@/components/formulaire-mot-de-passe";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,7 @@ export default async function PageInvitation({ params }: PageProps<"/invitation/
   const j = await lireJeton(jeton, "invitation");
   // Quelqu'un est déjà connecté dans ce navigateur (souvent : le gérant qui essaie
   // son propre lien). Sans ce garde, il créerait le compte puis retomberait dans le sien.
-  const session = await auth();
+  const connecte = await appelant();
   const [chantier] = j?.chantierId ? await db.select({ nom: chantiers.nom, ville: chantiers.ville }).from(chantiers).where(eq(chantiers.id, j.chantierId)).limit(1) : [];
 
   return (
@@ -43,10 +44,10 @@ export default async function PageInvitation({ params }: PageProps<"/invitation/
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {session?.user ? (
+              {connecte ? (
                 <>
                   <p className="border border-foreground p-3 text-sm">
-                    Vous êtes connecté en tant que <strong>{session.user.name}</strong>. Ce lien sert à créer le compte de <strong>{j.email}</strong> : déconnectez-vous d&apos;abord.
+                    Vous êtes connecté en tant que <strong>{connecte.nom}</strong>. Ce lien sert à créer le compte de <strong>{j.email}</strong> : déconnectez-vous d&apos;abord.
                   </p>
                   <form
                     action={async () => {

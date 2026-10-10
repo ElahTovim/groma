@@ -1,4 +1,4 @@
-import { boolean, date, doublePrecision, integer, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, doublePrecision, index, integer, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 // Les trois rôles de docs/cycle-de-vie.md. La qualité d'un externe (client,
 // syndic…) n'est pas un rôle : elle vit sur la participation à un chantier.
@@ -22,6 +22,9 @@ export const comptes = pgTable("comptes", {
   role: role("role").notNull(),
   // Vrai pour les comptes créés par le jeu de données fictif.
   fictif: boolean("fictif").notNull().default(false),
+  // Augmente à chaque changement de mot de passe : les sessions ouvertes avant
+  // portent l'ancien numéro et ne sont plus acceptées.
+  versionSession: integer("version_session").notNull().default(0),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -135,6 +138,19 @@ export const jetons = pgTable("jetons", {
   utiliseLe: timestamp("utilise_le", { withTimezone: true }),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Les compteurs des limites (tentatives de connexion, invitations, fichiers) :
+// une ligne par tentative, comptée sur une fenêtre de temps glissante.
+export const limites = pgTable(
+  "limites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sujet: text("sujet").notNull(),
+    cle: text("cle").notNull(),
+    creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("limites_sujet_cle_date").on(t.sujet, t.cle, t.creeLe)],
+);
 
 export type Compte = typeof comptes.$inferSelect;
 export type Chantier = typeof chantiers.$inferSelect;
