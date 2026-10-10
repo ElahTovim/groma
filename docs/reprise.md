@@ -1,5 +1,23 @@
 # État de reprise
 
+## 10 octobre 2026, nuit (branche `nuit`, semaine 2, en prévisualisation)
+
+**Fait**
+- Sécurité fusionnée (demande n° 7).
+- Tranche 0 : `/reglages/flux` lit une nuit brute. Constats : trois types (creation, mise_a_jour, message), statuts du flux etude, en_cours, receptionne, clos ; pas de code postal ni de compte pour le chef ; mises à jour et messages visent des chantiers créés dès août.
+- Tranches 1 à 3 : tables `executions` et `evenements_flux` ; import idempotent (identifiant de l'événement, une exécution en cours par nuit, référence déjà connue) ; règles testées dans `lib/flux-regles.ts` (mal formés mis de côté avec motif) ; trois tentatives espacées ; rattrapage depuis `FLUX_DEPUIS` (1er août), nuit du jour d'abord ; `/api/nuit` protégée par `CRON_SECRET`, appelée à 6 h et 7 h (heure de Paris, `vercel.json`) ; page `/nuit` (exécutions, mis de côté, relance à la main). Vérifié : relancer une nuit donne 0 appliqué, tout en doublons.
+- Tranche 4 : récapitulatif à 7 h, une fois par jour et par personne (`recapitulatifs`), gérant pour tout, équipe pour ses chantiers. Vérifié : second passage, « déjà envoyé ».
+- Tranche 5 : alerte courriel au gérant et Sentry quand le flux tombe ; `/api/sante/nuit` (503 si la dernière tentative a échoué ou rien depuis 26 h).
+- Tranche 6 : consommation du mois et coût sur `/nuit` (0 € réel, estimation indicative paramétrée dans `lib/couts.ts`).
+- 93 tests.
+
+**Reste**
+- Kerguelenn : vérifier le récapitulatif reçu, créer les sondes UptimeRobot, déclencher une vraie alerte, puis fusion.
+- En production, le premier passage rattrape depuis le 1er août, par paquets de 10 nuits.
+
+**Cassé**
+- Rien de connu.
+
 ## 10 octobre 2026, soir (branche `securite`, en prévisualisation)
 
 **Fait**

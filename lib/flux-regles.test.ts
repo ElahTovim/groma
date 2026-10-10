@@ -98,8 +98,12 @@ describe("outils", () => {
     expect(decouperAdresse("Lieu-dit sans ville")).toEqual({ rue: "Lieu-dit sans ville", ville: "" });
   });
 
-  it("liste les nuits à rattraper, dans l'ordre, sans celles déjà réussies, avec un plafond", () => {
-    expect(nuitsARattraper("2026-10-01", "2026-10-05", new Set(["2026-10-02"]), 10)).toEqual(["2026-10-01", "2026-10-03", "2026-10-04", "2026-10-05"]);
-    expect(nuitsARattraper("2026-10-01", "2026-10-05", new Set(), 2)).toEqual(["2026-10-01", "2026-10-02"]);
+  it("met la nuit qui vient de finir en premier, puis les nuits manquées dans l'ordre", () => {
+    expect(nuitsARattraper("2026-10-01", "2026-10-05", new Set(["2026-10-02"]), 10)).toEqual(["2026-10-05", "2026-10-01", "2026-10-03", "2026-10-04"]);
+  });
+
+  it("respecte le plafond, et saute la nuit du jour si elle est déjà importée", () => {
+    expect(nuitsARattraper("2026-10-01", "2026-10-05", new Set(), 2)).toEqual(["2026-10-05", "2026-10-01"]);
+    expect(nuitsARattraper("2026-10-01", "2026-10-05", new Set(["2026-10-05"]), 2)).toEqual(["2026-10-01", "2026-10-02"]);
   });
 });

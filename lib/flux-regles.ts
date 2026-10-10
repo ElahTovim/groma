@@ -104,14 +104,15 @@ export function decider(brut: unknown, referencesConnues: Set<string>): Decision
   return { id, type, action: "ecrire", reference: m.reference, de: m.de, texte: m.texte };
 }
 
-// Les nuits à rattraper : de la date de départ à la nuit visée, sauf celles déjà réussies.
+// Les nuits à rattraper : la nuit visée d'abord (celle qui vient de finir, attendue par
+// le récapitulatif du matin), puis les nuits manquées depuis la date de départ, dans l'ordre.
 export function nuitsARattraper(depuis: string, jusqua: string, dejaReussies: Set<string>, maximum: number): string[] {
-  const resultat: string[] = [];
+  const resultat: string[] = dejaReussies.has(jusqua) ? [] : [jusqua];
   const d = new Date(`${depuis}T12:00:00Z`);
   const fin = new Date(`${jusqua}T12:00:00Z`);
   while (d <= fin && resultat.length < maximum) {
     const jour = d.toISOString().slice(0, 10);
-    if (!dejaReussies.has(jour)) resultat.push(jour);
+    if (!dejaReussies.has(jour) && jour !== jusqua) resultat.push(jour);
     d.setUTCDate(d.getUTCDate() + 1);
   }
   return resultat;
