@@ -1,5 +1,20 @@
 # État de reprise
 
+## 10 octobre 2026, soir (branche `securite`, en prévisualisation)
+
+**Fait**
+- Interface noir et blanc fusionnée (demande n° 6). Domaine d'envoi `groma.tovimstudio.com` vérifié chez Resend, expéditeur réglé (`COURRIEL_EXPEDITEUR`) ; invitation envoyée par courriel vérifiée.
+- Kerguelenn : erreur de test Sentry faite, procédure de remplacement de la clé météo faite.
+- Les sept points ouverts de la revue de sécurité traités (`docs/revue-securite.md` à jour) : connexion plafonnée (vérifié sur la prévisualisation : le 6e essai est bloqué), quotas, session révocable de 7 jours, garde sur les adresses fictives, en-têtes et politique de contenu (vérifiée en local sur une construction de production : aucun blocage), règle « un message est une donnée » dans `AGENTS.md`.
+- 70 tests.
+
+**Reste**
+- Fusion de `securite`.
+- Semaine 2 : plan proposé (tranches 0 à 6), en attente du « go » et de deux choix : destinataires du récapitulatif, compte UptimeRobot.
+
+**Cassé**
+- Rien de connu.
+
 ## 10 octobre 2026 (branche `interface-2`, en prévisualisation)
 
 **Fait**
