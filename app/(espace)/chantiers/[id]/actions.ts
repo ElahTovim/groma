@@ -16,6 +16,7 @@ import { nomPropre, verifierFichier } from "@/lib/fichiers";
 import { formulaireInvitation } from "@/lib/invitation";
 import { creerJeton } from "@/lib/jetons";
 import { atteinte, noter } from "@/lib/limites";
+import { estPhotoFictive } from "@/lib/jeu-de-donnees";
 import { journal } from "@/lib/journal";
 import {
   ETAPES_ALERTE,
@@ -303,7 +304,8 @@ export async function changerPhoto(chantierId: string, formData: FormData): Prom
   try {
     const b = await put(`chantiers/${chantierId}/photo-${nomPropre(f.name)}`, f, { access: "private", addRandomSuffix: true, contentType: f.type });
     await db.update(chantiers).set({ photoUrl: b.url }).where(eq(chantiers.id, chantierId));
-    if (avant?.photoUrl) await del(avant.photoUrl).catch(() => undefined);
+    // Une photo du jeu de données est une image fixe du site : rien à effacer.
+    if (avant?.photoUrl && !estPhotoFictive(avant.photoUrl)) await del(avant.photoUrl).catch(() => undefined);
   } catch (err) {
     journal("photo_echec", { compte: p.qui.id, chantier: chantierId, erreur: String(err) });
     return { ok: false, erreur: "La photo n'a pas pu être enregistrée. Réessayez." };

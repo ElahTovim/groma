@@ -26,7 +26,7 @@ export function Inviter({ chantierId }: { chantierId: string }) {
         }
       }}
     >
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>Inviter</DialogTrigger>
+      <DialogTrigger render={<Button variant="outline" size="lg" className="w-full" />}>+ Inviter un participant</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Inviter sur ce chantier</DialogTitle>

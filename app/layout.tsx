@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import { Ouverture, SCRIPT_OUVERTURE } from "@/components/ouverture";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+});
+
+// La police des titres, des noms de chantier et des grands chiffres : grasse,
+// un peu artisanale. Le texte courant reste en Geist, plus sobre.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+  axes: ["wdth", "opsz"], // la largeur sert au logo, resserré
 });
 
 const geistMono = Geist_Mono({
@@ -20,11 +29,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // suppressHydrationWarning : le script d'ouverture peut ajouter une classe à <html> avant React.
     <html
       lang="fr"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_OUVERTURE }} />
+      </head>
       <body className="min-h-full flex flex-col">
+        <Ouverture />
         {children}
         <Toaster position="top-center" richColors />
       </body>
