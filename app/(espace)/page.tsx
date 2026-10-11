@@ -1,4 +1,4 @@
-import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Snowflake, Sun } from "lucide-react";
+import { Check, Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Snowflake, Sun } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BadgeStatut } from "@/components/badge-statut";
@@ -87,10 +87,8 @@ async function Contenu({ qui }: { qui: Appelant }) {
   return (
     <>
       {/* Les blocs arrivent l'un après l'autre, du plus urgent au plus calme. */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {t.chiffres && <ATraiter t={t} />}
-        <Meteo t={t} className={cn("apparait [--rang:1]", !t.chiffres && "md:col-span-3")} />
-      </div>
+      {t.chiffres && <ATraiter t={t} />}
+      <Meteo t={t} className="apparait [--rang:1]" />
       {t.chiffres && <Chiffres c={t.chiffres} />}
       <Carrousel t={t} />
       <div className="grid gap-4 md:grid-cols-2">
@@ -114,36 +112,42 @@ function Titre({ children, lien }: { children: React.ReactNode; lien?: { href: s
   );
 }
 
-// En aplat noir : c'est la première chose à voir le matin.
+// Un bandeau qui s'adapte : une fine ligne calme quand tout est à jour, des
+// pastilles noires cliquables (une par chantier) quand quelque chose attend.
 function ATraiter({ t }: { t: TableauDeBord }) {
   const total = t.aTraiter.length;
-  return (
-    <section className="apparait flex flex-col gap-5 rounded-3xl bg-foreground p-6 text-background md:col-span-2">
-      <div className="flex items-end justify-between gap-4">
-        <h2 className="text-xl font-bold tracking-tight">À traiter</h2>
-        <span className="text-6xl leading-none font-bold tracking-tighter tabular-nums">
-          <Compteur valeur={total} />
+  if (total === 0) {
+    return (
+      <p className="apparait flex min-h-14 items-center gap-3 rounded-full bg-card px-5 font-semibold">
+        <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-foreground">
+          <Check className="size-4" strokeWidth={3} />
         </span>
-      </div>
-      {total === 0 ? (
-        <p className="text-background/80">Rien en attente : aucun retard, aucun signalement à qualifier, aucune réserve ouverte.</p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-background/15">
-          {t.aTraiter.slice(0, 5).map((c) => (
-            <li key={c.id}>
-              <Link href={`/chantiers/${c.id}`} className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2 hover:opacity-80">
-                <span className="min-w-0 truncate text-lg font-semibold">{c.nom}</span>
+        Tout est à jour
+        <span className="hidden font-normal text-muted-foreground md:inline">· aucun retard, aucun signalement, aucune réserve</span>
+      </p>
+    );
+  }
+  return (
+    <section className="apparait flex flex-col gap-3" aria-label="À traiter">
+      <Titre lien={total > 5 ? { href: "/chantiers?statut=a_traiter", texte: `Les ${total}` } : undefined}>
+        À traiter <span className="text-muted-foreground tabular-nums">({total})</span>
+      </Titre>
+      <ul className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
+        {t.aTraiter.slice(0, 5).map((c) => (
+          <li key={c.id} className="shrink-0 snap-start">
+            <Link
+              href={`/chantiers/${c.id}`}
+              className="flex min-h-12 items-center gap-3 rounded-full bg-foreground py-2 pr-5 pl-2 text-background transition-transform hover:opacity-90 active:scale-[0.98]"
+            >
+              <span aria-hidden className="ml-2 size-2.5 shrink-0 rounded-full bg-background" />
+              <span className="max-w-48 truncate font-semibold">{c.nom}</span>
+              <span className="text-background/75">
                 <ResumeATraiter a={c.aTraiter} compact />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-      {total > 5 && (
-        <Link href="/chantiers?statut=a_traiter" className="text-sm font-semibold underline underline-offset-4">
-          Voir les {total} chantiers à traiter →
-        </Link>
-      )}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -216,7 +220,7 @@ function Meteo({ t, className }: { t: TableauDeBord; className?: string }) {
         </p>
       )}
       {suivants.length > 0 && (
-        <ul className="relative mt-auto grid grid-cols-2 gap-2">
+        <ul className="relative mt-auto grid grid-cols-2 gap-2 md:w-full md:max-w-lg md:self-end">
           {suivants.map((j) => {
             const alerte = j.alertes.length > 0;
             return (
