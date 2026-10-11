@@ -3,6 +3,7 @@ import { ouEstCitee, reverifierEntreprises } from "@/lib/entreprises";
 import { journal } from "@/lib/journal";
 import { rattraper } from "@/lib/nuit";
 import { envoyerRecapitulatifs } from "@/lib/recap";
+import { relancerVigilance } from "@/lib/vigilance";
 import { db } from "@/lib/db";
 import { comptes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -54,6 +55,9 @@ export async function GET(requete: Request) {
     );
   }
 
+  // Au même passage : les sous-traitants dont l'attestation de vigilance manque ou expire.
+  const vigilance = avecRecap ? null : await relancerVigilance(SITE);
+
   const recap = avecRecap ? await envoyerRecapitulatifs(SITE) : null;
-  return Response.json({ ok: !echec, bilans, registre, recap });
+  return Response.json({ ok: !echec, bilans, registre, vigilance, recap });
 }

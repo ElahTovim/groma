@@ -20,6 +20,7 @@ const ctx: ContexteChantier = {
   lots: [{ nom: "Carrelage", statut: "fini" }],
   signalementsAQualifier: 0,
   reservesOuvertes: 0,
+  pvSigne: true,
 };
 
 describe("la règle de clôture", () => {
@@ -34,6 +35,10 @@ describe("la règle de clôture", () => {
   it("cas piégé : un signalement arrivé la veille bloque la clôture", () => {
     const v = verifierPassage("reception", "clos", { ...ctx, signalementsAQualifier: 1 });
     expect(v).toEqual({ ok: false, raisons: ["1 signalement à qualifier."] });
+  });
+
+  it("sans PV de réception signé, pas de clôture", () => {
+    expect(verifierPassage("reception", "clos", { ...ctx, pvSigne: false })).toEqual({ ok: false, raisons: ["Faites signer le PV de réception par le maître d'ouvrage."] });
   });
 
   it("une réserve ouverte bloque aussi, et le refus dit tout ce qui bloque", () => {

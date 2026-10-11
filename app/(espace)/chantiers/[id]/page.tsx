@@ -7,7 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { voitLInterne } from "@/lib/acces";
 import { lireChantier } from "@/lib/chantiers";
 import { lireEntreprises, type EntrepriseVue } from "@/lib/entreprises";
-import { contexteChantier, lireFil, lireLots, lireParticipants } from "@/lib/fiche";
+import { lirePv } from "@/lib/reception";
+import { aujourdhuiParis } from "@/lib/regles";
+import { dernieresAttestations, type DerniereAttestation } from "@/lib/vigilance";
+import { etatAttestation } from "@/lib/vigilance-regles";
+import { contexteChantier, lireFil, maParticipation, lireLots, lireParticipants } from "@/lib/fiche";
 import { dateCourte, euros } from "@/lib/format";
 import { journal } from "@/lib/journal";
 import { etapeSuivante, verifierPassage } from "@/lib/regles";
@@ -20,8 +24,15 @@ import { Inviter } from "./inviter";
 import { Lots } from "./lots";
 import { Meteo } from "./meteo";
 import { PhotoChantier } from "./photo";
+import { Reception } from "./reception";
+import { MaVigilance, VigilanceParticipant, type VigilanceAffichee } from "./vigilance";
 
 export const dynamic = "force-dynamic";
+
+function vigilance(exigee: boolean, siren: string | null, dernieres: Map<string, DerniereAttestation>, jour: string): VigilanceAffichee {
+  const a = siren ? (dernieres.get(siren) ?? null) : null;
+  return { exigee, etat: etatAttestation(a?.delivreeLe ?? null, jour), attestation: a && { id: a.id, delivreeLe: a.delivreeLe, codeSecurite: a.codeSecurite }, entrepriseVerifiee: Boolean(siren) };
+}
 
 function pourAfficher(e: EntrepriseVue | undefined): EntrepriseAffichee | null {
   if (!e) return null;
@@ -54,6 +65,13 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
   ]);
   // Les entreprises vérifiées (client, externes) : interne seulement.
   const entreprises = interne ? await lireEntreprises([chantier.clientSiren, ...participants.map((p) => p.siren)]) : new Map<string, EntrepriseVue>();
+  const jour = aujourdhuiParis();
+  const pv = await lirePv(chantier.id);
+  // Un externe ne voit le PV que s'il en est le signataire.
+  const pvVisible = pv && (interne || pv.signataireId === qui.id) ? pv : null;
+  // L'externe : son attestation de vigilance, si elle est exigée sur ce chantier.
+  const maPlace = interne ? null : await maParticipation(chantier.id, qui.id);
+  const attestations = await dernieresAttestations(interne ? participants.map((p) => p.siren) : [maPlace?.siren ?? null]);
   // Ce qui bloque l'étape suivante, calculé avant tout clic.
   const verdict = suivante && contexte ? verifierPassage(chantier.statut, suivante, contexte) : null;
   const blocages = verdict && !verdict.ok ? verdict.raisons : [];
@@ -85,6 +103,19 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
 
       <div className="grid gap-x-10 gap-y-6 md:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-6">
+          {(chantier.statut === "reception" || pvVisible) && (
+            <Reception
+              chantierId={chantier.id}
+              moi={qui.id}
+              interne={interne}
+              enReception={chantier.statut === "reception"}
+              pv={pvVisible && { dateReception: pvVisible.dateReception, reserves: pvVisible.reserves, observations: pvVisible.observations, signataireId: pvVisible.signataireId, signataire: pvVisible.signataire, signeLe: pvVisible.signeLe, signeNom: pvVisible.signeNom }}
+              reservesOuvertes={elements.filter((e) => e.statutSignalement === "reserve_ouverte").map((e) => ({ texte: e.texte }))}
+              externes={participants.filter((p) => p.role === "externe").map((p) => ({ compteId: p.compteId, nom: p.nom, qualite: p.qualite }))}
+              aujourdhui={jour}
+            />
+          )}
+          {!interne && maPlace?.vigilance && !termine && <MaVigilance chantierId={chantier.id} moi={qui.id} v={vigilance(true, maPlace.siren, attestations, jour)} />}
           {interne && <Lots chantierId={chantier.id} lots={lots} participants={participants} modifiable={!termine} />}
           <Fil chantierId={chantier.id} interne={interne} elements={elements} participants={participants} lots={lots} />
         </div>
@@ -144,6 +175,7 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
                           compacte
                         />
                       )}
+                      {p.role === "externe" && <VigilanceParticipant chantierId={chantier.id} compteId={p.compteId} v={vigilance(p.vigilance, p.siren, attestations, jour)} modifiable={!termine} />}
                     </li>
                   ))}
                 </ul>

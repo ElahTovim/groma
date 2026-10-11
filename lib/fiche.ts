@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { voitLInterne } from "@/lib/acces";
 import { db } from "@/lib/db";
-import { comptes, fil, lots, participants, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
+import { comptes, fil, lots, participants, pvReception, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
 import { aujourdhuiParis, lotEnRetard, voitElement, type ContexteChantier } from "@/lib/regles";
 import type { Appelant } from "@/lib/session";
 
@@ -31,11 +31,11 @@ export type ElementVu = {
   creeLe: string;
 };
 
-export type ParticipantVu = { compteId: string; nom: string; role: Appelant["role"]; qualite: string; siren: string | null };
+export type ParticipantVu = { compteId: string; nom: string; role: Appelant["role"]; qualite: string; siren: string | null; vigilance: boolean };
 
 export async function lireParticipants(chantierId: string): Promise<ParticipantVu[]> {
   return db
-    .select({ compteId: comptes.id, nom: comptes.nom, role: comptes.role, qualite: participants.qualite, siren: comptes.siren })
+    .select({ compteId: comptes.id, nom: comptes.nom, role: comptes.role, qualite: participants.qualite, siren: comptes.siren, vigilance: participants.vigilance })
     .from(participants)
     .innerJoin(comptes, eq(participants.compteId, comptes.id))
     .where(eq(participants.chantierId, chantierId))
@@ -97,9 +97,10 @@ export async function lireFil(qui: Appelant, chantierId: string): Promise<Elemen
 
 // Ce que les règles d'étapes ont besoin de savoir, lu en base.
 export async function contexteChantier(chantierId: string, debutPrevu: string | null): Promise<ContexteChantier> {
-  const [lesLots, elements] = await Promise.all([
+  const [lesLots, elements, [pv]] = await Promise.all([
     db.select({ nom: lots.nom, statut: lots.statut }).from(lots).where(eq(lots.chantierId, chantierId)),
     db.select({ type: fil.type, statutSignalement: fil.statutSignalement }).from(fil).where(eq(fil.chantierId, chantierId)),
+    db.select({ signeLe: pvReception.signeLe }).from(pvReception).where(eq(pvReception.chantierId, chantierId)).limit(1),
   ]);
   return {
     debutPrevu,
@@ -108,6 +109,7 @@ export async function contexteChantier(chantierId: string, debutPrevu: string | 
     lots: lesLots,
     signalementsAQualifier: elements.filter((e) => e.statutSignalement === "a_qualifier").length,
     reservesOuvertes: elements.filter((e) => e.statutSignalement === "reserve_ouverte").length,
+    pvSigne: Boolean(pv?.signeLe),
   };
 }
 
@@ -118,4 +120,15 @@ export async function estParticipant(chantierId: string, compteId: string): Prom
     .where(and(eq(participants.chantierId, chantierId), eq(participants.compteId, compteId)))
     .limit(1);
   return Boolean(p);
+}
+
+// Ce que l'externe doit savoir de sa propre place sur un chantier.
+export async function maParticipation(chantierId: string, compteId: string): Promise<{ vigilance: boolean; siren: string | null } | null> {
+  const [p] = await db
+    .select({ vigilance: participants.vigilance, siren: comptes.siren })
+    .from(participants)
+    .innerJoin(comptes, eq(participants.compteId, comptes.id))
+    .where(and(eq(participants.chantierId, chantierId), eq(participants.compteId, compteId)))
+    .limit(1);
+  return p ?? null;
 }

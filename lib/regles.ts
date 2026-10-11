@@ -37,6 +37,8 @@ export type ContexteChantier = {
   lots: { nom: string; statut: StatutLot }[];
   signalementsAQualifier: number;
   reservesOuvertes: number;
+  // Le PV de réception est signé par le maître d'ouvrage (lib/reception-regles.ts).
+  pvSigne: boolean;
 };
 
 export function verifierPassage(de: StatutChantier, vers: StatutChantier, c: ContexteChantier): Verdict {
@@ -59,6 +61,7 @@ export function verifierPassage(de: StatutChantier, vers: StatutChantier, c: Con
     }
   }
   if (vers === "clos") {
+    if (!c.pvSigne) raisons.push("Faites signer le PV de réception par le maître d'ouvrage.");
     // La règle phare : pas de clôture avec un signalement en attente ou une réserve ouverte.
     if (c.signalementsAQualifier > 0) {
       raisons.push(`${c.signalementsAQualifier} signalement${c.signalementsAQualifier > 1 ? "s" : ""} à qualifier.`);

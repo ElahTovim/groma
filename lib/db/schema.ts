@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { ContenuPv } from "@/lib/reception-regles";
 import { boolean, date, doublePrecision, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 // Les trois rôles de docs/cycle-de-vie.md. La qualité d'un externe (client,
@@ -93,6 +94,9 @@ export const participants = pgTable(
       .references(() => comptes.id, { onDelete: "cascade" }),
     // Un libellé (« client », « architecte »…), jamais une condition dans le code.
     qualite: text("qualite").notNull(),
+    // Contrat de sous-traitance d'au moins 5 000 € HT : l'attestation de vigilance
+    // URSSAF de son entreprise est exigée tous les 6 mois (lib/vigilance-regles.ts).
+    vigilance: boolean("vigilance").notNull().default(false),
     inviteLe: timestamp("invite_le", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("participant_unique").on(t.chantierId, t.compteId)],
@@ -243,3 +247,62 @@ export type StatutChantier = (typeof statutChantier.enumValues)[number];
 export type StatutLot = (typeof statutLot.enumValues)[number];
 export type TypeFil = (typeof typeFil.enumValues)[number];
 export type StatutSignalement = (typeof statutSignalement.enumValues)[number];
+
+// ——— La réception et les sous-traitants ———
+
+// Le procès-verbal de réception : un par chantier. Préparé par l'équipe, signé par
+// le maître d'ouvrage (un externe choisi). Une fois signé, il ne change plus :
+// son contenu est figé et son empreinte le prouve.
+export const pvReception = pgTable("pv_reception", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  chantierId: uuid("chantier_id")
+    .notNull()
+    .unique()
+    .references(() => chantiers.id, { onDelete: "cascade" }),
+  dateReception: date("date_reception").notNull(),
+  // Les réserves ouvertes au moment du PV, recopiées : le PV ne bouge plus ensuite.
+  reserves: jsonb("reserves").$type<{ id: string; texte: string }[]>().notNull().default([]),
+  observations: text("observations"),
+  signataireId: uuid("signataire_id")
+    .notNull()
+    .references(() => comptes.id),
+  preparePar: uuid("prepare_par").references(() => comptes.id, { onDelete: "set null" }),
+  prepareLe: timestamp("prepare_le", { withTimezone: true }).notNull().defaultNow(),
+  signeLe: timestamp("signe_le", { withTimezone: true }),
+  signeNom: text("signe_nom"),
+  // Le contenu exact signé, figé à la signature, et son empreinte SHA-256.
+  contenuSigne: jsonb("contenu_signe").$type<ContenuPv>(),
+  empreinte: text("empreinte"),
+});
+
+// Les attestations de vigilance URSSAF, rangées par entreprise (SIREN).
+// La plus récente fait foi ; le fichier est privé, servi par /api/attestations/[id].
+export const attestations = pgTable("attestations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  siren: text("siren")
+    .notNull()
+    .references(() => entreprises.siren, { onDelete: "cascade" }),
+  delivreeLe: date("delivree_le").notNull(),
+  // Le code de sécurité imprimé sur l'attestation, vérifiable sur urssaf.fr.
+  codeSecurite: text("code_securite"),
+  fichierUrl: text("fichier_url").notNull(),
+  fichierNom: text("fichier_nom").notNull(),
+  fichierTaille: integer("fichier_taille").notNull(),
+  deposePar: uuid("depose_par").references(() => comptes.id, { onDelete: "set null" }),
+  creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Une relance par palier et par échéance : la machine de nuit ne relance pas deux fois.
+export const relancesVigilance = pgTable(
+  "relances_vigilance",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    compteId: uuid("compte_id")
+      .notNull()
+      .references(() => comptes.id, { onDelete: "cascade" }),
+    palier: text("palier").notNull(), // manquante, bientot, expiree
+    echeance: text("echeance").notNull(), // la date d'expiration visée, ou « aucune »
+    envoyeeLe: timestamp("envoyee_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("une_relance_par_palier").on(t.compteId, t.palier, t.echeance)],
+);

@@ -8,6 +8,7 @@ const base: ContenuRecap = {
   nuit: { reussie: true, nouveaux: 3, misesAJour: 1, messages: 2, misDeCote: 0 },
   aTraiter: [],
   demandesEnRetard: [],
+  attestations: [],
   lienNuit: null,
 };
 
@@ -22,6 +23,12 @@ describe("le récapitulatif du matin", () => {
   it("compte les points à traiter dans le sujet", () => {
     const l = { reference: "CH-1", nom: "Toiture", ville: "Paris", lien: "https://x/1", detail: "1 à qualifier" };
     expect(composerRecap({ ...base, aTraiter: [l], demandesEnRetard: [l] }).sujet).toContain("2 points à traiter");
+  });
+
+  it("liste les attestations de vigilance à obtenir, et les compte", () => {
+    const r = composerRecap({ ...base, attestations: [{ reference: "CH-2026-0007", nom: "Cuisine Dumas", ville: "Lyon", lien: "https://x/7", detail: "Plomberie Ferrand : expirée" }] });
+    expect(r.sujet).toContain("1 point à traiter");
+    expect(r.texte).toContain("ATTESTATIONS DE VIGILANCE À OBTENIR\n- CH-2026-0007 · Cuisine Dumas (Lyon) : Plomberie Ferrand : expirée");
   });
 
   it("prévient quand la nuit n'a pas pu être importée", () => {

@@ -1,5 +1,22 @@
 # État de reprise
 
+## 11 octobre 2026, soir (branche `reception`, partie de `sirene`)
+
+**Fait**
+- PV de réception : table `pv_reception` (migration 0009). Préparé par l'équipe en étape réception (réserves ouvertes recopiées, signataire externe), signé par le seul signataire (nom + case), figé avec empreinte SHA-256. PDF à la demande (`/api/pv/[chantierId]`, pdf-lib), garanties calculées. Règle : pas de clôture sans PV signé. Courriel au signataire et au gérant.
+- Attestations de vigilance : `participants.vigilance`, tables `attestations` et `relances_vigilance`. Dépôt par l'équipe ou par le sous-traitant lui-même, rattaché à son entreprise vérifiée ; état à jour, bientôt, expirée, manquante ; relances de nuit (6 h) une fois par palier ; récapitulatif du matin.
+- Facturation : jalons (`lib/facturation-regles.ts`), export CSV gérant (`/api/export/facturation`, Réglages), `docs/branchement-facturation.md`. Variable `ENTREPRISE_NOM` (nom sur le PV).
+- 130 tests.
+
+**Reste**
+- Prévisualisation bloquée tant que les copies Neon des branches fusionnées ne sont pas supprimées (limite de 10).
+- Ordre de fusion : `nuit`, puis `sirene`, puis `reception` (chacune contient la précédente).
+- Mettre `ENTREPRISE_NOM` dans Vercel (sinon le PV dit « L'entreprise »).
+- Le jeu de données ne contient ni PV ni attestation.
+
+**Cassé**
+- Rien de connu.
+
 ## 11 octobre 2026 (branche `sirene`, partie de `nuit`, en prévisualisation)
 
 **Fait**
