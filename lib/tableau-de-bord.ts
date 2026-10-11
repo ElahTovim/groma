@@ -87,9 +87,9 @@ export async function lireTableauDeBord(qui: Appelant): Promise<TableauDeBord> {
 
   // Le fil, filtré sur le serveur comme dans la fiche : un externe ne voit que ce qu'on lui partage.
   const visibles = elements.filter((e) => voitElement(qui, e)).slice(0, REGLAGES_TABLEAU.derniersMessages);
-  const auteurs = visibles.length
-    ? await db.select({ id: comptes.id, nom: comptes.nom }).from(comptes).where(inArray(comptes.id, [...new Set(visibles.map((e) => e.auteurId))]))
-    : [];
+  // Un élément venu du flux de nuit n'a pas de compte, seulement un nom.
+  const idsAuteurs = [...new Set(visibles.map((e) => e.auteurId).filter((id): id is string => Boolean(id)))];
+  const auteurs = idsAuteurs.length ? await db.select({ id: comptes.id, nom: comptes.nom }).from(comptes).where(inArray(comptes.id, idsAuteurs)) : [];
   const nomAuteur = new Map(auteurs.map((a) => [a.id, a.nom]));
 
   const somme = (cs: ChantierListe[]) => cs.reduce((s, c) => s + Number(c.montantHt ?? 0), 0);
@@ -123,7 +123,7 @@ export async function lireTableauDeBord(qui: Appelant): Promise<TableauDeBord> {
       id: e.id,
       type: e.type,
       texte: e.texte,
-      auteur: nomAuteur.get(e.auteurId) ?? "Compte supprimé",
+      auteur: e.auteurId ? (nomAuteur.get(e.auteurId) ?? "Compte supprimé") : `${e.auteurNom ?? "Inconnu"} (flux de nuit)`,
       chantierId: e.chantierId,
       chantier: nomDe.get(e.chantierId) ?? "",
       creeLe: e.creeLe.toISOString(),

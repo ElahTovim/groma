@@ -79,6 +79,21 @@ export async function geolocaliser(adresse: string, codePostal: string, ville: s
   }
 }
 
+// La même recherche, pour une adresse en un seul texte (« 113 rue des Lilas, Lyon ») :
+// rend aussi le code postal et la ville trouvés. Sert à l'import du flux de nuit.
+export async function chercherAdresse(texte: string): Promise<{ latitude: number; longitude: number; codePostal: string; ville: string } | null> {
+  try {
+    const r = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(texte)}&limit=1`, { signal: AbortSignal.timeout(4000) });
+    if (!r.ok) return null;
+    const f = (await r.json()).features?.[0];
+    if (!f || f.properties.score < 0.5) return null;
+    const [longitude, latitude] = f.geometry.coordinates;
+    return { latitude, longitude, codePostal: f.properties.postcode ?? "", ville: f.properties.city ?? "" };
+  } catch {
+    return null;
+  }
+}
+
 export type ResultatMeteo = { ok: true; jours: JourMeteo[] } | { ok: false; raison: string };
 
 export async function previsions(latitude: number, longitude: number, aujourdhui: string): Promise<ResultatMeteo> {
