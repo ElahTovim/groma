@@ -13,6 +13,11 @@
 - Ordre de fusion : `nuit`, puis `sirene`, puis `reception` (chacune contient la précédente).
 - Mettre `ENTREPRISE_NOM` dans Vercel (sinon le PV dit « L'entreprise »).
 - Le jeu de données ne contient ni PV ni attestation.
+- **Prochaine tranche, validée sur le principe, à lancer après la fusion dans `main` : l'espace « Dossier »** de chaque chantier (sous la météo et les participants).
+  - Ajustement 1 : des pièces attendues proposées à l'invitation selon la qualité (architecte : plans, CCTP, assurance ; sous-traitant : décennale, vigilance, Kbis…), modifiables par l'équipe. Les suggestions sont un réglage, jamais une condition dans le code.
+  - Ajustement 2 : l'attestation de vigilance devient une pièce attendue avec validité ; une seule mécanique pour toutes les pièces (attendue, déposée, validée, refusée, expirée), relances de nuit communes.
+  - Trois rubriques : pièces des intervenants, documents du chantier, fin de chantier (PV signé rangé seul, DOE). « Qui voit ça ? » sur chaque document.
+  - Blocages réglables : décennale des sous-traitants avant le démarrage ; PV et DOE avant la clôture.
 
 **Cassé**
 - Rien de connu.
