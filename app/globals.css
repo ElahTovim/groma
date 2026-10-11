@@ -198,3 +198,36 @@
 @media (prefers-reduced-motion: reduce) {
   .ciel * { animation: none !important; }
 }
+
+/* Les retours animés du reste de l'interface : discrets, en noir et blanc.
+   `--rang` décale chaque carte de la précédente (apparition en cascade). */
+.apparait {
+  animation: apparait 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(min(var(--rang, 0), 8) * 60ms);
+}
+.remplit {
+  transform-origin: left;
+  animation: remplit 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--rang, 0) * 70ms + 250ms);
+}
+.lot-avance {
+  animation: lot-avance 1.2s ease-out;
+}
+.saute {
+  animation: saute 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes apparait {
+  from { opacity: 0; transform: translateY(14px); }
+}
+@keyframes remplit {
+  from { transform: scaleX(0); }
+}
+@keyframes lot-avance {
+  0%, 30% { background-color: color-mix(in oklch, var(--foreground) 10%, var(--card)); }
+}
+@keyframes saute {
+  from { transform: scale(0.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .apparait, .remplit, .lot-avance, .saute { animation: none !important; }
+}

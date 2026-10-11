@@ -63,10 +63,10 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
         // Une carte par chantier : la photo (la couleur viendra des images), le nom en
         // grand, ce qui est à traiter en aplat noir. Une colonne sur téléphone, trois sur ordinateur.
         <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {liste.map((c) => {
+          {liste.map((c, i) => {
             const urgent = poidsATraiter(c.aTraiter) > 0;
             return (
-              <li key={c.id}>
+              <li key={c.id} className="apparait" style={{ "--rang": i } as React.CSSProperties}>
                 <Link
                   href={`/chantiers/${c.id}`}
                   className="flex h-full flex-col gap-4 rounded-3xl bg-card p-3 pb-5 transition-shadow hover:shadow-lg active:scale-[0.99] md:p-3 md:pb-5"

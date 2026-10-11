@@ -6,10 +6,10 @@ import { ResumeATraiter } from "@/components/a-traiter";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CielAnime } from "@/components/ciel-anime";
+import { Compteur } from "@/components/compteur";
 import { Vignette } from "@/components/vignette";
 import { peutCreerChantier } from "@/lib/acces";
 import { ambiance } from "@/lib/ambiance";
-import { euros } from "@/lib/format";
 import { LIBELLE_TYPE } from "@/lib/libelles";
 import { appelantObligatoire, type Appelant } from "@/lib/session";
 import { lireTableauDeBord, REGLAGES_TABLEAU, type TableauDeBord } from "@/lib/tableau-de-bord";
@@ -86,15 +86,16 @@ async function Contenu({ qui }: { qui: Appelant }) {
 
   return (
     <>
+      {/* Les blocs arrivent l'un après l'autre, du plus urgent au plus calme. */}
       <div className="grid gap-4 md:grid-cols-3">
         {t.chiffres && <ATraiter t={t} />}
-        <Meteo t={t} className={t.chiffres ? "" : "md:col-span-3"} />
+        <Meteo t={t} className={cn("apparait [--rang:1]", !t.chiffres && "md:col-span-3")} />
       </div>
       {t.chiffres && <Chiffres c={t.chiffres} />}
       <Carrousel t={t} />
       <div className="grid gap-4 md:grid-cols-2">
         {t.chiffres && <Semaine t={t} />}
-        <Messages t={t} className={t.chiffres ? "" : "md:col-span-2"} />
+        <Messages t={t} className={cn("apparait [--rang:7]", !t.chiffres && "md:col-span-2")} />
       </div>
     </>
   );
@@ -117,10 +118,12 @@ function Titre({ children, lien }: { children: React.ReactNode; lien?: { href: s
 function ATraiter({ t }: { t: TableauDeBord }) {
   const total = t.aTraiter.length;
   return (
-    <section className="flex flex-col gap-5 rounded-3xl bg-foreground p-6 text-background md:col-span-2">
+    <section className="apparait flex flex-col gap-5 rounded-3xl bg-foreground p-6 text-background md:col-span-2">
       <div className="flex items-end justify-between gap-4">
         <h2 className="text-xl font-bold tracking-tight">À traiter</h2>
-        <span className="text-6xl leading-none font-bold tracking-tighter tabular-nums">{total}</span>
+        <span className="text-6xl leading-none font-bold tracking-tighter tabular-nums">
+          <Compteur valeur={total} />
+        </span>
       </div>
       {total === 0 ? (
         <p className="text-background/80">Rien en attente : aucun retard, aucun signalement à qualifier, aucune réserve ouverte.</p>
@@ -243,17 +246,19 @@ function Meteo({ t, className }: { t: TableauDeBord; className?: string }) {
 
 function Chiffres({ c }: { c: NonNullable<TableauDeBord["chiffres"]> }) {
   const cartes = [
-    { titre: "Chantiers en cours", valeur: String(c.enCours) },
-    { titre: "Montant HT en cours", valeur: euros(String(c.montantEnCours)) },
-    { titre: "Devis en attente", valeur: String(c.devis) },
-    { titre: "Montant des devis", valeur: euros(String(c.montantDevis)) },
-  ];
+    { titre: "Chantiers en cours", valeur: c.enCours, format: "nombre" },
+    { titre: "Montant HT en cours", valeur: Number(c.montantEnCours), format: "euros" },
+    { titre: "Devis en attente", valeur: c.devis, format: "nombre" },
+    { titre: "Montant des devis", valeur: Number(c.montantDevis), format: "euros" },
+  ] as const;
   return (
     <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      {cartes.map((k) => (
-        <li key={k.titre} className="flex min-w-0 flex-col justify-between gap-6 rounded-3xl bg-card p-5">
+      {cartes.map((k, i) => (
+        <li key={k.titre} className="apparait flex min-w-0 flex-col justify-between gap-6 rounded-3xl bg-card p-5" style={{ "--rang": i + 2 } as React.CSSProperties}>
           <span className="text-sm font-medium text-muted-foreground">{k.titre}</span>
-          <span className="truncate text-3xl leading-none font-bold tracking-tighter tabular-nums md:text-5xl">{k.valeur}</span>
+          <span className="truncate text-3xl leading-none font-bold tracking-tighter tabular-nums md:text-5xl">
+            <Compteur valeur={k.valeur} format={k.format} />
+          </span>
         </li>
       ))}
     </ul>
@@ -267,10 +272,10 @@ function Carrousel({ t }: { t: TableauDeBord }) {
     <section className="flex flex-col gap-4">
       <Titre lien={{ href: "/chantiers", texte: "Tous les chantiers" }}>{t.actifs.length ? "Chantiers en cours" : "Mes chantiers"}</Titre>
       <ul className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none]" aria-label="Chantiers">
-        {cartes.map((c) => {
+        {cartes.map((c, i) => {
           const a = t.avancement.get(c.id);
           return (
-            <li key={c.id} className="w-[82%] shrink-0 snap-start sm:w-80">
+            <li key={c.id} className="apparait w-[82%] shrink-0 snap-start sm:w-80" style={{ "--rang": i + 4 } as React.CSSProperties}>
               <Link href={`/chantiers/${c.id}`} className="flex h-full flex-col gap-4 rounded-3xl bg-card p-3 pb-5 transition-shadow hover:shadow-lg">
                 <div className="relative">
                   <Vignette chantierId={c.id} aPhoto={c.aPhoto} alt="" className="aspect-[4/3] w-full rounded-2xl" />
@@ -288,7 +293,7 @@ function Carrousel({ t }: { t: TableauDeBord }) {
                   {a && a.total > 0 && (
                     <div className="mt-auto flex flex-col gap-1.5">
                       <div className="h-2 overflow-hidden rounded-full bg-foreground/10" aria-hidden>
-                        <div className="h-full rounded-full bg-foreground" style={{ width: `${(a.finis / a.total) * 100}%` }} />
+                        <div className="remplit h-full rounded-full bg-foreground" style={{ width: `${(a.finis / a.total) * 100}%`, "--rang": i + 4 } as React.CSSProperties} />
                       </div>
                       <span className="text-sm text-muted-foreground tabular-nums">
                         {a.finis} lot{a.finis > 1 ? "s" : ""} fini{a.finis > 1 ? "s" : ""} sur {a.total}
@@ -314,7 +319,7 @@ function Semaine({ t }: { t: TableauDeBord }) {
   const parJour = new Map<string, typeof t.echeances>();
   for (const e of t.echeances) parJour.set(e.date, [...(parJour.get(e.date) ?? []), e]);
   return (
-    <section className="flex flex-col gap-4 rounded-3xl bg-card p-6">
+    <section className="apparait flex flex-col gap-4 rounded-3xl bg-card p-6 [--rang:6]">
       <Titre>Cette semaine</Titre>
       {parJour.size === 0 ? (
         <p className="text-muted-foreground">Aucune livraison ni fin de lot prévue dans les {REGLAGES_TABLEAU.horizonJours} prochains jours.</p>

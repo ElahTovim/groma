@@ -18,7 +18,10 @@ export function FriseEtapes({ statut }: { statut: StatutChantier }) {
       <ol className="grid grid-cols-6 gap-1" aria-label={`Étape ${rang + 1} sur ${CYCLE.length} : ${LIBELLE_STATUT[statut]}`}>
         {CYCLE.map((s, i) => (
           <li key={s} className="flex min-w-0 flex-col gap-2" aria-current={i === rang ? "step" : undefined}>
-            <span className={cn("h-2 rounded-full", i <= rang ? "bg-foreground" : "bg-foreground/10")} />
+            {/* Les étapes franchies se remplissent l'une après l'autre. */}
+            <span className="h-2 overflow-hidden rounded-full bg-foreground/10">
+              {i <= rang && <span className="remplit block h-full rounded-full bg-foreground" style={{ "--rang": i } as React.CSSProperties} />}
+            </span>
             <span className={cn("hidden truncate text-sm md:block", i === rang ? "font-bold" : i > rang && "text-muted-foreground")}>
               {i === rang && "● "}
               {LIBELLE_STATUT[s]}

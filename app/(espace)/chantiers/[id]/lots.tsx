@@ -34,7 +34,9 @@ function Retard({ texte }: { texte: React.ReactNode }) {
   );
 }
 
-function LigneLot(props: { lot: LotVu; aujourdhui: string; replie: boolean; children: React.ReactNode }) {
+// `avance` : le lot vient de passer une étape. La carte s'éclaire un instant, le
+// badge saute et le segment gagné se remplit : on voit que le geste a porté.
+function LigneLot(props: { lot: LotVu; aujourdhui: string; replie: boolean; avance: boolean; children: React.ReactNode }) {
   const l = props.lot;
   const r = retardsLot(l, props.aujourdhui);
   const rang = CYCLE_LOT.indexOf(l.statut);
@@ -47,12 +49,13 @@ function LigneLot(props: { lot: LotVu; aujourdhui: string; replie: boolean; chil
         "scroll-mt-24 flex-col gap-3 rounded-3xl bg-card p-5 md:rounded-none md:border-0 md:border-t md:py-3.5",
         l.enRetard ? "flex ring-2 ring-foreground md:ring-0" : "flex",
         props.replie && "hidden",
+        props.avance && "lot-avance",
       )}
     >
       <div className="flex items-center justify-between gap-3 md:contents">
         <span className="text-lg font-bold md:text-[0.9375rem] md:font-semibold">{l.nom}</span>
         <span>
-          <Badge variant="outline" className={cn("h-auto px-2.5 py-1 text-sm font-semibold md:text-[0.8125rem]", l.statut === "fini" ? "border-foreground bg-foreground text-background" : "border-foreground/60")}>
+          <Badge variant="outline" className={cn(props.avance && "saute", "h-auto px-2.5 py-1 text-sm font-semibold md:text-[0.8125rem]", l.statut === "fini" ? "border-foreground bg-foreground text-background" : "border-foreground/60")}>
             {LIBELLE_LOT[l.statut]}
           </Badge>
         </span>
@@ -61,7 +64,9 @@ function LigneLot(props: { lot: LotVu; aujourdhui: string; replie: boolean; chil
       <div className="flex flex-col gap-2 md:hidden">
         <div className="grid grid-cols-5 gap-1" aria-hidden>
           {CYCLE_LOT.map((s, i) => (
-            <span key={s} className={cn("h-2 rounded-full", i <= rang ? "bg-foreground" : "bg-foreground/10")} />
+            <span key={s} className="h-2 overflow-hidden rounded-full bg-foreground/10">
+              {i <= rang && <span className={cn("block h-full rounded-full bg-foreground", props.avance && i === rang && "remplit [--rang:0]")} />}
+            </span>
           ))}
         </div>
         <p className="text-sm text-muted-foreground">
@@ -93,6 +98,7 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
   const { enCours, lancer } = useActionChantier();
   const [ajout, setAjout] = useState(false);
   const [voirFinis, setVoirFinis] = useState(false);
+  const [avance, setAvance] = useState<string | null>(null);
   const finis = props.lots.filter((l) => l.statut === "fini").length;
   // Sur téléphone, les lots en retard d'abord (le tri est stable : l'ordre de création reste sinon).
   const ordonnes = [...props.lots].sort((a, b) => Number(b.enRetard) - Number(a.enRetard));
@@ -169,13 +175,21 @@ export function Lots(props: { chantierId: string; lots: LotVu[]; participants: P
               <p className="text-sm text-muted-foreground md:hidden">Les lots en retard d&apos;abord</p>
               <ul className="flex flex-col gap-3 md:gap-0">
                 {ordonnes.map((l) => (
-                  <LigneLot key={l.id} lot={l} aujourdhui={props.aujourdhui} replie={!voirFinis && l.statut === "fini"}>
+                  <LigneLot key={l.id} lot={l} aujourdhui={props.aujourdhui} replie={!voirFinis && l.statut === "fini" && avance !== l.id} avance={avance === l.id}>
                     {props.modifiable && etapeSuivanteLot(l.statut) && (
                       <Button
                         variant="outline"
                         className="h-13 w-full text-base md:h-10 md:text-sm"
                         disabled={enCours}
-                        onClick={() => lancer(() => avancerLot(props.chantierId, l.id, etapeSuivanteLot(l.statut)!))}
+                        onClick={() =>
+                          lancer(
+                            () => avancerLot(props.chantierId, l.id, etapeSuivanteLot(l.statut)!),
+                            () => {
+                              setAvance(l.id);
+                              setTimeout(() => setAvance((a) => (a === l.id ? null : a)), 1300);
+                            },
+                          )
+                        }
                       >
                         {`Marquer ${ACTION_LOT[etapeSuivanteLot(l.statut)!]?.toLowerCase()}`}
                       </Button>
