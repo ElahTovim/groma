@@ -260,7 +260,7 @@ function Chiffres({ c }: { c: NonNullable<TableauDeBord["chiffres"]> }) {
       {cartes.map((k, i) => (
         <li key={k.titre} className="apparait flex min-w-0 flex-col justify-between gap-6 rounded-3xl bg-card p-5" style={{ "--rang": i + 2 } as React.CSSProperties}>
           <span className="text-sm font-medium text-muted-foreground">{k.titre}</span>
-          <span className="truncate text-3xl leading-none font-bold tracking-tighter tabular-nums md:text-5xl">
+          <span className="text-[1.75rem] leading-none font-bold tracking-tighter whitespace-nowrap tabular-nums md:text-4xl">
             <Compteur valeur={k.valeur} format={k.format} />
           </span>
         </li>

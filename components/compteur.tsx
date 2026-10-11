@@ -1,12 +1,12 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { euros } from "@/lib/format";
+import { euros, eurosCourt } from "@/lib/format";
 
 const DUREE_MS = 900;
 
 function ecrire(n: number, format: "nombre" | "euros") {
-  return format === "euros" ? euros(String(Math.round(n))) : String(Math.round(n));
+  return format === "euros" ? eurosCourt(Math.round(n)) : String(Math.round(n));
 }
 
 // Un chiffre qui défile jusqu'à sa valeur : depuis zéro à l'ouverture, depuis
@@ -39,12 +39,13 @@ export function Compteur({ valeur, format = "nombre" }: { valeur: number; format
     return () => cancelAnimationFrame(image);
   }, [valeur, format]);
 
+  const exact = format === "euros" ? euros(String(valeur)) : String(valeur);
   return (
     <>
-      <span ref={ref} aria-hidden>
+      <span ref={ref} aria-hidden title={exact}>
         {ecrire(valeur, format)}
       </span>
-      <span className="sr-only">{ecrire(valeur, format)}</span>
+      <span className="sr-only">{exact}</span>
     </>
   );
 }
