@@ -84,13 +84,21 @@ async function Contenu({ qui }: { qui: Appelant }) {
     );
   }
 
+  // À la une : le premier chantier qui attend quelque chose, sinon le premier en cours.
+  const une = t.aTraiter[0] ?? t.actifs[0] ?? t.chantiers[0];
+  const autres = (t.actifs.length ? t.actifs : t.chantiers).filter((c) => c.id !== une.id);
+
   return (
     <>
       {/* Les blocs arrivent l'un après l'autre, du plus urgent au plus calme. */}
       {t.chiffres && <ATraiter t={t} />}
-      <Meteo t={t} className="apparait [--rang:1]" />
+      {/* Comme une une de magazine : le chantier qui compte le plus aujourd'hui en grand, le ciel à côté. */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <ALaUne t={t} c={une} />
+        <Meteo t={t} className="apparait [--rang:2]" />
+      </div>
       {t.chiffres && <Chiffres c={t.chiffres} />}
-      <Carrousel t={t} />
+      {autres.length > 0 && <Mosaique t={t} cartes={autres} />}
       <div className="grid gap-4 md:grid-cols-2">
         {t.chiffres && <Semaine t={t} />}
         <Messages t={t} className={cn("apparait [--rang:7]", !t.chiffres && "md:col-span-2")} />
@@ -269,46 +277,137 @@ function Chiffres({ c }: { c: NonNullable<TableauDeBord["chiffres"]> }) {
   );
 }
 
-// Les chantiers actifs en grandes cartes photo qu'on fait glisser.
-function Carrousel({ t }: { t: TableauDeBord }) {
-  const cartes = t.actifs.length ? t.actifs : t.chantiers;
+// Le badge de statut est dessiné pour un fond clair : sur une photo ou un aplat
+// noir, on le pose sur une pastille blanche pour qu'il reste lisible.
+function SurFonce({ children }: { children: React.ReactNode }) {
+  return <span className="flex rounded-full bg-white p-0.5">{children}</span>;
+}
+
+function Avancement({ a, clair, rang }: { a: { finis: number; total: number } | undefined; clair?: boolean; rang: number }) {
+  if (!a || a.total === 0) return null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className={cn("h-1.5 overflow-hidden rounded-full", clair ? "bg-white/25" : "bg-foreground/10")} aria-hidden>
+        <div className={cn("remplit h-full rounded-full", clair ? "bg-white" : "bg-foreground")} style={{ width: `${(a.finis / a.total) * 100}%`, "--rang": rang } as React.CSSProperties} />
+      </div>
+      <span className={cn("text-sm tabular-nums", clair ? "text-white/80" : "text-muted-foreground")}>
+        {a.finis} lot{a.finis > 1 ? "s" : ""} fini{a.finis > 1 ? "s" : ""} sur {a.total}
+      </span>
+    </div>
+  );
+}
+
+// La une : grande photo, voile noir en bas, le nom en très grand par-dessus.
+// Sans photo, un aplat noir : la typographie fait l'image.
+function ALaUne({ t, c }: { t: TableauDeBord; c: TableauDeBord["chantiers"][number] }) {
+  const urgent = t.aTraiter.some((x) => x.id === c.id);
+  return (
+    <Link
+      href={`/chantiers/${c.id}`}
+      className="apparait group relative isolate flex min-h-[26rem] flex-col justify-end overflow-hidden rounded-3xl bg-foreground p-6 text-white [--rang:1] md:col-span-2 md:min-h-[32rem] md:p-8"
+    >
+      {c.aPhoto && (
+        <>
+          <Vignette chantierId={c.id} aPhoto alt="" className="absolute inset-0 -z-10 size-full rounded-none transition-transform duration-700 group-hover:scale-[1.03]" />
+          <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+        </>
+      )}
+      <div className="absolute top-5 left-5 flex items-center gap-2 md:top-6 md:left-6">
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-bold tracking-widest text-black uppercase">À la une</span>
+        <SurFonce>
+          <BadgeStatut statut={c.statut} />
+        </SurFonce>
+      </div>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold tracking-widest text-white/70 uppercase">
+            {c.ville} · {c.client}
+          </p>
+          <h2 className="line-clamp-3 text-4xl leading-[0.95] font-bold tracking-tighter md:text-6xl">{c.nom}</h2>
+        </div>
+        {urgent && c.aTraiter && (
+          <div className="w-fit rounded-full bg-white px-4 py-2 text-black">
+            <ResumeATraiter a={c.aTraiter} compact />
+          </div>
+        )}
+        <div className="max-w-sm">
+          <Avancement a={t.avancement.get(c.id)} clair rang={2} />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// Sur ordinateur, la mosaïque fait 4 colonnes : la grande carte prend 2 × 2, les
+// petites remplissent le carré voisin puis des rangées de 4. Les dernières s'étirent
+// pour ne laisser aucun trou, quel que soit le nombre de chantiers.
+function etendue(i: number, n: number): string {
+  if (n < 3) return "md:col-span-2";
+  if (i === 0) return "md:col-span-2 md:row-span-2";
+  const petites = n - 1;
+  if (i <= 4) {
+    if (petites === 1) return "md:col-span-2 md:row-span-2";
+    if (petites === 2) return "md:row-span-2";
+    if (petites === 3 && i === 3) return "md:col-span-2";
+    return "";
+  }
+  const reste = (petites - 4) % 4;
+  if (i === n - 1 && reste) return ["", "md:col-span-4", "md:col-span-3", "md:col-span-2"][reste];
+  return "";
+}
+
+// Les autres chantiers en mosaïque : la première carte en grand, les suivantes en
+// petit. Sur téléphone, une file de cartes qu'on fait glisser.
+function Mosaique({ t, cartes }: { t: TableauDeBord; cartes: TableauDeBord["chantiers"] }) {
   return (
     <section className="flex flex-col gap-4">
-      <Titre lien={{ href: "/chantiers", texte: "Tous les chantiers" }}>{t.actifs.length ? "Chantiers en cours" : "Mes chantiers"}</Titre>
-      <ul className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none]" aria-label="Chantiers">
+      <Titre lien={{ href: "/chantiers", texte: "Tous les chantiers" }}>{t.actifs.length ? "Les autres chantiers en cours" : "Mes autres chantiers"}</Titre>
+      <ul
+        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] md:mx-0 md:grid md:auto-rows-[15rem] md:grid-cols-4 md:overflow-visible md:px-0 md:pb-0"
+        aria-label="Chantiers"
+      >
         {cartes.map((c, i) => {
-          const a = t.avancement.get(c.id);
+          const grande = i === 0 && cartes.length > 2;
+          const urgent = c.aTraiter && c.aTraiter.aQualifier + c.aTraiter.reservesOuvertes + c.aTraiter.lotsEnRetard > 0;
           return (
-            <li key={c.id} className="apparait w-[82%] shrink-0 snap-start sm:w-80" style={{ "--rang": i + 4 } as React.CSSProperties}>
-              <Link href={`/chantiers/${c.id}`} className="flex h-full flex-col gap-4 rounded-3xl bg-card p-3 pb-5 transition-shadow hover:shadow-lg">
-                <div className="relative">
-                  <Vignette chantierId={c.id} aPhoto={c.aPhoto} alt="" className="aspect-[4/3] w-full rounded-2xl" />
-                  <div className="absolute top-3 left-3">
+            <li
+              key={c.id}
+              className={cn("apparait h-80 w-[78%] shrink-0 snap-start sm:w-72 md:h-auto md:w-auto", etendue(i, cartes.length))}
+              style={{ "--rang": i + 6 } as React.CSSProperties}
+            >
+              <Link
+                href={`/chantiers/${c.id}`}
+                className={cn(
+                  "group relative isolate flex size-full flex-col justify-between gap-3 overflow-hidden rounded-3xl p-5",
+                  c.aPhoto ? "bg-foreground text-white" : "bg-card",
+                )}
+              >
+                {c.aPhoto && (
+                  <>
+                    <Vignette chantierId={c.id} aPhoto alt="" className="absolute inset-0 -z-10 size-full rounded-none transition-transform duration-700 group-hover:scale-[1.04]" />
+                    <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
+                  </>
+                )}
+                <div className="flex items-start justify-between gap-2">
+                  {c.aPhoto ? (
+                    <SurFonce>
+                      <BadgeStatut statut={c.statut} />
+                    </SurFonce>
+                  ) : (
                     <BadgeStatut statut={c.statut} />
-                  </div>
+                  )}
+                  {urgent && (
+                    <span className="rounded-full bg-foreground px-2.5 py-1 text-xs font-bold text-background ring-1 ring-white/30">À traiter</span>
+                  )}
                 </div>
-                <div className="flex flex-1 flex-col gap-3 px-2">
+                <div className="flex flex-col gap-3">
                   <div>
-                    <p className="line-clamp-2 text-2xl leading-tight font-bold tracking-tight">{c.nom}</p>
-                    <p className="truncate text-muted-foreground">
+                    <p className={cn("line-clamp-3 leading-[1.05] font-bold tracking-tight", grande ? "text-3xl md:text-5xl md:tracking-tighter" : "text-2xl")}>{c.nom}</p>
+                    <p className={cn("truncate text-sm", c.aPhoto ? "text-white/75" : "text-muted-foreground")}>
                       {c.ville} · {c.client}
                     </p>
                   </div>
-                  {a && a.total > 0 && (
-                    <div className="mt-auto flex flex-col gap-1.5">
-                      <div className="h-2 overflow-hidden rounded-full bg-foreground/10" aria-hidden>
-                        <div className="remplit h-full rounded-full bg-foreground" style={{ width: `${(a.finis / a.total) * 100}%`, "--rang": i + 4 } as React.CSSProperties} />
-                      </div>
-                      <span className="text-sm text-muted-foreground tabular-nums">
-                        {a.finis} lot{a.finis > 1 ? "s" : ""} fini{a.finis > 1 ? "s" : ""} sur {a.total}
-                      </span>
-                    </div>
-                  )}
-                  {c.aTraiter && c.aTraiter.aQualifier + c.aTraiter.reservesOuvertes + c.aTraiter.lotsEnRetard > 0 && (
-                    <div className="rounded-2xl bg-foreground px-3 py-2 text-background">
-                      <ResumeATraiter a={c.aTraiter} compact />
-                    </div>
-                  )}
+                  <Avancement a={t.avancement.get(c.id)} clair={c.aPhoto} rang={i + 6} />
                 </div>
               </Link>
             </li>
