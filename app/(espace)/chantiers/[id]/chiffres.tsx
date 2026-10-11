@@ -25,7 +25,7 @@ export function Chiffres(props: { lots: LotVu[]; montantHt: string | null | unde
       {cartes.map((c, i) => (
         <li key={c.titre} style={{ "--rang": i } as React.CSSProperties} className={cn("apparait flex min-w-0 flex-col justify-between gap-6 rounded-3xl p-5", c.alerte ? "bg-foreground text-background" : "bg-card")}>
           <span className={cn("text-sm font-medium", c.alerte ? "text-background/80" : "text-muted-foreground")}>{c.titre}</span>
-          <span className="text-[1.75rem] leading-none font-bold tracking-tighter whitespace-nowrap tabular-nums md:text-4xl">
+          <span className="font-display font-extrabold text-[1.75rem] leading-none tracking-tight whitespace-nowrap tabular-nums md:text-4xl">
             {c.valeur}
             {c.suite && <span className={cn("text-xl tracking-tight md:text-2xl", c.alerte ? "text-background/70" : "text-muted-foreground")}>{c.suite}</span>}
           </span>

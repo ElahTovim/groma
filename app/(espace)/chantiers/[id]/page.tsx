@@ -82,7 +82,7 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
             <span className="whitespace-nowrap">{chantier.reference}</span> · Client : {chantier.client}
           </p>
           {/* Le titre sur deux tons : le chantier en noir, où et à quelle étape en gris. */}
-          <h1 className="text-[2.5rem] leading-[0.95] font-bold tracking-tighter text-balance md:text-6xl">
+          <h1 className="font-display font-extrabold text-[2.5rem] leading-[0.95] tracking-tight text-balance md:text-6xl">
             {chantier.nom}
             <span className="block text-muted-foreground/70">
               {chantier.ville} · {LIBELLE_STATUT[chantier.statut]}

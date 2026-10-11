@@ -6,7 +6,7 @@ export function Section(props: { titre: React.ReactNode; action?: React.ReactNod
   return (
     <section className={cn("flex min-w-0 flex-col gap-4", props.carte && "rounded-3xl bg-card p-5 md:p-6", props.className)}>
       <div className="flex min-h-9 items-center justify-between gap-3">
-        <h2 className={cn("font-bold tracking-tight", props.carte ? "text-lg" : "text-xl")}>{props.titre}</h2>
+        <h2 className={cn("font-display font-bold tracking-tight", props.carte ? "text-lg" : "text-xl")}>{props.titre}</h2>
         {props.action}
       </div>
       {props.children}

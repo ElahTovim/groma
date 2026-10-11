@@ -31,7 +31,7 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-[2.5rem] leading-[0.95] font-bold tracking-tighter md:text-6xl">
+        <h1 className="font-display font-extrabold text-[2.5rem] leading-[0.95] tracking-tight md:text-6xl">
           Chantiers
           <span className="block text-muted-foreground/70">{total} au total</span>
         </h1>
@@ -79,7 +79,7 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
                   </div>
                   <div className="flex flex-1 flex-col gap-3 px-2">
                     <div className="flex flex-col gap-1">
-                      <span className="line-clamp-2 text-2xl leading-tight font-bold tracking-tight">{c.nom}</span>
+                      <span className="font-display font-extrabold line-clamp-2 text-2xl leading-tight tracking-tight">{c.nom}</span>
                       <span className="truncate text-muted-foreground">
                         {c.ville} · {c.client}
                       </span>

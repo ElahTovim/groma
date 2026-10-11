@@ -41,7 +41,7 @@ export default async function Accueil() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-[2.5rem] leading-[0.95] font-bold tracking-tighter md:text-6xl">
+        <h1 className="font-display font-extrabold text-[2.5rem] leading-[0.95] tracking-tight md:text-6xl">
           Bonjour {prenom}
           <span className="block text-muted-foreground/70 first-letter:uppercase">{jourLong(aujourdhui)}</span>
         </h1>
@@ -110,7 +110,7 @@ async function Contenu({ qui }: { qui: Appelant }) {
 function Titre({ children, lien }: { children: React.ReactNode; lien?: { href: string; texte: string } }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <h2 className="text-xl font-bold tracking-tight">{children}</h2>
+      <h2 className="font-display text-xl font-bold tracking-tight">{children}</h2>
       {lien && (
         <Link href={lien.href} className="flex min-h-11 items-center text-sm font-semibold underline-offset-4 hover:underline">
           {lien.texte} →
@@ -213,7 +213,7 @@ function Meteo({ t, className }: { t: TableauDeBord; className?: string }) {
         <IconeCiel ciel={auj.ciel} className="size-14 shrink-0" trait={1.25} />
       </div>
       <div className="relative flex flex-col gap-1">
-        <p className="text-7xl leading-none font-bold tracking-tighter tabular-nums md:text-8xl">{auj.max}°</p>
+        <p className="font-display font-extrabold text-7xl leading-none tracking-tight tabular-nums md:text-8xl">{auj.max}°</p>
         <p className="text-lg font-semibold first-letter:uppercase">{auj.ciel}</p>
         <p className={cn("text-sm tabular-nums", doux)}>
           Mini {auj.min}° · pluie {auj.pluieMm} mm · vent {auj.ventKmh} km/h
@@ -268,7 +268,7 @@ function Chiffres({ c }: { c: NonNullable<TableauDeBord["chiffres"]> }) {
       {cartes.map((k, i) => (
         <li key={k.titre} className="apparait flex min-w-0 flex-col justify-between gap-6 rounded-3xl bg-card p-5" style={{ "--rang": i + 2 } as React.CSSProperties}>
           <span className="text-sm font-medium text-muted-foreground">{k.titre}</span>
-          <span className="text-[1.75rem] leading-none font-bold tracking-tighter whitespace-nowrap tabular-nums md:text-4xl">
+          <span className="font-display font-extrabold text-[1.75rem] leading-none tracking-tight whitespace-nowrap tabular-nums md:text-4xl">
             <Compteur valeur={k.valeur} format={k.format} />
           </span>
         </li>
@@ -323,7 +323,7 @@ function ALaUne({ t, c }: { t: TableauDeBord; c: TableauDeBord["chantiers"][numb
           <p className="text-sm font-semibold tracking-widest text-white/70 uppercase">
             {c.ville} · {c.client}
           </p>
-          <h2 className="line-clamp-3 text-4xl leading-[0.95] font-bold tracking-tighter md:text-6xl">{c.nom}</h2>
+          <h2 className="font-display font-extrabold line-clamp-3 text-4xl leading-[0.95] tracking-tight md:text-6xl">{c.nom}</h2>
         </div>
         {urgent && c.aTraiter && (
           <div className="w-fit rounded-full bg-white px-4 py-2 text-black">
@@ -402,7 +402,7 @@ function Mosaique({ t, cartes }: { t: TableauDeBord; cartes: TableauDeBord["chan
                 </div>
                 <div className="flex flex-col gap-3">
                   <div>
-                    <p className={cn("line-clamp-3 leading-[1.05] font-bold tracking-tight", grande ? "text-3xl md:text-5xl md:tracking-tighter" : "text-2xl")}>{c.nom}</p>
+                    <p className={cn("font-display font-extrabold line-clamp-3 leading-[1.05] tracking-tight", grande ? "text-3xl md:text-5xl" : "text-2xl")}>{c.nom}</p>
                     <p className={cn("truncate text-sm", c.aPhoto ? "text-white/75" : "text-muted-foreground")}>
                       {c.ville} · {c.client}
                     </p>
