@@ -14,7 +14,7 @@ export function PhotoChantier(props: { chantierId: string; aPhoto: boolean; nom:
 
   return (
     <div className="relative">
-      <Vignette chantierId={props.chantierId} aPhoto={props.aPhoto} alt={`Photo du chantier ${props.nom}`} className="aspect-[16/9] w-full md:aspect-[3/1]" />
+      <Vignette chantierId={props.chantierId} aPhoto={props.aPhoto} alt={`Photo du chantier ${props.nom}`} className="aspect-[16/9] w-full rounded-3xl md:aspect-[3/1]" />
       {props.modifiable && (
         <>
           <input
@@ -36,7 +36,7 @@ export function PhotoChantier(props: { chantierId: string; aPhoto: boolean; nom:
             type="button"
             disabled={enCours}
             onClick={() => champ.current?.click()}
-            className="absolute right-3 bottom-3 flex min-h-11 items-center gap-2 rounded-sm bg-foreground px-3 text-sm font-medium text-background disabled:opacity-60"
+            className="absolute right-4 bottom-4 flex min-h-11 items-center gap-2 rounded-full bg-background px-4 text-foreground text-sm font-semibold disabled:opacity-60"
           >
             <Camera className="size-4" aria-hidden />
             {enCours ? "Envoi…" : props.aPhoto ? "Changer la photo" : "Ajouter une photo"}

@@ -1,5 +1,27 @@
 # État de reprise
 
+## 11 octobre 2026, soir (branche `ui-fiche`, fusionnée sur demande de Kerguelenn)
+
+**Fait**
+- Fiche chantier alignée sur les maquettes Figma (section 03) : frise des étapes, « À traiter » en pastilles, chiffres, lots en cartes (téléphone) ou tableau (ordinateur), onglets Lots / Fil / Infos sur téléphone.
+- Interface en cartes d'après les inspirations de Kerguelenn, noir et blanc strict : la couleur ne vient que des photos et de la météo.
+- Accueil = tableau de bord façon magazine : bandeau « À traiter » (ligne calme à zéro, pastilles sinon), chantier à la une, météo de Paris (un seul appel), chiffres, mosaïque des autres chantiers, semaine, derniers messages.
+- Météo en « fenêtre sur le ciel » : dégradé selon l'heure et le temps, pluie, neige, vent, étoiles (`lib/ambiance.ts`).
+- Retours animés : chiffres qui défilent, cartes en cascade, barres qui se remplissent, lot avancé qui s'éclaire. Montants arrondis dans les grands chiffres (845 k €).
+- Police Bricolage Grotesque pour les titres, noms et grands chiffres ; logo typographique « groma » et ouverture animée (une fois par session, passable, absente si l'appareil réduit les animations).
+- Photos d'intérieur pour les chantiers fictifs (`public/jeu-de-donnees/`, choisies par Kerguelenn, dépôt public), servies via `/api/photos` après vérification des droits.
+- 85 tests.
+
+**Reste**
+- Rejouer le jeu de données (Réglages) là où l'on veut voir les photos : les chantiers créés avant n'en ont pas.
+- Vérification visuelle complète en prévisualisation ou production, ordinateur et téléphone (connexion Vercel puis Groma par Kerguelenn) ; le glissement du logo d'ouverture vers l'en-tête n'a pas été vu en vrai.
+- Restyler en cartes les pages restantes : connexion, réglages, nouveau chantier, invitation, mot de passe.
+- Figma : quota MCP de l'offre Starter épuisé ; les autres écrans arriveront en exports PNG dans `docs/maquettes/`.
+- Onglets de la fiche sur téléphone : choix repris des maquettes, à confirmer par Kerguelenn.
+
+**Cassé**
+- Rien de connu.
+
 ## 10 octobre 2026, soir (branche `securite`, en prévisualisation)
 
 **Fait**

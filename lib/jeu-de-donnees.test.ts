@@ -1,5 +1,7 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DOMAINE_FICTIF, genererChantiers, PERSONNES } from "./jeu-de-donnees";
+import { DOMAINE_FICTIF, estPhotoFictive, genererChantiers, PERSONNES, PHOTOS_FICTIVES } from "./jeu-de-donnees";
 
 describe("le jeu de données fictif", () => {
   it("contient dix personnes et cinquante chantiers", () => {
@@ -40,5 +42,13 @@ describe("le jeu de données fictif", () => {
     const c = genererChantiers();
     expect(c.some((x) => x.statut === "reception" && x.fil.some((e) => e.statutSignalement === "a_qualifier"))).toBe(true);
     expect(c.some((x) => x.lots.some((l) => (l.statut === "commande" || l.statut === "a_commander") && l.livraisonPrevue! < "2026-10-05"))).toBe(true);
+  });
+
+  it("les photos : chaque image existe, le devis sans montant reste sans photo, une vraie photo n'est pas prise pour fictive", () => {
+    for (const p of PHOTOS_FICTIVES) expect(existsSync(join(process.cwd(), "public", p))).toBe(true);
+    const cs = genererChantiers();
+    expect(cs.find((c) => c.nom === "Devis sans montant")?.photoUrl).toBeNull();
+    expect(cs.filter((c) => c.photoUrl).length).toBe(49);
+    expect(estPhotoFictive("https://x.private.blob.vercel-storage.com/jeu-de-donnees/interieur-1.jpg")).toBe(false);
   });
 });
