@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarClock, Eye, FileText, Flag, Lock, MessageSquare, Send, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -217,9 +217,40 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
   );
 }
 
+// Le fil montre les derniers éléments ; les plus anciens se déplient à la demande.
+// Un signalement en attente reste toujours visible, quel que soit son âge.
+const DERNIERS_VISIBLES = 5;
+
+function enAttenteDe(e: ElementVu) {
+  return e.statutSignalement === "a_qualifier" || e.statutSignalement === "reserve_ouverte";
+}
+
 export function Fil(props: { chantierId: string; interne: boolean; elements: ElementVu[]; participants: ParticipantVu[]; lots: LotVu[] }) {
   const externes = props.participants.filter((p) => p.role === "externe");
   const nomDe = new Map(props.participants.map((p) => [p.compteId, p.nom]));
+  const [tout, setTout] = useState(false);
+  const debut = props.elements.length - DERNIERS_VISIBLES;
+  const visible = (e: ElementVu, i: number) => tout || i >= debut || enAttenteDe(e);
+  const caches = props.elements.filter((e, i) => !visible(e, i)).length;
+
+  // Un lien vers un élément ancien (#fil-…) déplie tout le fil pour le montrer.
+  useEffect(() => {
+    const verifier = () => {
+      const id = window.location.hash.startsWith("#fil-") ? window.location.hash.slice(5) : null;
+      if (!id) return;
+      const i = props.elements.findIndex((e) => e.id === id);
+      if (i >= 0 && i < debut && !enAttenteDe(props.elements[i])) {
+        setTout(true);
+        requestAnimationFrame(() => document.getElementById(`fil-${id}`)?.scrollIntoView());
+      }
+    };
+    const image = requestAnimationFrame(verifier);
+    window.addEventListener("hashchange", verifier);
+    return () => {
+      cancelAnimationFrame(image);
+      window.removeEventListener("hashchange", verifier);
+    };
+  }, [props.elements, debut]);
 
   return (
     <Section titre={`Fil (${props.elements.length})`}>
@@ -227,9 +258,17 @@ export function Fil(props: { chantierId: string; interne: boolean; elements: Ele
         <p className="text-sm text-muted-foreground">Le fil est vide. Écrivez le premier message.</p>
       ) : (
         <ol className="flex flex-col gap-3">
-          {props.elements.map((e) => {
+          {caches > 0 && (
+            <li>
+              <button type="button" onClick={() => setTout(true)} className="flex h-12 w-full items-center justify-center rounded-full bg-card text-sm font-semibold">
+                Afficher {caches > 1 ? `les ${caches} éléments plus anciens` : "l'élément plus ancien"} ↑
+              </button>
+            </li>
+          )}
+          {props.elements.map((e, i) => {
+            if (!visible(e, i)) return null;
             const Icone = ICONE_TYPE[e.type];
-            const enAttente = e.statutSignalement === "a_qualifier" || e.statutSignalement === "reserve_ouverte";
+            const enAttente = enAttenteDe(e);
             const estImage = e.fichier?.type.startsWith("image/");
             return (
               <li key={e.id} id={`fil-${e.id}`} className={enAttente ? "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 ring-2 ring-foreground" : "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5"}>
