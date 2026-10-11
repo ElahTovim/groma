@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -113,11 +114,7 @@ export function VigilanceParticipant(props: { chantierId: string; compteId: stri
 // Pour le sous-traitant lui-même, sur la fiche du chantier.
 export function MaVigilance(props: { chantierId: string; moi: string; v: VigilanceAffichee }) {
   return (
-    <section className="flex min-w-0 flex-col gap-3 border-t border-foreground/15 pt-4">
-      <div className="flex min-h-8 items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">Votre attestation de vigilance</h2>
-        <EtatBadge etat={props.v.etat} />
-      </div>
+    <Section carte titre="Votre attestation de vigilance" action={<EtatBadge etat={props.v.etat} />}>
       <p className="text-sm text-muted-foreground">
         Pour ce chantier, l&apos;entreprise doit avoir votre attestation de vigilance URSSAF, renouvelée tous les {VIGILANCE.validiteMois} mois. Téléchargez-la sur urssaf.fr, puis déposez-la ici.
       </p>
@@ -129,6 +126,6 @@ export function MaVigilance(props: { chantierId: string; moi: string; v: Vigilan
       ) : (
         <p className="text-sm">Votre entreprise n&apos;est pas encore vérifiée : l&apos;équipe s&apos;en charge, puis vous pourrez déposer l&apos;attestation.</p>
       )}
-    </section>
+    </Section>
   );
 }

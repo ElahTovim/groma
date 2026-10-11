@@ -73,7 +73,7 @@ export function Reception(props: {
   // Signé : le PV ne bouge plus.
   if (pv?.signeLe) {
     return (
-      <Section titre="Réception" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Ouvrir le PV</a>}>
+      <Section carte titre="Réception" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Ouvrir le PV</a>}>
         <p className="flex flex-wrap items-center gap-2 text-sm">
           <Badge>PV signé</Badge> par {pv.signeNom}, le {heure(pv.signeLe)}
         </p>
@@ -86,7 +86,7 @@ export function Reception(props: {
   // Le maître d'ouvrage désigné : relire, puis signer.
   if (pv && pv.signataireId === props.moi) {
     return (
-      <Section titre="PV de réception à signer" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Lire le PV</a>}>
+      <Section carte titre="PV de réception à signer" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Lire le PV</a>}>
         <p className="text-sm">
           Réception des travaux à la date du <strong>{dateCourte(pv.dateReception)}</strong>, {pv.reserves.length ? "avec les réserves suivantes :" : "sans réserve."}
         </p>
@@ -164,7 +164,7 @@ export function Reception(props: {
 
   if (pv && !modifier) {
     return (
-      <Section titre="Réception" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Ouvrir le PV</a>}>
+      <Section carte titre="Réception" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Ouvrir le PV</a>}>
         <p className="flex flex-wrap items-center gap-2 text-sm">
           <Badge variant="outline">En attente de signature</Badge> de {pv.signataire}
         </p>
@@ -180,7 +180,7 @@ export function Reception(props: {
 
   if (!props.enReception) return null;
   return (
-    <Section titre="Réception">
+    <Section carte titre="Réception">
       {props.externes.length === 0 ? (
         <p className="text-sm text-muted-foreground">Invitez d&apos;abord le maître d&apos;ouvrage (le client) sur ce chantier : c&apos;est lui qui signera le PV.</p>
       ) : (
