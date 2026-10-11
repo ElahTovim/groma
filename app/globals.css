@@ -232,3 +232,34 @@
 @media (prefers-reduced-motion: reduce) {
   .apparait, .remplit, .lot-avance, .saute { animation: none !important; }
 }
+
+/* Le logo : « groma » en Bricolage très grasse, resserrée, lettres jointes. */
+.logo-groma {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  font-variation-settings: "wdth" 88, "opsz" 96;
+}
+
+/* L'ouverture : les lettres naissent au trait fin et prennent du poids une à une,
+   puis le mot glisse vers l'en-tête pendant que le voile s'efface. */
+.sans-ouverture .ouverture {
+  display: none;
+}
+.ouverture {
+  transition: background-color 0.6s ease;
+}
+.ouverture [data-mot] {
+  transition: transform 0.6s cubic-bezier(0.6, 0, 0.2, 1), opacity 0.4s ease;
+}
+.ouverture-lettre {
+  font-weight: 200;
+  animation: ouverture-graisse 0.9s cubic-bezier(0.5, 0, 0.2, 1) calc(var(--i) * 90ms) forwards;
+}
+.ouverture-part {
+  background-color: transparent;
+  pointer-events: none;
+}
+@keyframes ouverture-graisse {
+  to { font-weight: 800; }
+}
