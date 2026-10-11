@@ -94,12 +94,25 @@ export function verifierPassageLot(de: StatutLot, vers: StatutLot): Verdict {
   return { ok: true };
 }
 
-// Un lot est en retard quand une date prévue est dépassée sans que l'étape ait eu lieu.
-export function lotEnRetard(l: { statut: StatutLot; livraisonPrevue: string | null; finPrevue: string | null }, aujourdhui: string): boolean {
+type DatesLot = { statut: StatutLot; livraisonPrevue: string | null; finPrevue: string | null };
+
+function joursEntre(de: string, a: string): number {
+  return Math.round((Date.parse(a) - Date.parse(de)) / 86_400_000);
+}
+
+// De combien de jours chaque date prévue est dépassée sans que l'étape ait eu lieu
+// (null : pas de retard sur cette date). L'écran dit « livraison en retard de 3 jours ».
+export function retardsLot(l: DatesLot, aujourdhui: string): { livraison: number | null; fin: number | null } {
   const pasLivre = l.statut === "a_commander" || l.statut === "commande";
-  if (pasLivre && l.livraisonPrevue && l.livraisonPrevue < aujourdhui) return true;
-  if (l.statut !== "fini" && l.finPrevue && l.finPrevue < aujourdhui) return true;
-  return false;
+  const livraison = pasLivre && l.livraisonPrevue && l.livraisonPrevue < aujourdhui ? joursEntre(l.livraisonPrevue, aujourdhui) : null;
+  const fin = l.statut !== "fini" && l.finPrevue && l.finPrevue < aujourdhui ? joursEntre(l.finPrevue, aujourdhui) : null;
+  return { livraison, fin };
+}
+
+// Un lot est en retard quand une date prévue est dépassée sans que l'étape ait eu lieu.
+export function lotEnRetard(l: DatesLot, aujourdhui: string): boolean {
+  const r = retardsLot(l, aujourdhui);
+  return r.livraison !== null || r.fin !== null;
 }
 
 // ——— Le fil ———

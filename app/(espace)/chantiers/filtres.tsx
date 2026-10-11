@@ -44,7 +44,7 @@ export function FiltresChantiers(props: { compteurs: Record<string, number>; tot
     <div className="flex flex-col gap-3">
       {/* Sur téléphone, les onglets défilent à l'horizontale plutôt que de s'empiler. */}
       <nav aria-label="Statut" className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
-        <ul className="flex w-max gap-1 border-b">
+        <ul className="flex w-max gap-2">
           {onglets.map((o) => {
             const actif = statut === o.valeur;
             return (
@@ -54,12 +54,12 @@ export function FiltresChantiers(props: { compteurs: Record<string, number>; tot
                   aria-current={actif ? "page" : undefined}
                   onClick={() => appliquer({ statut: o.valeur })}
                   className={cn(
-                    "-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm whitespace-nowrap",
-                    actif ? "border-foreground font-semibold" : "border-transparent text-muted-foreground hover:text-foreground",
+                    "flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium whitespace-nowrap",
+                    actif ? "bg-foreground text-background" : "bg-card hover:bg-card/70",
                   )}
                 >
                   {o.libelle}
-                  <span className={cn("rounded-sm px-1.5 text-xs tabular-nums", actif ? "bg-foreground text-background" : "bg-muted")}>{o.n}</span>
+                  <span className={cn("text-xs tabular-nums", actif ? "text-background/70" : "text-muted-foreground")}>{o.n}</span>
                 </button>
               </li>
             );
@@ -77,7 +77,7 @@ export function FiltresChantiers(props: { compteurs: Record<string, number>; tot
             minuteur.current = setTimeout(() => appliquer({ q: valeur.trim() }), 300);
           }}
           placeholder="Rechercher : nom, client, ville, référence"
-          className="min-w-0 flex-1"
+          className="h-12 min-w-0 flex-1 rounded-full border-0 bg-card px-5"
           aria-label="Rechercher"
         />
         <span className="w-20 text-sm text-muted-foreground" aria-live="polite">

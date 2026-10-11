@@ -9,6 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage);
   --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -50,9 +51,10 @@
 
 /* Direction visuelle : noir et blanc, sans couleur. Un état se dit par la forme
    (plein, contour, pointillé) et par le texte, jamais par une teinte. Texte
-   secondaire assez foncé pour se lire en plein soleil (contraste d'au moins 7:1). */
+   secondaire assez foncé pour se lire en plein soleil (contraste d'au moins 7:1).
+   Des cartes blanches très arrondies posées sur un fond gris clair. */
 :root {
-  --background: oklch(0.99 0 0);
+  --background: oklch(0.94 0 0);
   --foreground: oklch(0.15 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.15 0 0);
@@ -75,7 +77,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.375rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.15 0 0);
   --sidebar-primary: oklch(0.15 0 0);
@@ -144,4 +146,120 @@
     min-width: 28px;
     min-height: 28px;
   }
+}
+
+/* Le ciel des cartes météo : seul endroit coloré et animé de l'interface. */
+.ciel-soleil {
+  background: radial-gradient(circle, rgb(255 244 214 / 0.9) 0%, rgb(255 226 150 / 0.35) 45%, transparent 70%);
+  animation: ciel-respire 6s ease-in-out infinite;
+}
+.ciel-nuage {
+  left: -50%;
+  animation: ciel-derive linear infinite;
+}
+.ciel-etoile {
+  animation: ciel-scintille 3.5s ease-in-out infinite;
+}
+.ciel-goutte {
+  animation: ciel-tombe linear infinite;
+  transform: rotate(12deg);
+}
+.ciel-flocon {
+  animation: ciel-neige linear infinite;
+}
+.ciel-rafale {
+  animation: ciel-souffle ease-in-out infinite;
+}
+@keyframes ciel-respire {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+@keyframes ciel-derive {
+  from { transform: translateX(0); }
+  to { transform: translateX(260%); }
+}
+@keyframes ciel-scintille {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+@keyframes ciel-tombe {
+  from { transform: translate3d(0, -2rem, 0) rotate(12deg); }
+  to { transform: translate3d(-3rem, 32rem, 0) rotate(12deg); }
+}
+@keyframes ciel-neige {
+  0% { transform: translate3d(0, -1rem, 0); }
+  50% { transform: translate3d(1.25rem, 15rem, 0); }
+  100% { transform: translate3d(-0.75rem, 32rem, 0); }
+}
+@keyframes ciel-souffle {
+  0% { transform: translateX(-120%); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translateX(320%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ciel * { animation: none !important; }
+}
+
+/* Les retours animés du reste de l'interface : discrets, en noir et blanc.
+   `--rang` décale chaque carte de la précédente (apparition en cascade). */
+.apparait {
+  animation: apparait 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(min(var(--rang, 0), 8) * 60ms);
+}
+.remplit {
+  transform-origin: left;
+  animation: remplit 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--rang, 0) * 70ms + 250ms);
+}
+.lot-avance {
+  animation: lot-avance 1.2s ease-out;
+}
+.saute {
+  animation: saute 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes apparait {
+  from { opacity: 0; transform: translateY(14px); }
+}
+@keyframes remplit {
+  from { transform: scaleX(0); }
+}
+@keyframes lot-avance {
+  0%, 30% { background-color: color-mix(in oklch, var(--foreground) 10%, var(--card)); }
+}
+@keyframes saute {
+  from { transform: scale(0.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .apparait, .remplit, .lot-avance, .saute { animation: none !important; }
+}
+
+/* Le logo : « groma » en Bricolage très grasse, resserrée, lettres jointes. */
+.logo-groma {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  font-variation-settings: "wdth" 88, "opsz" 96;
+}
+
+/* L'ouverture : les lettres naissent au trait fin et prennent du poids une à une,
+   puis le mot glisse vers l'en-tête pendant que le voile s'efface. */
+.sans-ouverture .ouverture {
+  display: none;
+}
+.ouverture {
+  transition: background-color 0.6s ease;
+}
+.ouverture [data-mot] {
+  transition: transform 0.6s cubic-bezier(0.6, 0, 0.2, 1), opacity 0.4s ease;
+}
+.ouverture-lettre {
+  font-weight: 200;
+  animation: ouverture-graisse 0.9s cubic-bezier(0.5, 0, 0.2, 1) calc(var(--i) * 90ms) forwards;
+}
+.ouverture-part {
+  background-color: transparent;
+  pointer-events: none;
+}
+@keyframes ouverture-graisse {
+  to { font-weight: 800; }
 }

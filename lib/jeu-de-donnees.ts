@@ -85,6 +85,14 @@ function generateur(graine: number) {
   };
 }
 
+// Les photos des chantiers fictifs : des images fixes servies par le site
+// (dossier public/jeu-de-donnees), pas des fichiers déposés sur Vercel Blob.
+export const PHOTOS_FICTIVES = [1, 2, 3, 4, 5, 6].map((n) => `/jeu-de-donnees/interieur-${n}.jpg`);
+
+export function estPhotoFictive(url: string): boolean {
+  return PHOTOS_FICTIVES.includes(url);
+}
+
 export type ChantierFictif = {
   reference: string;
   nom: string;
@@ -97,6 +105,7 @@ export type ChantierFictif = {
   debutPrevu: string | null;
   finPrevue: string | null;
   motifAnnulation: string | null;
+  photoUrl: string | null;
   // Index dans PERSONNES des participants, avec leur qualité sur ce chantier.
   participants: number[];
   lots: LotFictif[];
@@ -183,6 +192,7 @@ export function genererChantiers(aujourdhui = new Date("2026-10-05")): ChantierF
       debutPrevu: debut,
       finPrevue: debut ? jour(new Date(debut), 20 + Math.round(tirer() * 80)) : null,
       motifAnnulation: statut === "annule" ? "Le client a renoncé après le devis." : null,
+      photoUrl: PHOTOS_FICTIVES[i % PHOTOS_FICTIVES.length],
       participants: [chef, client, ...autres],
       lots: lotsDuChantier,
       fil: filDuChantier,
@@ -191,7 +201,7 @@ export function genererChantiers(aujourdhui = new Date("2026-10-05")): ChantierF
 
   // Les cas tordus, à la main.
   resultat[0] = { ...resultat[0], nom: "Chantier sans aucun participant externe", participants: [0], fil: resultat[0].fil.filter((e) => e.auteur === 0).map((e) => ({ ...e, visiblePar: [] })) };
-  resultat[1] = { ...resultat[1], nom: "Devis sans montant", montantHt: null, statut: "devis", debutPrevu: null, finPrevue: null, lots: [], fil: [] };
+  resultat[1] = { ...resultat[1], nom: "Devis sans montant", photoUrl: null, montantHt: null, statut: "devis", debutPrevu: null, finPrevue: null, lots: [], fil: [] };
   resultat[2] = { ...resultat[2], nom: "Rénovation d'un appartement au nom très long, avec cave, parking et deux chambres de bonne au sixième étage sans ascenseur", participants: [1, 3, 6, 7, 8, 9] };
   resultat[3] = { ...resultat[3], client: "Mme Élise d'Aubigné-Saint-Éxupéry", adresse: "3 bis impasse de l'Œuvre", nom: "Salle d'eau" };
   resultat[4] = { ...resultat[4], nom: "Chantier en cours sans date de fin", statut: "en_cours", finPrevue: null };
