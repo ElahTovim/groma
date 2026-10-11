@@ -1,5 +1,21 @@
 # État de reprise
 
+## 11 octobre 2026 (branche `sirene`, partie de `nuit`, en prévisualisation)
+
+**Fait**
+- Sirene par l'API Recherche d'entreprises (data.gouv, sans clé) : table `entreprises` (migration 0008), reliée au client du chantier (`client_siren`) et au compte d'un externe (`siren`).
+- Fiche chantier : « Vérifier l'entreprise » pour le client et pour chaque externe (recherche par nom, SIREN ou SIRET ; faute de frappe repérée par la clé de contrôle). Badge « En activité » ou « Fermée ». Interne seulement.
+- Le serveur relit la fiche au registre, il ne garde jamais ce que le navigateur envoie. Quota : 200 recherches par compte et par jour.
+- Règle 6 : un externe dont l'entreprise est fermée n'est pas invité sur un autre chantier.
+- Machine de nuit, passage de 6 h : 20 entreprises vérifiées depuis plus de 7 jours sont revérifiées ; courriel au gérant si l'une vient de fermer.
+- 103 tests.
+
+**Reste**
+- Fusionner `nuit` d'abord, puis `sirene` (elle la contient).
+
+**Cassé**
+- Rien de connu.
+
 ## 10 octobre 2026, nuit (branche `nuit`, semaine 2, en prévisualisation)
 
 **Fait**

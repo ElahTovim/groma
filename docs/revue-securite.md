@@ -28,6 +28,7 @@ Pour chaque point : ce qui protège, où c'est dans le code, et ce qui reste ouv
 | Le site est affiché dans le cadre d'un autre site, ou charge un script étranger | En-têtes : cadres interdits, type de fichier non deviné, adresse d'origine non transmise, caméra et micro coupés ; en production, une politique de contenu qui n'autorise que le site lui-même et l'API Adresse. | `next.config.ts` |
 | Un courriel part vers une adresse inventée | Aucun courriel vers les adresses `@exemple.groma.fr` du jeu de données (elles rebondiraient et abîmeraient la réputation du domaine). | `lib/courriel.ts` |
 | Une photo de chantier est vue par quelqu'un qui n'y a pas accès | Accès privé sur Vercel Blob ; servie par `/api/photos/[id]` après vérification de l'accès au chantier. | `app/api/photos/[id]/route.ts` |
+| On fait enregistrer une fausse entreprise | Le navigateur n'envoie qu'un SIREN : le serveur redemande lui-même la fiche au registre et n'enregistre que sa réponse. Seuls le gérant et l'équipe, sur un chantier où ils ont accès, peuvent vérifier une entreprise, et seulement pour le client ou un externe de ce chantier. Les fiches d'entreprise ne sont jamais envoyées à un externe. 200 recherches par compte et par jour. | `lierEntreprise()` dans `actions.ts`, `lib/entreprises.ts` |
 | On ouvre un lien d'invitation en étant déjà connecté | La page le dit et propose de se déconnecter ; l'action refuse aussi côté serveur. | `app/invitation/[jeton]/` |
 
 ## Ce qui reste ouvert

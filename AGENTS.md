@@ -30,7 +30,7 @@ Construit dans le cadre d'un séminaire en cinq semaines : consignes dans `docs/
 
 ## La stack (imposée, ne pas proposer d'alternative)
 
-Next.js sur Vercel (équipe `elah-s-projects`, offre Hobby), dépôt GitHub (compte `ElahTovim`), Postgres sur Neon, Auth.js pour les comptes et les rôles, Resend pour les courriels, Vercel Blob pour les fichiers, shadcn/ui pour l'interface, UptimeRobot pour la sonde, Sentry pour les erreurs. API externes : OpenWeatherMap et Sirene (INSEE), avec clé ; API Adresse sans clé. À partir de la semaine 3, API Anthropic ; semaine 4, SDK d'agents.
+Next.js sur Vercel (équipe `elah-s-projects`, offre Hobby), dépôt GitHub (compte `ElahTovim`), Postgres sur Neon, Auth.js pour les comptes et les rôles, Resend pour les courriels, Vercel Blob pour les fichiers, shadcn/ui pour l'interface, UptimeRobot pour la sonde, Sentry pour les erreurs. API externes : OpenWeatherMap, avec clé ; API Adresse et Sirene (par l'API Recherche d'entreprises de data.gouv), sans clé. À partir de la semaine 3, API Anthropic ; semaine 4, SDK d'agents.
 
 ## Les règles d'architecture
 

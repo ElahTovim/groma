@@ -20,7 +20,7 @@ flowchart LR
   subgraph S["Services extérieurs"]
     AD["API Adresse<br>sans clé"]
     OW["OpenWeatherMap<br>clé"]
-    SI["Sirene<br>clé"]
+    SI["Sirene (Recherche<br>d'entreprises)<br>sans clé"]
     RE["Resend<br>courriels"]
     BL["Vercel Blob<br>pièces jointes"]
   end

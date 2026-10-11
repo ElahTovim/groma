@@ -7,8 +7,10 @@ import { z } from "zod";
 import { voitLInterne } from "@/lib/acces";
 import { lireChantier } from "@/lib/chantiers";
 import { db } from "@/lib/db";
-import { chantiers, comptes, fil, lots, participants, type StatutChantier, type StatutLot, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
+import { chantiers, comptes, entreprises, fil, lots, participants, type StatutChantier, type StatutLot, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
 import { adresseDuSite, alerterGerants, envoyerCourriel } from "@/lib/courriel";
+import { chercherDansLeRegistre, enregistrer, lireDuRegistre } from "@/lib/entreprises";
+import { estSiren, lireRecherche, type FicheEntreprise } from "@/lib/entreprises-regles";
 import { contexteChantier, estParticipant } from "@/lib/fiche";
 import { nomPropre, verifierFichier } from "@/lib/fichiers";
 import { formulaireInvitation } from "@/lib/invitation";
@@ -328,9 +330,19 @@ export async function inviter(chantierId: string, donnees: Record<string, string
   if (await atteinte("invitationsParJour", qui.id)) return { ok: false, erreur: "Plafond d'invitations atteint pour aujourd'hui. Réessayez demain." };
   await noter("invitationsParJour", qui.id);
 
-  const [existant] = await db.select({ id: comptes.id, nom: comptes.nom }).from(comptes).where(eq(comptes.email, email)).limit(1);
+  const [existant] = await db
+    .select({ id: comptes.id, nom: comptes.nom, entreprise: entreprises.nom, ferme: entreprises.ferme })
+    .from(comptes)
+    .leftJoin(entreprises, eq(comptes.siren, entreprises.siren))
+    .where(eq(comptes.email, email))
+    .limit(1);
   if (existant) {
     if (await estParticipant(chantierId, existant.id)) return { ok: false, erreur: `${existant.nom} est déjà invité sur ce chantier.` };
+    // Règle 6 de docs/cycle-de-vie.md : une entreprise fermée dans le registre n'est pas invitée.
+    if (existant.ferme) {
+      journal("invitation_refusee", { compte: qui.id, chantier: chantierId, invite: existant.id, raison: "entreprise_fermee" });
+      return { ok: false, erreur: `${existant.nom} travaille pour ${existant.entreprise}, fermée dans le registre des entreprises. Invitation refusée.` };
+    }
     await db.insert(participants).values({ chantierId, compteId: existant.id, qualite });
     journal("participant_ajoute", { compte: qui.id, chantier: chantierId, invite: existant.id, qualite });
     await envoyerCourriel({
@@ -355,6 +367,67 @@ export async function inviter(chantierId: string, donnees: Record<string, string
     message: envoi.ok ? "Invitation envoyée par courriel." : "Invitation créée. Le courriel n'est pas parti : transmettez le lien à la main.",
     lien,
   };
+}
+
+// ——— Entreprises (registre Sirene) ———
+
+// « client » pour le client du chantier, sinon l'identifiant d'un externe du chantier.
+const cibleEntreprise = z.union([z.literal("client"), z.uuid()]);
+
+async function cibleValable(chantierId: string, cible: string): Promise<{ ok: true; client: boolean } | { ok: false; erreur: string }> {
+  const lu = cibleEntreprise.safeParse(cible);
+  if (!lu.success) return { ok: false, erreur: "Demande invalide." };
+  if (lu.data === "client") return { ok: true, client: true };
+  // Un externe de ce chantier seulement : on ne touche pas aux comptes d'ailleurs.
+  const [c] = await db.select({ role: comptes.role }).from(comptes).where(eq(comptes.id, lu.data)).limit(1);
+  if (!c || c.role !== "externe" || !(await estParticipant(chantierId, lu.data))) return { ok: false, erreur: "Cette personne ne participe pas à ce chantier." };
+  return { ok: true, client: false };
+}
+
+export type ResultatRecherche = { ok: true; fiches: FicheEntreprise[] } | { ok: false; erreur: string };
+
+export async function chercherEntreprise(chantierId: string, saisie: string): Promise<ResultatRecherche> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p.ok ? { ok: false, erreur: "Demande invalide." } : p;
+  const lu = lireRecherche(String(saisie ?? ""));
+  if (!lu.ok) return lu;
+  if (await atteinte("recherchesEntrepriseParJour", p.qui.id)) return { ok: false, erreur: "Plafond de recherches atteint pour aujourd'hui. Réessayez demain." };
+  await noter("recherchesEntrepriseParJour", p.qui.id);
+  const r = await chercherDansLeRegistre(lu.q);
+  if (!r.ok) return r;
+  if (r.fiches.length === 0) return { ok: false, erreur: lu.numero ? "Aucune entreprise ne porte ce numéro dans le registre." : "Aucune entreprise trouvée sous ce nom." };
+  return { ok: true, fiches: r.fiches };
+}
+
+export async function lierEntreprise(chantierId: string, cible: string, siren: string): Promise<Resultat> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p;
+  const c = await cibleValable(chantierId, cible);
+  if (!c.ok) return c;
+  if (!estSiren(siren)) return { ok: false, erreur: "Numéro SIREN invalide." };
+
+  const f = await lireDuRegistre(siren);
+  if (f === "panne") return { ok: false, erreur: "Le registre des entreprises ne répond pas pour l'instant. Réessayez dans un moment." };
+  if (f === null) return { ok: false, erreur: "Cette entreprise n'est plus dans le registre public." };
+  await enregistrer(f);
+  if (c.client) await db.update(chantiers).set({ clientSiren: f.siren }).where(eq(chantiers.id, chantierId));
+  else await db.update(comptes).set({ siren: f.siren }).where(eq(comptes.id, cible));
+
+  journal("entreprise_liee", { compte: p.qui.id, chantier: chantierId, cible: c.client ? "client" : cible, siren: f.siren, ferme: f.ferme });
+  rafraichir(chantierId);
+  return { ok: true, message: f.ferme ? `${f.nom} est enregistrée, mais elle est fermée dans le registre.` : `${f.nom} est vérifiée : en activité.` };
+}
+
+export async function delierEntreprise(chantierId: string, cible: string): Promise<Resultat> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p;
+  const c = await cibleValable(chantierId, cible);
+  if (!c.ok) return c;
+  if (c.client) await db.update(chantiers).set({ clientSiren: null }).where(eq(chantiers.id, chantierId));
+  else await db.update(comptes).set({ siren: null }).where(eq(comptes.id, cible));
+  journal("entreprise_deliee", { compte: p.qui.id, chantier: chantierId, cible: c.client ? "client" : cible });
+  rafraichir(chantierId);
+  return { ok: true, message: "Entreprise retirée." };
 }
 
 const LIBELLE_LOT: Record<StatutLot, string> = {

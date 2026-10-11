@@ -15,6 +15,22 @@ export const statutChantier = pgEnum("statut_chantier", [
   "annule",
 ]);
 
+// Une entreprise vérifiée dans le registre Sirene (API Recherche d'entreprises, sans clé).
+// Une seule ligne par SIREN, partagée par les chantiers et les comptes qui la citent.
+// Interne : jamais envoyée à un externe.
+export const entreprises = pgTable("entreprises", {
+  siren: text("siren").primaryKey(),
+  siret: text("siret"),
+  nom: text("nom").notNull(),
+  adresse: text("adresse"),
+  activite: text("activite"),
+  ferme: boolean("ferme").notNull().default(false),
+  fermeeLe: date("fermee_le"),
+  creeeLe: date("creee_le"),
+  // La machine de nuit revérifie chaque semaine (lib/entreprises-regles.ts).
+  verifieeLe: timestamp("verifiee_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const comptes = pgTable("comptes", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
@@ -26,6 +42,8 @@ export const comptes = pgTable("comptes", {
   // Augmente à chaque changement de mot de passe : les sessions ouvertes avant
   // portent l'ancien numéro et ne sont plus acceptées.
   versionSession: integer("version_session").notNull().default(0),
+  // L'entreprise d'un externe (fournisseur, syndic…), quand on l'a vérifiée.
+  siren: text("siren").references(() => entreprises.siren, { onDelete: "set null" }),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -34,6 +52,8 @@ export const chantiers = pgTable("chantiers", {
   reference: text("reference").notNull().unique(),
   nom: text("nom").notNull(),
   client: text("client").notNull(),
+  // Quand le client est une entreprise vérifiée dans Sirene.
+  clientSiren: text("client_siren").references(() => entreprises.siren, { onDelete: "set null" }),
   adresse: text("adresse").notNull(),
   codePostal: text("code_postal").notNull(),
   ville: text("ville").notNull(),

@@ -6,12 +6,14 @@ import { Section } from "@/components/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { voitLInterne } from "@/lib/acces";
 import { lireChantier } from "@/lib/chantiers";
+import { lireEntreprises, type EntrepriseVue } from "@/lib/entreprises";
 import { contexteChantier, lireFil, lireLots, lireParticipants } from "@/lib/fiche";
 import { dateCourte, euros } from "@/lib/format";
 import { journal } from "@/lib/journal";
 import { etapeSuivante, verifierPassage } from "@/lib/regles";
 import { appelantObligatoire } from "@/lib/session";
 import { AnnonceCreation } from "./annonce-creation";
+import { Entreprise, type EntrepriseAffichee } from "./entreprise";
 import { EtapeChantier } from "./etape";
 import { Fil } from "./fil";
 import { Inviter } from "./inviter";
@@ -20,6 +22,11 @@ import { Meteo } from "./meteo";
 import { PhotoChantier } from "./photo";
 
 export const dynamic = "force-dynamic";
+
+function pourAfficher(e: EntrepriseVue | undefined): EntrepriseAffichee | null {
+  if (!e) return null;
+  return { siren: e.siren, nom: e.nom, adresse: e.adresse, activite: e.activite, ferme: e.ferme, fermeeLe: e.fermeeLe, verifieeLe: e.verifieeLe.toISOString() };
+}
 
 // L'ordre suit le terrain : ce qui bloque et l'étape suivante, puis les lots, puis
 // le fil. La météo, les informations et les participants viennent ensuite
@@ -45,6 +52,8 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
     lireFil(qui, chantier.id),
     interne && suivante ? contexteChantier(chantier.id, chantier.debutPrevu) : Promise.resolve(null),
   ]);
+  // Les entreprises vérifiées (client, externes) : interne seulement.
+  const entreprises = interne ? await lireEntreprises([chantier.clientSiren, ...participants.map((p) => p.siren)]) : new Map<string, EntrepriseVue>();
   // Ce qui bloque l'étape suivante, calculé avant tout clic.
   const verdict = suivante && contexte ? verifierPassage(chantier.statut, suivante, contexte) : null;
   const blocages = verdict && !verdict.ok ? verdict.raisons : [];
@@ -88,7 +97,18 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
           <Section titre="Le chantier">
             <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
               <dt className="text-muted-foreground">Client</dt>
-              <dd>{chantier.client}</dd>
+              <dd className="flex min-w-0 flex-col gap-1.5">
+                {chantier.client}
+                {interne && (
+                  <Entreprise
+                    chantierId={chantier.id}
+                    cible="client"
+                    suggestion={chantier.client}
+                    entreprise={pourAfficher(entreprises.get(chantier.clientSiren ?? ""))}
+                    modifiable={!termine}
+                  />
+                )}
+              </dd>
               <dt className="text-muted-foreground">Début prévu</dt>
               <dd className="tabular-nums">{dateCourte(chantier.debutPrevu)}</dd>
               <dt className="text-muted-foreground">Fin prévue</dt>
@@ -109,9 +129,21 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
               ) : (
                 <ul className="flex flex-col gap-2 text-sm">
                   {participants.map((p) => (
-                    <li key={p.compteId} className="flex justify-between gap-3">
-                      <span className="min-w-0 truncate">{p.nom}</span>
-                      <span className="shrink-0 text-muted-foreground">{p.qualite}</span>
+                    <li key={p.compteId} className="flex flex-col gap-1">
+                      <span className="flex justify-between gap-3">
+                        <span className="min-w-0 truncate">{p.nom}</span>
+                        <span className="shrink-0 text-muted-foreground">{p.qualite}</span>
+                      </span>
+                      {p.role === "externe" && (
+                        <Entreprise
+                          chantierId={chantier.id}
+                          cible={p.compteId}
+                          suggestion=""
+                          entreprise={pourAfficher(entreprises.get(p.siren ?? ""))}
+                          modifiable={!termine}
+                          compacte
+                        />
+                      )}
                     </li>
                   ))}
                 </ul>

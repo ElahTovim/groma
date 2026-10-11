@@ -31,11 +31,11 @@ export type ElementVu = {
   creeLe: string;
 };
 
-export type ParticipantVu = { compteId: string; nom: string; role: Appelant["role"]; qualite: string };
+export type ParticipantVu = { compteId: string; nom: string; role: Appelant["role"]; qualite: string; siren: string | null };
 
 export async function lireParticipants(chantierId: string): Promise<ParticipantVu[]> {
   return db
-    .select({ compteId: comptes.id, nom: comptes.nom, role: comptes.role, qualite: participants.qualite })
+    .select({ compteId: comptes.id, nom: comptes.nom, role: comptes.role, qualite: participants.qualite, siren: comptes.siren })
     .from(participants)
     .innerJoin(comptes, eq(participants.compteId, comptes.id))
     .where(eq(participants.chantierId, chantierId))

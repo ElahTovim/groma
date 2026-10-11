@@ -95,7 +95,7 @@ Un signalement suit son propre statut : `à qualifier` → `réserve ouverte` �
 3. Pas de réception tant qu'un lot n'est pas fini.
 4. Un externe ne voit que ses chantiers, et dans le fil seulement ce qui a été coché pour lui.
 5. Les montants, les lots et leurs retards sont internes : un externe ne les voit jamais à l'écran. Pour l'informer d'un retard, l'équipe lui écrit un message dans le fil et coche son nom.
-6. Un fournisseur dont l'établissement est fermé (Sirene) ne peut pas être invité.
+6. Un externe dont l'entreprise vérifiée est fermée (registre Sirene) ne peut pas être invité sur un autre chantier. Partout où elle apparaît, l'entreprise fermée porte le badge « Fermée ».
 
 ## Les tables
 
@@ -105,13 +105,14 @@ Un signalement suit son propre statut : `à qualifier` → `réserve ouverte` �
 | lots | nom, statut, dates prévues et réelles | un chantier, un fournisseur |
 | participants | qui est invité sur quel chantier, à quel titre | un chantier, un compte |
 | fil | type, texte, fichier, statut du signalement, **liste des participants qui le voient** | un chantier, parfois un lot, un auteur |
+| entreprises | SIREN, nom officiel, adresse, activité, en activité ou fermée, date de vérification (interne) | le client d'un chantier, le compte d'un externe |
 
 Les comptes sont gérés à part par Auth.js.
 
 ## Les API
 
 - **OpenWeatherMap** (clé) : à la création du chantier, l'adresse est géolocalisée par l'API Adresse (sans clé) et la fiche affiche la météo des trois prochains jours. Si l'API ne répond pas, la fiche affiche « météo indisponible ».
-- **Sirene** (clé) : à l'invitation d'un fournisseur, son SIRET remplit sa fiche. Si l'API ne répond pas, la saisie reste possible à la main.
+- **Sirene**, par l'API Recherche d'entreprises de data.gouv (sans clé, mêmes données que l'INSEE) : sur la fiche chantier, « Vérifier l'entreprise » cherche le client ou un externe par nom, SIREN ou SIRET, et garde sa fiche officielle. La machine de nuit revérifie chaque semaine les entreprises enregistrées et prévient le gérant si l'une ferme. Si l'API ne répond pas, la fiche garde la dernière vérification et le reste fonctionne.
 
 ## Hors périmètre en semaine 1
 
