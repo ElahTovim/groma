@@ -26,7 +26,9 @@
 - **Les plafonds.** Appels par compte et par jour, taille maximale d'une demande, budget mensuel global. Au-delà, l'IA se met en pause, et le reste du produit fonctionne.
 - **Le schéma** de toute la semaine 3 : `courriers`, `documents`, `morceaux` (avec un vecteur pgvector et l'empreinte du texte), `appels_ia`, `analyses_nuit`. Les colonnes des distances aussi (piste D).
 
-## Phase 1 · quatre filles en parallèle
+## Phase 1 · quatre filles, lancées en deux temps
+
+D'abord A et B, le cœur de la démo. Puis C et D, une fois A et B intégrées. Il y a moins de branches ouvertes à la fois, moins de conflits, et une démo jouable plus tôt.
 
 | Piste | Ce qu'elle livre | Ses fichiers |
 | --- | --- | --- |
