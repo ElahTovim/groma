@@ -158,7 +158,7 @@ export function Questions() {
           {reponse && <TexteCite texte={reponse} controle={parCitation} />}
 
           {aVerifier !== null && (
-            <div className="flex flex-col gap-2 rounded-xl border-2 border-amber-500 bg-amber-50 p-4 dark:bg-amber-950/30">
+            <div className="flex flex-col gap-2 rounded-xl border-2 border-foreground bg-card p-4">
               <p className="flex items-center gap-2 text-sm font-semibold">
                 <TriangleAlert className="size-4" aria-hidden />À vérifier
               </p>
