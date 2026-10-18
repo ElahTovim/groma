@@ -140,22 +140,31 @@ function ATraiter({ t }: { t: TableauDeBord }) {
       <Titre lien={total > 5 ? { href: "/chantiers?statut=a_traiter", texte: `Les ${total}` } : undefined}>
         À traiter <span className="text-muted-foreground tabular-nums">({total})</span>
       </Titre>
-      <ul className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
-        {t.aTraiter.slice(0, 5).map((c) => (
-          <li key={c.id} className="shrink-0 snap-start">
+      {/* Téléphone : une pile de 3 au plus, rien ne déborde sur le côté. Ordinateur : des pastilles. */}
+      <ul className="flex flex-col gap-2 md:flex-row md:flex-wrap">
+        {t.aTraiter.slice(0, 5).map((c, i) => (
+          <li key={c.id} className={cn(i >= 3 && "max-md:hidden")}>
             <Link
               href={`/chantiers/${c.id}`}
-              className="flex min-h-12 items-center gap-3 rounded-full bg-foreground py-2 pr-5 pl-2 text-background transition-transform hover:opacity-90 active:scale-[0.98]"
+              className="flex min-h-14 items-center gap-3 rounded-2xl bg-foreground py-2.5 pr-4 pl-4 text-background transition-transform hover:opacity-90 active:scale-[0.98] md:min-h-12 md:rounded-full md:py-2 md:pr-5"
             >
-              <span aria-hidden className="ml-2 size-2.5 shrink-0 rounded-full bg-background" />
-              <span className="max-w-48 truncate font-semibold">{c.nom}</span>
-              <span className="text-background/75">
-                <ResumeATraiter a={c.aTraiter} compact />
+              <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-background" />
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">
+                <span className="truncate font-semibold md:max-w-48">{c.nom}</span>
+                <span className="text-background/75">
+                  <ResumeATraiter a={c.aTraiter} compact />
+                </span>
               </span>
+              <span aria-hidden className="text-background/60 md:hidden">→</span>
             </Link>
           </li>
         ))}
       </ul>
+      {total > 3 && (
+        <Link href="/chantiers?statut=a_traiter" className="flex min-h-11 items-center text-sm font-semibold underline underline-offset-4 md:hidden">
+          Voir les {total} chantiers à traiter →
+        </Link>
+      )}
     </section>
   );
 }
@@ -357,13 +366,18 @@ function etendue(i: number, n: number): string {
 }
 
 // Les autres chantiers en mosaïque : la première carte en grand, les suivantes en
-// petit. Sur téléphone, une file de cartes qu'on fait glisser.
+// petit. Sur téléphone, une grille de deux colonnes, quatre cartes au plus, puis un
+// bouton vers la liste : rien ne défile sur le côté. La grande carte prend une
+// ligne entière, puis deux petites : jamais de trou.
+function visiblesTelephone(n: number) {
+  return n > 2 ? 3 : n;
+}
 function Mosaique({ t, cartes }: { t: TableauDeBord; cartes: TableauDeBord["chantiers"] }) {
   return (
     <section className="flex flex-col gap-4">
       <Titre lien={{ href: "/chantiers", texte: "Tous les chantiers" }}>{t.actifs.length ? "Les autres chantiers en cours" : "Mes autres chantiers"}</Titre>
       <ul
-        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] md:mx-0 md:grid md:auto-rows-[15rem] md:grid-cols-4 md:overflow-visible md:px-0 md:pb-0"
+        className="grid auto-rows-[13rem] grid-cols-2 gap-3 md:auto-rows-[15rem] md:grid-cols-4 md:gap-4"
         aria-label="Chantiers"
       >
         {cartes.map((c, i) => {
@@ -372,13 +386,13 @@ function Mosaique({ t, cartes }: { t: TableauDeBord; cartes: TableauDeBord["chan
           return (
             <li
               key={c.id}
-              className={cn("apparait h-80 w-[78%] shrink-0 snap-start sm:w-72 md:h-auto md:w-auto", etendue(i, cartes.length))}
+              className={cn("apparait", (grande || cartes.length === 1) && "col-span-2", i >= visiblesTelephone(cartes.length) && "max-md:hidden", etendue(i, cartes.length))}
               style={{ "--rang": i + 6 } as React.CSSProperties}
             >
               <Link
                 href={`/chantiers/${c.id}`}
                 className={cn(
-                  "group relative isolate flex size-full flex-col justify-between gap-3 overflow-hidden rounded-3xl p-5",
+                  "group relative isolate flex size-full flex-col justify-between gap-3 overflow-hidden rounded-3xl p-4 md:p-5",
                   c.aPhoto ? "bg-foreground text-white" : "bg-card",
                 )}
               >
@@ -397,12 +411,18 @@ function Mosaique({ t, cartes }: { t: TableauDeBord; cartes: TableauDeBord["chan
                     <BadgeStatut statut={c.statut} />
                   )}
                   {urgent && (
-                    <span className="rounded-full bg-foreground px-2.5 py-1 text-xs font-bold text-background ring-1 ring-white/30">À traiter</span>
+                    <span
+                      className="flex size-6 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background ring-1 ring-white/30 md:size-auto md:px-2.5 md:py-1"
+                      title="À traiter"
+                    >
+                      <span aria-hidden className="md:hidden">!</span>
+                      <span className="max-md:sr-only">À traiter</span>
+                    </span>
                   )}
                 </div>
                 <div className="flex flex-col gap-3">
                   <div>
-                    <p className={cn("font-display font-extrabold line-clamp-3 leading-[1.05] tracking-tight", grande ? "text-3xl md:text-5xl" : "text-2xl")}>{c.nom}</p>
+                    <p className={cn("font-display font-extrabold line-clamp-3 leading-[1.05] tracking-tight", grande ? "text-3xl md:text-5xl" : "line-clamp-2 text-lg md:line-clamp-3 md:text-2xl")}>{c.nom}</p>
                     <p className={cn("truncate text-sm", c.aPhoto ? "text-white/75" : "text-muted-foreground")}>
                       {c.ville} · {c.client}
                     </p>
@@ -414,6 +434,11 @@ function Mosaique({ t, cartes }: { t: TableauDeBord; cartes: TableauDeBord["chan
           );
         })}
       </ul>
+      {cartes.length > visiblesTelephone(cartes.length) && (
+        <Link href="/chantiers" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-14 w-full border-0 bg-card text-base md:hidden")}>
+          Voir tous les chantiers →
+        </Link>
+      )}
     </section>
   );
 }

@@ -70,7 +70,7 @@ function LigneLot(props: { lot: LotVu; aujourdhui: string; replie: boolean; avan
           ))}
         </div>
         <p className="text-sm text-muted-foreground">
-          Étape {rang + 1} sur 5 : {CYCLE_LOT.map((s) => LIBELLE_LOT[s]).join(" · ")}
+          Étape {rang + 1} sur 5
         </p>
       </div>
       <span className="md:text-[0.9375rem]">

@@ -5,15 +5,18 @@ import { cn } from "@/lib/utils";
 const CYCLE: StatutChantier[] = ["devis", "signe", "planifie", "en_cours", "reception", "clos"];
 
 // Les six étapes du chantier en segments : pleins jusqu'à l'étape actuelle, en gras.
-// Sur téléphone, les libellés tiennent sur une ligne sous la barre.
+// Sur téléphone, pas de liste des six libellés : l'étape actuelle et la suivante suffisent.
 export function FriseEtapes({ statut }: { statut: StatutChantier }) {
   const rang = CYCLE.indexOf(statut);
   if (rang < 0) return null; // annulé : le badge suffit
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm font-semibold md:hidden">
-        Étape {rang + 1} sur {CYCLE.length}
+      <p className="flex items-baseline justify-between gap-3 text-sm md:hidden">
+        <span className="font-semibold">
+          Étape {rang + 1} sur {CYCLE.length} · {LIBELLE_STATUT[statut]}
+        </span>
+        {CYCLE[rang + 1] && <span className="text-muted-foreground">Ensuite : {LIBELLE_STATUT[CYCLE[rang + 1]]}</span>}
       </p>
       <ol className="grid grid-cols-6 gap-1" aria-label={`Étape ${rang + 1} sur ${CYCLE.length} : ${LIBELLE_STATUT[statut]}`}>
         {CYCLE.map((s, i) => (
@@ -29,7 +32,6 @@ export function FriseEtapes({ statut }: { statut: StatutChantier }) {
           </li>
         ))}
       </ol>
-      <p className="text-sm text-muted-foreground md:hidden">{CYCLE.map((s) => LIBELLE_STATUT[s]).join(" · ")}</p>
     </div>
   );
 }
