@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { equipeVoitTout } from "@/lib/acces";
 import { appelantObligatoire } from "@/lib/session";
+import { BoutonIa } from "./bouton-ia";
 import { BoutonJeu } from "./bouton-jeu";
 import { BoutonSentry } from "./bouton-sentry";
 
@@ -50,6 +51,15 @@ export default async function Reglages() {
           <Link href="/reglages/flux" className={buttonVariants({ variant: "outline" })}>
             Lire le flux
           </Link>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Intelligence artificielle</CardTitle>
+          <CardDescription>Un petit appel réel au modèle (Anthropic) et au service de vecteurs (Voyage), pour vérifier que les clés sont bonnes. Coût : une fraction de centime.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BoutonIa />
         </CardContent>
       </Card>
       <Card>
