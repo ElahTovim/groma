@@ -8,3 +8,14 @@ export function etatNuit(derniere: { statut: string } | null, derniereReussite: 
   if (!derniereReussite || maintenant.getTime() - derniereReussite.getTime() > DELAI_MAX_MS) return { ok: false, raison: "Aucune nuit importée depuis plus de 26 heures." };
   return { ok: true, raison: "La dernière nuit est importée." };
 }
+
+// Vercel planifie en heure universelle ; la France change d'heure deux fois par an.
+// Le récapitulatif a deux passages (5 h et 6 h UTC) : il ne part qu'à partir de 7 h à Paris,
+// donc à 7 h l'été comme l'hiver. Il ne part jamais deux fois (lib/recap.ts).
+export const HEURE_DU_RECAP_PARIS = 7;
+
+export function heureDuRecap(maintenant = new Date()): boolean {
+  const parts = new Intl.DateTimeFormat("fr-FR", { hour: "numeric", hourCycle: "h23", timeZone: "Europe/Paris" }).formatToParts(maintenant);
+  const h = Number(parts.find((p) => p.type === "hour")?.value);
+  return h >= HEURE_DU_RECAP_PARIS;
+}

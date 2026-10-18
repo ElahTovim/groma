@@ -4,12 +4,14 @@ import { journal } from "@/lib/journal";
 import { rattraper } from "@/lib/nuit";
 import { envoyerRecapitulatifs } from "@/lib/recap";
 import { relancerVigilance } from "@/lib/vigilance";
+import { heureDuRecap } from "@/lib/sante-nuit";
 import { db } from "@/lib/db";
 import { comptes } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 // La tâche planifiée de la nuit, appelée par Vercel Cron (vercel.json) :
-// à 6 h l'import, à 7 h un nouvel essai puis le récapitulatif (?recap=1).
+// à 4 h UTC l'import, à 5 h et 6 h UTC un nouvel essai puis le récapitulatif (?recap=1),
+// qui ne part qu'une fois 7 h passées à Paris (heure d'été comme d'hiver).
 // Protégée par CRON_SECRET : Vercel l'envoie dans l'en-tête Authorization ;
 // sans lui, personne d'autre ne peut la déclencher.
 export const maxDuration = 60;
@@ -58,6 +60,7 @@ export async function GET(requete: Request) {
   // Au même passage : les sous-traitants dont l'attestation de vigilance manque ou expire.
   const vigilance = avecRecap ? null : await relancerVigilance(SITE);
 
-  const recap = avecRecap ? await envoyerRecapitulatifs(SITE) : null;
+  // Avant 7 h à Paris (l'hiver, au passage de 5 h UTC), on attend le passage suivant.
+  const recap = avecRecap && heureDuRecap() ? await envoyerRecapitulatifs(SITE) : null;
   return Response.json({ ok: !echec, bilans, registre, vigilance, recap });
 }

@@ -8,6 +8,10 @@
     {
       "path": "/api/nuit?recap=1",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/nuit?recap=1&passage=2",
+      "schedule": "0 6 * * *"
     }
   ]
 }
