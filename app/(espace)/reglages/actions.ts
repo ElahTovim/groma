@@ -47,3 +47,22 @@ export async function erreurDeTest(): Promise<EtatJeu> {
   journal("sentry_test", { compte: qui.id });
   return { message: "Erreur de test envoyée à Sentry. Elle doit apparaître dans Issues d'ici une minute." };
 }
+
+// Un vrai petit appel à chaque service d'IA, pour vérifier les clés. Coût : une fraction de centime.
+export async function testerIa(): Promise<EtatJeu> {
+  const qui = await appelant();
+  if (!qui || qui.role !== "gerant") return { erreur: "Seul le gérant peut tester l'IA." };
+  const { z } = await import("zod");
+  const { demanderStructure, vectoriser } = await import("@/lib/ia");
+  const modele = await demanderStructure(
+    { compteId: qui.id, fonction: "test" },
+    { gamme: "rapide", consigne: "Réponds au test de connexion.", contenu: "Test de connexion : renvoie pret = true.", schema: z.object({ pret: z.boolean() }), maxJetons: 50 },
+  );
+  const vecteurs = await vectoriser({ compteId: qui.id, fonction: "test" }, ["Pose de carrelage dans une salle de bain."], "query");
+  journal("ia_test", { compte: qui.id, modele: modele.ok, vecteurs: vecteurs.ok });
+  const etat = [
+    modele.ok ? "le modèle répond" : `le modèle ne répond pas (${modele.erreur})`,
+    vecteurs.ok ? `les vecteurs aussi (${vecteurs.vecteurs[0]?.length} dimensions)` : `les vecteurs ne répondent pas (${vecteurs.erreur})`,
+  ].join(", ");
+  return modele.ok && vecteurs.ok ? { message: `Tout est branché : ${etat}.` } : { erreur: `À corriger : ${etat}.` };
+}

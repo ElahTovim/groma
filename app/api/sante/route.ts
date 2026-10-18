@@ -13,7 +13,7 @@ export async function GET() {
   const base = createHash("sha256").update(hote).digest("hex").slice(0, 8);
   try {
     await db.execute(sql`select 1`);
-    return Response.json({ ok: true, base, sentry: Boolean(dsnSentry()), meteo: Boolean(process.env.OPENWEATHER_GROMAA), courriel: Boolean(process.env.RESEND_GROMAA), fichiers: Boolean(process.env.BLOB_READ_WRITE_TOKEN) });
+    return Response.json({ ok: true, base, sentry: Boolean(dsnSentry()), meteo: Boolean(process.env.OPENWEATHER_GROMAA), courriel: Boolean(process.env.RESEND_GROMAA), fichiers: Boolean(process.env.BLOB_READ_WRITE_TOKEN), ia: Boolean(process.env.MY_claude), vecteurs: Boolean(process.env.VOYAGE_AI) });
   } catch {
     return Response.json({ ok: false, base, erreur: "La base ne répond pas." }, { status: 503 });
   }

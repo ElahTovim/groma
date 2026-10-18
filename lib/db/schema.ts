@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import type { ContenuPv } from "@/lib/reception-regles";
-import { boolean, date, doublePrecision, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, doublePrecision, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid, vector } from "drizzle-orm/pg-core";
 
 // Les trois rôles de docs/cycle-de-vie.md. La qualité d'un externe (client,
 // syndic…) n'est pas un rôle : elle vit sur la participation à un chantier.
@@ -27,6 +27,9 @@ export const entreprises = pgTable("entreprises", {
   activite: text("activite"),
   ferme: boolean("ferme").notNull().default(false),
   fermeeLe: date("fermee_le"),
+  // Les coordonnées de l'adresse, pour les temps de livraison (lib/distances.ts).
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
   creeeLe: date("creee_le"),
   // La machine de nuit revérifie chaque semaine (lib/entreprises-regles.ts).
   verifieeLe: timestamp("verifiee_le", { withTimezone: true }).notNull().defaultNow(),
@@ -120,6 +123,8 @@ export const lots = pgTable("lots", {
   fournisseurId: uuid("fournisseur_id").references(() => comptes.id, { onDelete: "set null" }),
   livraisonPrevue: date("livraison_prevue"),
   finPrevue: date("fin_prevue"),
+  // Le délai annoncé par le fournisseur entre la commande et l'enlèvement, en jours ouvrés.
+  delaiFournisseurJours: integer("delai_fournisseur_jours"),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -305,4 +310,102 @@ export const relancesVigilance = pgTable(
     envoyeeLe: timestamp("envoyee_le", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("une_relance_par_palier").on(t.compteId, t.palier, t.echeance)],
+);
+
+// ——— L'intelligence (semaine 3) ———
+
+// Un appel au modèle ou au service de vecteurs : ce qu'il a consommé et coûté.
+// C'est le compteur des plafonds et la page des coûts.
+export const appelsIa = pgTable(
+  "appels_ia",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Vide pour la machine de nuit, qui n'est pas un compte.
+    compteId: uuid("compte_id").references(() => comptes.id, { onDelete: "set null" }),
+    fonction: text("fonction").notNull(), // lecture_courrier, question, analyse_nuit, indexation…
+    modele: text("modele").notNull(),
+    jetonsEntree: integer("jetons_entree").notNull().default(0),
+    jetonsSortie: integer("jetons_sortie").notNull().default(0),
+    jetonsCache: integer("jetons_cache").notNull().default(0),
+    coutEur: numeric("cout_eur", { precision: 12, scale: 6 }).notNull().default("0"),
+    dureeMs: integer("duree_ms"),
+    ok: boolean("ok").notNull().default(true),
+    erreur: text("erreur"),
+    creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("appels_ia_compte_date").on(t.compteId, t.creeLe), index("appels_ia_date").on(t.creeLe)],
+);
+
+export const statutCourrier = pgEnum("statut_courrier", ["a_relire", "valide", "rejete"]);
+
+// Les courriers du flux, lus par le modèle. Ce qu'il en tire reste une proposition
+// tant que quelqu'un ne l'a pas validée.
+export const courriers = pgTable("courriers", {
+  id: text("id").primaryKey(), // l'identifiant du flux
+  texte: text("texte").notNull(),
+  // Les champs proposés par le modèle (expéditeur, société, référence, date, catégorie, montant) ; null si absent.
+  champs: jsonb("champs").$type<Record<string, unknown>>(),
+  // Ce que le modèle signale comme incertain, à relire.
+  incertitudes: jsonb("incertitudes").$type<string[]>().notNull().default([]),
+  categorie: text("categorie"),
+  resume: text("resume"),
+  brouillon: text("brouillon"),
+  chantierId: uuid("chantier_id").references(() => chantiers.id, { onDelete: "set null" }),
+  statut: statutCourrier("statut").notNull().default("a_relire"),
+  validePar: uuid("valide_par").references(() => comptes.id, { onDelete: "set null" }),
+  valideLe: timestamp("valide_le", { withTimezone: true }),
+  luLe: timestamp("lu_le", { withTimezone: true }),
+  recuLe: timestamp("recu_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Les documents du flux, découpés page par page pour la recherche qui cite ses sources.
+export const documents = pgTable("documents", {
+  id: text("id").primaryKey(), // l'identifiant du flux
+  titre: text("titre").notNull(),
+  type: text("type"),
+  nbPages: integer("nb_pages").notNull(),
+  // L'empreinte du contenu : un document inchangé n'est jamais revectorisé.
+  empreinte: text("empreinte").notNull(),
+  indexeLe: timestamp("indexe_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Dimension des vecteurs : celle du modèle Voyage choisi (lib/ia.ts).
+export const DIMENSION_VECTEURS = 1024;
+
+export const morceaux = pgTable(
+  "morceaux",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    documentId: text("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    page: integer("page").notNull(), // à partir de 1, comme dans le document
+    rang: integer("rang").notNull().default(0), // plusieurs morceaux pour une longue page
+    texte: text("texte").notNull(),
+    vecteur: vector("vecteur", { dimensions: DIMENSION_VECTEURS }).notNull(),
+  },
+  (t) => [index("morceaux_vecteur").using("hnsw", t.vecteur.op("vector_cosine_ops")), index("morceaux_document").on(t.documentId, t.page)],
+);
+
+// Ce que le modèle a tiré de chaque nuit : une seule analyse par nuit.
+export const analysesNuit = pgTable("analyses_nuit", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nuit: date("nuit").notNull().unique(),
+  texte: text("texte").notNull(),
+  points: jsonb("points").$type<{ titre: string; detail: string; references: string[] }[]>().notNull().default([]),
+  creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Les temps de route déjà calculés : un trajet ne se redemande pas au service d'itinéraire.
+export const trajets = pgTable(
+  "trajets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    origine: text("origine").notNull(), // « lat,lon » arrondis
+    destination: text("destination").notNull(),
+    km: doublePrecision("km").notNull(),
+    minutes: integer("minutes").notNull(),
+    calculeLe: timestamp("calcule_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("un_trajet").on(t.origine, t.destination)],
 );

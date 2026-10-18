@@ -71,6 +71,13 @@
       "when": 1791751579875,
       "tag": "0009_reception_vigilance",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792320795077,
+      "tag": "0010_socle_ia",
+      "breakpoints": true
     }
   ]
 }
