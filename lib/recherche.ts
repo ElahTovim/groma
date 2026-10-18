@@ -130,9 +130,13 @@ export async function documentsIndexes() {
       type: documents.type,
       nbPages: documents.nbPages,
       indexeLe: documents.indexeLe,
-      morceaux: sql<number>`(select count(*)::int from ${morceaux} where ${morceaux.documentId} = ${documents.id})`,
+      // Une jointure plutôt qu'une sous-requête : dans une sous-requête, Drizzle écrit « id »
+      // sans le nom de la table, et la base comprenait l'identifiant du passage.
+      morceaux: sql<number>`count(${morceaux.id})::int`,
     })
     .from(documents)
+    .leftJoin(morceaux, eq(morceaux.documentId, documents.id))
+    .groupBy(documents.id)
     .orderBy(asc(documents.titre));
 }
 
