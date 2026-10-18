@@ -9,6 +9,8 @@ export type ContenuRecap = {
   nuit: { reussie: boolean; nouveaux: number; misesAJour: number; messages: number; misDeCote: number; erreur?: string } | null;
   aTraiter: LigneRecap[];
   demandesEnRetard: LigneRecap[];
+  // Les attestations de vigilance manquantes ou qui expirent, sur les chantiers en jeu.
+  attestations: LigneRecap[];
   lienNuit: string | null;
 };
 
@@ -25,7 +27,7 @@ function liste(titre: string, lignes: LigneRecap[], vide: string): string {
 }
 
 export function composerRecap(c: ContenuRecap): { sujet: string; texte: string } {
-  const aFaire = c.aTraiter.length + c.demandesEnRetard.length;
+  const aFaire = c.aTraiter.length + c.demandesEnRetard.length + c.attestations.length;
   const sujet = c.nuit && !c.nuit.reussie ? `groma · ${jourLong(c.jour)} : la nuit n'a pas pu être importée` : aFaire ? `groma · ${jourLong(c.jour)} : ${aFaire} point${aFaire > 1 ? "s" : ""} à traiter` : `groma · ${jourLong(c.jour)} : rien à signaler`;
 
   let nuit: string;
@@ -44,6 +46,7 @@ export function composerRecap(c: ContenuRecap): { sujet: string; texte: string }
     "",
     liste("À TRAITER", c.aTraiter, "Rien : aucun signalement en attente, aucune réserve ouverte, aucun lot en retard."),
     liste("DEMANDES DONT L'ÉCHÉANCE EST PASSÉE", c.demandesEnRetard, "Aucune."),
+    liste("ATTESTATIONS DE VIGILANCE À OBTENIR", c.attestations, "Aucune : les sous-traitants sont en règle."),
     "Ce récapitulatif part une fois par jour.",
   ]
     .filter((l, i, t) => !(l === "" && t[i - 1] === ""))

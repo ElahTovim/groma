@@ -1,15 +1,21 @@
 "use server";
 
 import { del, put } from "@vercel/blob";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { voitLInterne } from "@/lib/acces";
 import { lireChantier } from "@/lib/chantiers";
 import { db } from "@/lib/db";
-import { chantiers, comptes, fil, lots, participants, type StatutChantier, type StatutLot, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
+import { attestations, chantiers, comptes, entreprises, fil, pvReception, lots, participants, type StatutChantier, type StatutLot, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
 import { adresseDuSite, alerterGerants, envoyerCourriel } from "@/lib/courriel";
+import { chercherDansLeRegistre, enregistrer, lireDuRegistre } from "@/lib/entreprises";
+import { estSiren, lireRecherche, type FicheEntreprise } from "@/lib/entreprises-regles";
+import { empreinte } from "@/lib/empreinte";
 import { contexteChantier, estParticipant } from "@/lib/fiche";
+import { contenuPv, lirePv } from "@/lib/reception";
+import { texteCanonique, verifierPreparation, verifierSignature } from "@/lib/reception-regles";
+import { verifierDepot } from "@/lib/vigilance-regles";
 import { nomPropre, verifierFichier } from "@/lib/fichiers";
 import { formulaireInvitation } from "@/lib/invitation";
 import { creerJeton } from "@/lib/jetons";
@@ -17,6 +23,7 @@ import { atteinte, noter } from "@/lib/limites";
 import { estPhotoFictive } from "@/lib/jeu-de-donnees";
 import { journal } from "@/lib/journal";
 import {
+  aujourdhuiParis,
   ETAPES_ALERTE,
   partageInitial,
   peutAnnuler,
@@ -330,9 +337,19 @@ export async function inviter(chantierId: string, donnees: Record<string, string
   if (await atteinte("invitationsParJour", qui.id)) return { ok: false, erreur: "Plafond d'invitations atteint pour aujourd'hui. Réessayez demain." };
   await noter("invitationsParJour", qui.id);
 
-  const [existant] = await db.select({ id: comptes.id, nom: comptes.nom }).from(comptes).where(eq(comptes.email, email)).limit(1);
+  const [existant] = await db
+    .select({ id: comptes.id, nom: comptes.nom, entreprise: entreprises.nom, ferme: entreprises.ferme })
+    .from(comptes)
+    .leftJoin(entreprises, eq(comptes.siren, entreprises.siren))
+    .where(eq(comptes.email, email))
+    .limit(1);
   if (existant) {
     if (await estParticipant(chantierId, existant.id)) return { ok: false, erreur: `${existant.nom} est déjà invité sur ce chantier.` };
+    // Règle 6 de docs/cycle-de-vie.md : une entreprise fermée dans le registre n'est pas invitée.
+    if (existant.ferme) {
+      journal("invitation_refusee", { compte: qui.id, chantier: chantierId, invite: existant.id, raison: "entreprise_fermee" });
+      return { ok: false, erreur: `${existant.nom} travaille pour ${existant.entreprise}, fermée dans le registre des entreprises. Invitation refusée.` };
+    }
     await db.insert(participants).values({ chantierId, compteId: existant.id, qualite });
     journal("participant_ajoute", { compte: qui.id, chantier: chantierId, invite: existant.id, qualite });
     await envoyerCourriel({
@@ -357,6 +374,196 @@ export async function inviter(chantierId: string, donnees: Record<string, string
     message: envoi.ok ? "Invitation envoyée par courriel." : "Invitation créée. Le courriel n'est pas parti : transmettez le lien à la main.",
     lien,
   };
+}
+
+// ——— Entreprises (registre Sirene) ———
+
+// « client » pour le client du chantier, sinon l'identifiant d'un externe du chantier.
+const cibleEntreprise = z.union([z.literal("client"), z.uuid()]);
+
+async function cibleValable(chantierId: string, cible: string): Promise<{ ok: true; client: boolean } | { ok: false; erreur: string }> {
+  const lu = cibleEntreprise.safeParse(cible);
+  if (!lu.success) return { ok: false, erreur: "Demande invalide." };
+  if (lu.data === "client") return { ok: true, client: true };
+  // Un externe de ce chantier seulement : on ne touche pas aux comptes d'ailleurs.
+  const [c] = await db.select({ role: comptes.role }).from(comptes).where(eq(comptes.id, lu.data)).limit(1);
+  if (!c || c.role !== "externe" || !(await estParticipant(chantierId, lu.data))) return { ok: false, erreur: "Cette personne ne participe pas à ce chantier." };
+  return { ok: true, client: false };
+}
+
+export type ResultatRecherche = { ok: true; fiches: FicheEntreprise[] } | { ok: false; erreur: string };
+
+export async function chercherEntreprise(chantierId: string, saisie: string): Promise<ResultatRecherche> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p.ok ? { ok: false, erreur: "Demande invalide." } : p;
+  const lu = lireRecherche(String(saisie ?? ""));
+  if (!lu.ok) return lu;
+  if (await atteinte("recherchesEntrepriseParJour", p.qui.id)) return { ok: false, erreur: "Plafond de recherches atteint pour aujourd'hui. Réessayez demain." };
+  await noter("recherchesEntrepriseParJour", p.qui.id);
+  const r = await chercherDansLeRegistre(lu.q);
+  if (!r.ok) return r;
+  if (r.fiches.length === 0) return { ok: false, erreur: lu.numero ? "Aucune entreprise ne porte ce numéro dans le registre." : "Aucune entreprise trouvée sous ce nom." };
+  return { ok: true, fiches: r.fiches };
+}
+
+export async function lierEntreprise(chantierId: string, cible: string, siren: string): Promise<Resultat> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p;
+  const c = await cibleValable(chantierId, cible);
+  if (!c.ok) return c;
+  if (!estSiren(siren)) return { ok: false, erreur: "Numéro SIREN invalide." };
+
+  const f = await lireDuRegistre(siren);
+  if (f === "panne") return { ok: false, erreur: "Le registre des entreprises ne répond pas pour l'instant. Réessayez dans un moment." };
+  if (f === null) return { ok: false, erreur: "Cette entreprise n'est plus dans le registre public." };
+  await enregistrer(f);
+  if (c.client) await db.update(chantiers).set({ clientSiren: f.siren }).where(eq(chantiers.id, chantierId));
+  else await db.update(comptes).set({ siren: f.siren }).where(eq(comptes.id, cible));
+
+  journal("entreprise_liee", { compte: p.qui.id, chantier: chantierId, cible: c.client ? "client" : cible, siren: f.siren, ferme: f.ferme });
+  rafraichir(chantierId);
+  return { ok: true, message: f.ferme ? `${f.nom} est enregistrée, mais elle est fermée dans le registre.` : `${f.nom} est vérifiée : en activité.` };
+}
+
+export async function delierEntreprise(chantierId: string, cible: string): Promise<Resultat> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p;
+  const c = await cibleValable(chantierId, cible);
+  if (!c.ok) return c;
+  if (c.client) await db.update(chantiers).set({ clientSiren: null }).where(eq(chantiers.id, chantierId));
+  else await db.update(comptes).set({ siren: null }).where(eq(comptes.id, cible));
+  journal("entreprise_deliee", { compte: p.qui.id, chantier: chantierId, cible: c.client ? "client" : cible });
+  rafraichir(chantierId);
+  return { ok: true, message: "Entreprise retirée." };
+}
+
+// ——— Le PV de réception ———
+
+export async function preparerPv(chantierId: string, donnees: { dateReception: string; signataireId: string; observations: string }): Promise<Resultat> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p;
+  const { qui, chantier } = p;
+  const dateReception = String(donnees.dateReception ?? "");
+  const signataireId = String(donnees.signataireId ?? "");
+  const observations = String(donnees.observations ?? "").trim().slice(0, 2000) || null;
+
+  const [signataire] = z.uuid().safeParse(signataireId).success
+    ? await db.select({ id: comptes.id, nom: comptes.nom, email: comptes.email, role: comptes.role }).from(comptes).where(eq(comptes.id, signataireId)).limit(1)
+    : [];
+  const [existant, contexte, reserves] = await Promise.all([
+    lirePv(chantierId),
+    contexteChantier(chantierId, chantier.debutPrevu),
+    db.select({ id: fil.id, texte: fil.texte }).from(fil).where(and(eq(fil.chantierId, chantierId), eq(fil.statutSignalement, "reserve_ouverte"))),
+  ]);
+  const verdict = verifierPreparation({
+    statut: chantier.statut,
+    dejaSigne: Boolean(existant?.signeLe),
+    dateReception,
+    aujourdhui: aujourdhuiParis(),
+    signataireEstExterne: Boolean(signataire && signataire.role === "externe" && (await estParticipant(chantierId, signataire.id))),
+    signalementsAQualifier: contexte.signalementsAQualifier,
+  });
+  if (!verdict.ok) return { ok: false, erreur: verdict.raison };
+
+  // Les réserves ouvertes à cet instant sont recopiées dans le PV.
+  const valeurs = { dateReception, reserves: reserves.map((r) => ({ id: r.id, texte: r.texte.slice(0, 500) })), observations, signataireId: signataire!.id, preparePar: qui.id, prepareLe: new Date() };
+  // Le « signeLe is null » empêche de réécrire un PV signé entre-temps.
+  const fait = existant
+    ? await db.update(pvReception).set(valeurs).where(and(eq(pvReception.chantierId, chantierId), isNull(pvReception.signeLe))).returning({ id: pvReception.id })
+    : await db.insert(pvReception).values({ chantierId, ...valeurs }).onConflictDoNothing().returning({ id: pvReception.id });
+  if (fait.length === 0) return { ok: false, erreur: "Le PV vient d'être signé ou modifié. La page va se recharger." };
+
+  journal("pv_prepare", { compte: qui.id, chantier: chantierId, signataire: signataire!.id, reserves: valeurs.reserves.length });
+  await envoyerCourriel({
+    a: signataire!.email,
+    sujet: `PV de réception à signer : ${chantier.nom}`,
+    texte: `${qui.nom} a préparé le procès-verbal de réception du chantier « ${chantier.nom} » (${chantier.ville}), daté du ${dateReception}, ${valeurs.reserves.length ? `avec ${valeurs.reserves.length} réserve${valeurs.reserves.length > 1 ? "s" : ""}` : "sans réserve"}.\n\nRelisez-le et signez-le ici :\n${await adresseDuSite()}/chantiers/${chantierId}`,
+  });
+  rafraichir(chantierId);
+  return { ok: true, message: existant ? "PV mis à jour et renvoyé au signataire." : "PV préparé et envoyé au signataire." };
+}
+
+export async function signerPv(chantierId: string, donnees: { nom: string; accepte: boolean }): Promise<Resultat> {
+  const p = await porte(chantierId, false);
+  if ("ok" in p) return p;
+  const { qui, chantier } = p;
+  const pv = await lirePv(chantierId);
+  if (!pv) return { ok: false, erreur: "Aucun PV à signer sur ce chantier." };
+  const nom = String(donnees.nom ?? "").trim().slice(0, 120);
+  const verdict = verifierSignature({ estSignataire: pv.signataireId === qui.id, dejaSigne: Boolean(pv.signeLe), nomSaisi: nom, accepte: donnees.accepte === true });
+  if (!verdict.ok) {
+    journal("pv_signature_refusee", { compte: qui.id, chantier: chantierId, raison: verdict.raison });
+    return { ok: false, erreur: verdict.raison };
+  }
+  // On relit le chantier complet : c'est le contenu affiché qui est signé, et figé.
+  const [c] = await db.select().from(chantiers).where(eq(chantiers.id, chantierId)).limit(1);
+  const contenu = contenuPv(c, pv);
+  const fait = await db
+    .update(pvReception)
+    .set({ signeLe: new Date(), signeNom: nom, contenuSigne: contenu, empreinte: empreinte(texteCanonique(contenu)) })
+    .where(and(eq(pvReception.id, pv.id), isNull(pvReception.signeLe)))
+    .returning({ id: pvReception.id });
+  if (fait.length === 0) return { ok: false, erreur: "Ce PV a déjà été signé." };
+
+  journal("pv_signe", { compte: qui.id, chantier: chantierId, reserves: pv.reserves.length });
+  await alerterGerants(
+    `${chantier.reference} : PV de réception signé`,
+    `${nom} a signé le PV de réception du chantier « ${chantier.nom} » (${chantier.ville}), ${pv.reserves.length ? `avec ${pv.reserves.length} réserve${pv.reserves.length > 1 ? "s" : ""}` : "sans réserve"}.\n\nLa facture de solde peut partir.\n\n${await adresseDuSite()}/chantiers/${chantierId}`,
+  );
+  rafraichir(chantierId);
+  return { ok: true, message: "PV signé. Merci : l'entreprise en est informée." };
+}
+
+// ——— Attestations de vigilance ———
+
+export async function exigerVigilance(chantierId: string, compteId: string, exigee: boolean): Promise<Resultat> {
+  const p = await porte(chantierId, true);
+  if ("ok" in p) return p;
+  const c = await cibleValable(chantierId, compteId);
+  if (!c.ok || c.client) return { ok: false, erreur: "Cette personne ne participe pas à ce chantier." };
+  await db.update(participants).set({ vigilance: exigee === true }).where(and(eq(participants.chantierId, chantierId), eq(participants.compteId, compteId)));
+  journal("vigilance_exigee", { compte: p.qui.id, chantier: chantierId, externe: compteId, exigee: exigee === true });
+  rafraichir(chantierId);
+  return { ok: true, message: exigee ? "Attestation de vigilance exigée." : "Attestation de vigilance plus exigée sur ce chantier." };
+}
+
+// L'équipe dépose l'attestation d'un sous-traitant, ou le sous-traitant dépose la sienne.
+export async function deposerAttestation(chantierId: string, compteId: string, formData: FormData): Promise<Resultat> {
+  const p = await porte(chantierId, false);
+  if ("ok" in p) return p;
+  const { qui } = p;
+  const interne = voitLInterne(qui.role);
+  if (!interne && qui.id !== compteId) {
+    journal("action_refusee", { compte: qui.id, role: qui.role, chantier: chantierId, action: "attestation" });
+    return { ok: false, erreur: "Vous ne pouvez déposer que votre propre attestation." };
+  }
+  const c = await cibleValable(chantierId, compteId);
+  if (!c.ok || c.client) return { ok: false, erreur: "Cette personne ne participe pas à ce chantier." };
+  const [compte] = await db.select({ siren: comptes.siren }).from(comptes).where(eq(comptes.id, compteId)).limit(1);
+  if (!compte?.siren) return { ok: false, erreur: interne ? "Vérifiez d'abord l'entreprise de cette personne : l'attestation s'y rattache." : "Votre entreprise n'est pas encore vérifiée : demandez à l'équipe de le faire." };
+
+  const f = formData.get("fichier");
+  if (!(f instanceof File) || f.size === 0) return { ok: false, erreur: "Joignez l'attestation en PDF." };
+  const delivreeLe = typeof formData.get("delivreeLe") === "string" ? String(formData.get("delivreeLe")) : "";
+  const codeSecurite = (typeof formData.get("codeSecurite") === "string" ? String(formData.get("codeSecurite")) : "").replace(/\s/g, "").toUpperCase();
+  const forme = verifierFichier(f);
+  if (!forme.ok) return { ok: false, erreur: forme.raison };
+  const verdict = verifierDepot({ delivreeLe, aujourdhui: aujourdhuiParis(), codeSecurite, type: f.type });
+  if (!verdict.ok) return { ok: false, erreur: verdict.raison };
+  if (await atteinte("fichiersParJour", qui.id)) return { ok: false, erreur: "Plafond de dépôts atteint pour aujourd'hui. Réessayez demain." };
+  await noter("fichiersParJour", qui.id);
+
+  let url: string;
+  try {
+    url = (await put(`attestations/${compte.siren}/${nomPropre(f.name)}`, f, { access: "private", addRandomSuffix: true, contentType: f.type })).url;
+  } catch (err) {
+    journal("fichier_echec", { compte: qui.id, chantier: chantierId, erreur: String(err) });
+    return { ok: false, erreur: "Le fichier n'a pas pu être enregistré. Réessayez." };
+  }
+  await db.insert(attestations).values({ siren: compte.siren, delivreeLe, codeSecurite: codeSecurite || null, fichierUrl: url, fichierNom: f.name.slice(0, 200), fichierTaille: f.size, deposePar: qui.id });
+  journal("attestation_deposee", { compte: qui.id, chantier: chantierId, siren: compte.siren, delivree_le: delivreeLe });
+  rafraichir(chantierId);
+  return { ok: true, message: "Attestation enregistrée." };
 }
 
 const LIBELLE_LOT: Record<StatutLot, string> = {

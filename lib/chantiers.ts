@@ -24,6 +24,8 @@ export type ChantierVu = {
   latitude: number | null;
   longitude: number | null;
   aPhoto: boolean;
+  // Interne : un externe reçoit null.
+  clientSiren: string | null;
 };
 
 export type ChantierListe = ChantierVu & { aTraiter: ATraiter | null };
@@ -44,6 +46,7 @@ function filtrerPour(qui: Appelant, c: typeof chantiers.$inferSelect): ChantierV
     latitude: c.latitude,
     longitude: c.longitude,
     aPhoto: Boolean(c.photoUrl),
+    clientSiren: voitLInterne(qui.role) ? c.clientSiren : null,
   };
 }
 

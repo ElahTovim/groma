@@ -30,6 +30,19 @@ export default async function Reglages() {
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle>Facturation</CardTitle>
+          <CardDescription>
+            Un fichier par chantier, à importer dans votre outil de facturation : le client tel que le registre le connaît, le montant HT, la date de réception, et le prochain jalon à facturer (acompte, situation, solde, retenue de garantie).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <a href="/api/export/facturation" className={buttonVariants({ variant: "outline" })}>
+            Exporter pour la facturation (CSV)
+          </a>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Flux de nuit</CardTitle>
           <CardDescription>Lire une nuit du flux telle quelle, sans rien importer.</CardDescription>
         </CardHeader>

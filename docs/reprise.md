@@ -1,5 +1,43 @@
 # État de reprise
 
+## 11 octobre 2026, soir (branche `reception`, partie de `sirene`)
+
+**Fait**
+- PV de réception : table `pv_reception` (migration 0009). Préparé par l'équipe en étape réception (réserves ouvertes recopiées, signataire externe), signé par le seul signataire (nom + case), figé avec empreinte SHA-256. PDF à la demande (`/api/pv/[chantierId]`, pdf-lib), garanties calculées. Règle : pas de clôture sans PV signé. Courriel au signataire et au gérant.
+- Attestations de vigilance : `participants.vigilance`, tables `attestations` et `relances_vigilance`. Dépôt par l'équipe ou par le sous-traitant lui-même, rattaché à son entreprise vérifiée ; état à jour, bientôt, expirée, manquante ; relances de nuit (6 h) une fois par palier ; récapitulatif du matin.
+- Facturation : jalons (`lib/facturation-regles.ts`), export CSV gérant (`/api/export/facturation`, Réglages), `docs/branchement-facturation.md`. Variable `ENTREPRISE_NOM` (nom sur le PV).
+- 130 tests.
+
+**Reste**
+- Prévisualisation bloquée tant que les copies Neon des branches fusionnées ne sont pas supprimées (limite de 10).
+- Ordre de fusion : `nuit`, puis `sirene`, puis `reception` (chacune contient la précédente).
+- Mettre `ENTREPRISE_NOM` dans Vercel (sinon le PV dit « L'entreprise »).
+- Le jeu de données ne contient ni PV ni attestation.
+- **Prochaine tranche, validée sur le principe, à lancer après la fusion dans `main` : l'espace « Dossier »** de chaque chantier (sous la météo et les participants).
+  - Ajustement 1 : des pièces attendues proposées à l'invitation selon la qualité (architecte : plans, CCTP, assurance ; sous-traitant : décennale, vigilance, Kbis…), modifiables par l'équipe. Les suggestions sont un réglage, jamais une condition dans le code.
+  - Ajustement 2 : l'attestation de vigilance devient une pièce attendue avec validité ; une seule mécanique pour toutes les pièces (attendue, déposée, validée, refusée, expirée), relances de nuit communes.
+  - Trois rubriques : pièces des intervenants, documents du chantier, fin de chantier (PV signé rangé seul, DOE). « Qui voit ça ? » sur chaque document.
+  - Blocages réglables : décennale des sous-traitants avant le démarrage ; PV et DOE avant la clôture.
+
+**Cassé**
+- Rien de connu.
+
+## 11 octobre 2026 (branche `sirene`, partie de `nuit`, en prévisualisation)
+
+**Fait**
+- Sirene par l'API Recherche d'entreprises (data.gouv, sans clé) : table `entreprises` (migration 0008), reliée au client du chantier (`client_siren`) et au compte d'un externe (`siren`).
+- Fiche chantier : « Vérifier l'entreprise » pour le client et pour chaque externe (recherche par nom, SIREN ou SIRET ; faute de frappe repérée par la clé de contrôle). Badge « En activité » ou « Fermée ». Interne seulement.
+- Le serveur relit la fiche au registre, il ne garde jamais ce que le navigateur envoie. Quota : 200 recherches par compte et par jour.
+- Règle 6 : un externe dont l'entreprise est fermée n'est pas invité sur un autre chantier.
+- Machine de nuit, passage de 6 h : 20 entreprises vérifiées depuis plus de 7 jours sont revérifiées ; courriel au gérant si l'une vient de fermer.
+- 103 tests.
+
+**Reste**
+- Fusionner `nuit` d'abord, puis `sirene` (elle la contient).
+
+**Cassé**
+- Rien de connu.
+
 ## 11 octobre 2026, soir (branche `ui-fiche`, fusionnée sur demande de Kerguelenn)
 
 **Fait**

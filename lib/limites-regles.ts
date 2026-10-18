@@ -8,6 +8,8 @@ export const LIMITES = {
   // Par compte et par jour.
   invitationsParJour: { max: 30, fenetreMs: 24 * 3600 * 1000 },
   fichiersParJour: { max: 60, fenetreMs: 24 * 3600 * 1000 },
+  // Le registre des entreprises est gratuit mais limité : on ne le laisse pas marteler.
+  recherchesEntrepriseParJour: { max: 200, fenetreMs: 24 * 3600 * 1000 },
 } as const;
 
 export type Sujet = keyof typeof LIMITES;

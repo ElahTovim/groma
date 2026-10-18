@@ -7,7 +7,11 @@ import { Section } from "@/components/section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { voitLInterne } from "@/lib/acces";
 import { lireChantier } from "@/lib/chantiers";
-import { contexteChantier, lireFil, lireLots, lireParticipants } from "@/lib/fiche";
+import { lireEntreprises, type EntrepriseVue } from "@/lib/entreprises";
+import { lirePv } from "@/lib/reception";
+import { dernieresAttestations, type DerniereAttestation } from "@/lib/vigilance";
+import { etatAttestation } from "@/lib/vigilance-regles";
+import { contexteChantier, lireFil, lireLots, lireParticipants, maParticipation } from "@/lib/fiche";
 import { dateCourte, euros } from "@/lib/format";
 import { journal } from "@/lib/journal";
 import { aujourdhuiParis, etapeSuivante, verifierPassage } from "@/lib/regles";
@@ -15,6 +19,7 @@ import { appelantObligatoire } from "@/lib/session";
 import { AnnonceCreation } from "./annonce-creation";
 import { ATraiterFiche } from "./a-traiter";
 import { Chiffres } from "./chiffres";
+import { Entreprise, type EntrepriseAffichee } from "./entreprise";
 import { EtapeChantier } from "./etape";
 import { Fil } from "./fil";
 import { FriseEtapes } from "./frise";
@@ -23,8 +28,20 @@ import { Lots } from "./lots";
 import { Meteo } from "./meteo";
 import { SuiteFiche } from "./onglets";
 import { PhotoChantier } from "./photo";
+import { Reception } from "./reception";
+import { MaVigilance, VigilanceParticipant, type VigilanceAffichee } from "./vigilance";
 
 export const dynamic = "force-dynamic";
+
+function vigilance(exigee: boolean, siren: string | null, dernieres: Map<string, DerniereAttestation>, jour: string): VigilanceAffichee {
+  const a = siren ? (dernieres.get(siren) ?? null) : null;
+  return { exigee, etat: etatAttestation(a?.delivreeLe ?? null, jour), attestation: a && { id: a.id, delivreeLe: a.delivreeLe, codeSecurite: a.codeSecurite }, entrepriseVerifiee: Boolean(siren) };
+}
+
+function pourAfficher(e: EntrepriseVue | undefined): EntrepriseAffichee | null {
+  if (!e) return null;
+  return { siren: e.siren, nom: e.nom, adresse: e.adresse, activite: e.activite, ferme: e.ferme, fermeeLe: e.fermeeLe, verifieeLe: e.verifieeLe.toISOString() };
+}
 
 // L'ordre suit les maquettes (Figma, section 03) : l'en-tête et l'étape suivante,
 // la frise des étapes, ce qui est à traiter, puis la météo, les lots et le fil.
@@ -54,6 +71,14 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
   const verdict = suivante && contexte ? verifierPassage(chantier.statut, suivante, contexte) : null;
   const blocages = verdict && !verdict.ok ? verdict.raisons : [];
   const aujourdhui = aujourdhuiParis();
+  // Les entreprises vérifiées (client, externes) : interne seulement.
+  const entreprises = interne ? await lireEntreprises([chantier.clientSiren, ...participants.map((p) => p.siren)]) : new Map<string, EntrepriseVue>();
+  const pv = await lirePv(chantier.id);
+  // Un externe ne voit le PV que s'il en est le signataire.
+  const pvVisible = pv && (interne || pv.signataireId === qui.id) ? pv : null;
+  // L'externe : son attestation de vigilance, si elle est exigée sur ce chantier.
+  const maPlace = interne ? null : await maParticipation(chantier.id, qui.id);
+  const attestations = await dernieresAttestations(interne ? participants.map((p) => p.siren) : [maPlace?.siren ?? null]);
 
   const onglets = [
     ...(interne ? [{ cle: "lots", titre: "Lots", nombre: lots.length, contenu: <Lots chantierId={chantier.id} lots={lots} participants={participants} modifiable={!termine} aujourdhui={aujourdhui} /> }] : []),
@@ -106,6 +131,20 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
 
       {interne && <ATraiterFiche lots={lots} elements={elements} aujourdhui={aujourdhui} />}
 
+      {(chantier.statut === "reception" || pvVisible) && (
+        <Reception
+          chantierId={chantier.id}
+          moi={qui.id}
+          interne={interne}
+          enReception={chantier.statut === "reception"}
+          pv={pvVisible && { dateReception: pvVisible.dateReception, reserves: pvVisible.reserves, observations: pvVisible.observations, signataireId: pvVisible.signataireId, signataire: pvVisible.signataire, signeLe: pvVisible.signeLe, signeNom: pvVisible.signeNom }}
+          reservesOuvertes={elements.filter((e) => e.statutSignalement === "reserve_ouverte").map((e) => ({ texte: e.texte }))}
+          externes={participants.filter((p) => p.role === "externe").map((p) => ({ compteId: p.compteId, nom: p.nom, qualite: p.qualite }))}
+          aujourdhui={aujourdhui}
+        />
+      )}
+      {!interne && maPlace?.vigilance && !termine && <MaVigilance chantierId={chantier.id} moi={qui.id} v={vigilance(true, maPlace.siren, attestations, aujourdhui)} />}
+
       <SuiteFiche
         meteo={
           <Suspense fallback={<Skeleton className="h-40" />}>
@@ -133,15 +172,27 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
                 </dl>
               </Section>
               {interne && (
+                <Section titre="Le client" carte>
+                  <p className="font-semibold">{chantier.client}</p>
+                  <Entreprise chantierId={chantier.id} cible="client" suggestion={chantier.client} entreprise={pourAfficher(entreprises.get(chantier.clientSiren ?? ""))} modifiable={!termine} />
+                </Section>
+              )}
+              {interne && (
                 <Section titre={`Participants (${participants.length})`} carte>
                   {participants.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Personne n&apos;est encore invité sur ce chantier.</p>
                   ) : (
                     <ul className="flex flex-col">
                       {participants.map((p) => (
-                        <li key={p.compteId} className="flex min-h-9 items-center justify-between gap-3">
-                          <span className="min-w-0 truncate font-semibold">{p.nom}</span>
-                          <span className="shrink-0 text-sm text-muted-foreground">{p.qualite}</span>
+                        <li key={p.compteId} className="flex flex-col gap-1 py-1.5">
+                          <span className="flex min-h-9 items-center justify-between gap-3">
+                            <span className="min-w-0 truncate font-semibold">{p.nom}</span>
+                            <span className="shrink-0 text-sm text-muted-foreground">{p.qualite}</span>
+                          </span>
+                          {p.role === "externe" && (
+                            <Entreprise chantierId={chantier.id} cible={p.compteId} suggestion="" entreprise={pourAfficher(entreprises.get(p.siren ?? ""))} modifiable={!termine} compacte />
+                          )}
+                          {p.role === "externe" && <VigilanceParticipant chantierId={chantier.id} compteId={p.compteId} v={vigilance(p.vigilance, p.siren, attestations, aujourdhui)} modifiable={!termine} />}
                         </li>
                       ))}
                     </ul>
