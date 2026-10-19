@@ -255,3 +255,21 @@ export async function bilanDesCourriers() {
   const valides = await db.select({ champs: courriers.champs }).from(courriers).where(eq(courriers.statut, "valide"));
   return bilanGlobal(valides);
 }
+
+// Les courriers validés et rattachés à un chantier : ils rejoignent l'onglet Documents de sa fiche.
+export async function courriersDuChantier(chantierId: string): Promise<{ id: string; titre: string; date: string; origine: string }[]> {
+  const lignes = await db
+    .select({ id: courriers.id, resume: courriers.resume, champs: courriers.champs, valideLe: courriers.valideLe, recuLe: courriers.recuLe, origine: courriers.origine })
+    .from(courriers)
+    .where(and(eq(courriers.chantierId, chantierId), eq(courriers.statut, "valide")));
+  return lignes.map((c) => {
+    const expediteur = typeof c.champs?.expediteur === "string" ? c.champs.expediteur : null;
+    const societe = typeof c.champs?.societe === "string" ? c.champs.societe : null;
+    return {
+      id: c.id,
+      titre: [expediteur ?? societe ?? "Courrier", c.resume ? `: ${c.resume.slice(0, 90)}${c.resume.length > 90 ? "…" : ""}` : ""].join(""),
+      date: (c.valideLe ?? c.recuLe).toISOString(),
+      origine: c.origine,
+    };
+  });
+}

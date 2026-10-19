@@ -13,7 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import type { TypeFil } from "@/lib/db/schema";
 import type { ElementVu, LotVu, ParticipantVu } from "@/lib/fiche";
 import { dateCourte } from "@/lib/format";
+import { bandeDesJours, compteurs, dansOnglet, GESTE_PAR_DEFAUT, gestesDe, ONGLETS_FIL, TITRE_ONGLET, type OngletFil } from "@/lib/fil-onglets";
 import { LIBELLE_SIGNALEMENT, LIBELLE_TYPE } from "@/lib/libelles";
+import { cn } from "@/lib/utils";
 import { ecrireDansLeFil, partagerElement, qualifierSignalement } from "./actions";
 import { useActionChantier } from "./use-action-chantier";
 
@@ -138,11 +140,12 @@ const AIDE: Record<TypeFil, string> = {
   reponse: "Votre réponse.",
 };
 
-function Ecrire(props: { chantierId: string; interne: boolean; participants: ParticipantVu[]; lots: LotVu[] }) {
+function Ecrire(props: { chantierId: string; interne: boolean; participants: ParticipantVu[]; lots: LotVu[]; onglet: OngletFil }) {
   const { enCours, lancer } = useActionChantier();
-  const [type, setType] = useState<TypeFil>("message");
+  const gestes = GESTES.filter((g) => (props.interne || !g.interneSeulement) && gestesDe(props.onglet, [g.type]).length > 0);
+  const parDefaut = gestes.some((g) => g.type === GESTE_PAR_DEFAUT[props.onglet]) ? GESTE_PAR_DEFAUT[props.onglet] : (gestes[0]?.type ?? "message");
+  const [type, setType] = useState<TypeFil>(parDefaut);
   const [cle, setCle] = useState(0);
-  const gestes = GESTES.filter((g) => props.interne || !g.interneSeulement);
 
   return (
     <div className="flex flex-col gap-3 rounded-3xl bg-card p-5">
@@ -166,7 +169,7 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
           const d = new FormData(e.currentTarget);
           d.set("type", type);
           lancer(() => ecrireDansLeFil(props.chantierId, d), () => {
-            setType("message");
+            setType(parDefaut);
             setCle((c) => c + 1);
           });
         }}
@@ -225,24 +228,222 @@ function enAttenteDe(e: ElementVu) {
   return e.statutSignalement === "a_qualifier" || e.statutSignalement === "reserve_ouverte";
 }
 
-export function Fil(props: { chantierId: string; interne: boolean; elements: ElementVu[]; participants: ParticipantVu[]; lots: LotVu[] }) {
+// Ce que l'onglet Documents rassemble en plus du fil : chacun reste à sa place, rien n'est copié.
+export type DossierFiche = {
+  pv: { lien: string; signeLe: string | null; dateReception: string; reserves: number } | null;
+  courriers: { id: string; titre: string; date: string; origine: string }[];
+  attestations: { nom: string; etat: string; aJour: boolean; lien: string | null }[];
+};
+
+function CarteElement(props: { chantierId: string; e: ElementVu; interne: boolean; externes: ParticipantVu[]; nomDe: Map<string, string> }) {
+  const { e } = props;
+  const Icone = ICONE_TYPE[e.type];
+  const enAttente = enAttenteDe(e);
+  const estImage = e.fichier?.type.startsWith("image/");
+  return (
+    <li id={`fil-${e.id}`} className={enAttente ? "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 ring-2 ring-foreground" : "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5"}>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1 font-semibold text-foreground">
+          <Icone className="size-3.5" aria-hidden /> {LIBELLE_TYPE[e.type]}
+        </span>
+        {e.statutSignalement && <Badge variant={enAttente ? "default" : "secondary"}>{LIBELLE_SIGNALEMENT[e.statutSignalement]}</Badge>}
+        <span className="text-foreground">{e.auteur}</span>
+        <span>{horodatage(e.creeLe)}</span>
+        {e.lot && <span>· {e.lot}</span>}
+      </div>
+      <p className="whitespace-pre-wrap">{e.texte}</p>
+      {e.fichier &&
+        (estImage ? (
+          <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="block w-fit">
+            {/* eslint-disable-next-line @next/next/no-img-element -- image privée, servie après vérification des droits */}
+            <img src={`/api/fichiers/${e.id}`} alt={e.texte} loading="lazy" className="max-h-64 max-w-full rounded-2xl object-contain" />
+          </a>
+        ) : (
+          <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="flex w-fit items-center gap-2 text-sm underline">
+            <FileText className="size-4" aria-hidden /> {e.fichier.nom} ({Math.max(1, Math.round(e.fichier.taille / 1024))} Ko)
+          </a>
+        ))}
+      {(e.destinataire || e.dateCible) && (
+        <p className="text-xs text-muted-foreground">
+          {e.destinataire ? `Pour ${e.destinataire}` : ""}
+          {e.destinataire && e.dateCible ? " · " : ""}
+          {e.dateCible ? (e.type === "demande" ? `à rendre le ${dateCourte(e.dateCible)}` : dateCourte(e.dateCible)) : ""}
+        </p>
+      )}
+      {e.motif && <p className="text-xs text-muted-foreground">Motif : {e.motif}</p>}
+      {props.interne && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+          <VuPar e={e} nomDe={props.nomDe} />
+          <div className="flex flex-wrap items-center gap-2">
+            {e.type === "signalement" && <Qualifier chantierId={props.chantierId} element={e} />}
+            <QuiVoit chantierId={props.chantierId} element={e} externes={props.externes} />
+          </div>
+        </div>
+      )}
+    </li>
+  );
+}
+
+// Qui voit cet élément, dit en clair : c'est le cœur de « Qui voit ça ? ».
+function VuPar({ e, nomDe }: { e: ElementVu; nomDe: Map<string, string> }) {
+  return e.visiblePar.length === 0 ? (
+    <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground">
+      <Lock className="size-3.5 shrink-0" aria-hidden /> Vu par : l&apos;équipe seulement
+    </span>
+  ) : (
+    <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground">
+      <Users className="size-3.5 shrink-0" aria-hidden />
+      <span className="min-w-0">Vu par : l&apos;équipe · {e.visiblePar.map((id) => nomDe.get(id) ?? "?").join(", ")}</span>
+    </span>
+  );
+}
+
+function Rubrique(props: { titre: string; children: React.ReactNode; vide?: string; nombre: number }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{props.titre}</h3>
+      {props.nombre === 0 ? <p className="rounded-3xl bg-card p-5 text-sm text-muted-foreground">{props.vide}</p> : <ul className="flex flex-col divide-y rounded-3xl bg-card px-5">{props.children}</ul>}
+    </section>
+  );
+}
+
+function Ligne(props: { lien: string | null; titre: string; detail: string; aside?: React.ReactNode }) {
+  const corps = (
+    <>
+      <FileText className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate font-medium">{props.titre}</span>
+        <span className="text-xs text-muted-foreground">{props.detail}</span>
+      </span>
+    </>
+  );
+  return (
+    <li className="flex min-h-14 items-start gap-3 py-3 text-sm">
+      {props.lien ? (
+        <a href={props.lien} target="_blank" rel="noopener" className="flex min-w-0 flex-1 items-start gap-3 hover:underline">
+          {corps}
+        </a>
+      ) : (
+        <span className="flex min-w-0 flex-1 items-start gap-3">{corps}</span>
+      )}
+      {props.aside}
+    </li>
+  );
+}
+
+function Documents(props: { elements: ElementVu[]; dossier: DossierFiche; interne: boolean; nomDe: Map<string, string> }) {
+  const { dossier } = props;
+  return (
+    <div className="flex flex-col gap-5">
+      <Rubrique titre="Documents du chantier" nombre={props.elements.length} vide="Aucun document déposé. Devis signé, plans, photos : déposez-les ci-dessous.">
+        {props.elements.map((e) => (
+          <Ligne
+            key={e.id}
+            lien={e.fichier ? `/api/fichiers/${e.id}` : null}
+            titre={e.texte}
+            detail={`${e.auteur} · ${horodatage(e.creeLe)}${e.fichier ? ` · ${e.fichier.nom}` : ""}`}
+            aside={props.interne ? <span className="shrink-0 text-xs text-muted-foreground">{e.visiblePar.length ? `Partagé (${e.visiblePar.length})` : "Interne"}</span> : undefined}
+          />
+        ))}
+      </Rubrique>
+      {props.interne && (
+        <Rubrique titre="Courriers reçus" nombre={dossier.courriers.length} vide="Aucun courrier validé n'est rattaché à ce chantier.">
+          {dossier.courriers.map((c) => (
+            <Ligne key={c.id} lien={`/courriers/${c.id}`} titre={c.titre} detail={`${c.origine === "depot" ? "Déposé" : "Flux"} · validé le ${horodatage(c.date)}`} />
+          ))}
+        </Rubrique>
+      )}
+      {dossier.attestations.length > 0 && (
+        <Rubrique titre="Attestations de vigilance" nombre={dossier.attestations.length}>
+          {dossier.attestations.map((a) => (
+            <Ligne key={a.nom} lien={a.lien} titre={a.nom} detail="Attestation URSSAF, renouvelée tous les 6 mois" aside={<Badge variant={a.aJour ? "outline" : "default"}>{a.etat}</Badge>} />
+          ))}
+        </Rubrique>
+      )}
+      <Rubrique titre="Fin de chantier" nombre={dossier.pv ? 1 : 0} vide="Le PV de réception apparaîtra ici une fois préparé.">
+        {dossier.pv && (
+          <Ligne
+            lien={dossier.pv.lien}
+            titre="PV de réception"
+            detail={`Réception du ${dateCourte(dossier.pv.dateReception)} · ${dossier.pv.reserves ? `${dossier.pv.reserves} réserve${dossier.pv.reserves > 1 ? "s" : ""}` : "sans réserve"}`}
+            aside={<Badge variant={dossier.pv.signeLe ? "default" : "outline"}>{dossier.pv.signeLe ? "Signé" : "À signer"}</Badge>}
+          />
+        )}
+      </Rubrique>
+    </div>
+  );
+}
+
+function BandeDispos(props: { elements: ElementVu[]; aujourdhui: string }) {
+  const bande = bandeDesJours(
+    props.elements.filter((e) => e.type === "disponibilite").map((e) => ({ dateCible: e.dateCible, auteur: e.auteur })),
+    props.aujourdhui,
+  );
+  const jourCourt = (iso: string) => new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Qui est là cette semaine</h3>
+      <div className="overflow-x-auto">
+        <ol className="grid min-w-[36rem] grid-cols-7 gap-2">
+          {bande.map((j) => (
+            <li key={j.jour} className={j.presents.length ? "flex min-h-24 flex-col gap-1 rounded-2xl bg-card p-3 ring-1 ring-foreground" : "flex min-h-24 flex-col gap-1 rounded-2xl bg-card p-3"}>
+              <span className="text-xs font-semibold capitalize">{jourCourt(j.jour)}</span>
+              {j.presents.length === 0 ? (
+                <span className="text-xs text-muted-foreground">personne</span>
+              ) : (
+                j.presents.map((n) => (
+                  <span key={n} className="truncate text-xs">
+                    {n}
+                  </span>
+                ))
+              )}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+export function Fil(props: {
+  chantierId: string;
+  interne: boolean;
+  elements: ElementVu[];
+  participants: ParticipantVu[];
+  lots: LotVu[];
+  dossier: DossierFiche;
+  ongletInitial: OngletFil;
+  aujourdhui: string;
+}) {
   const externes = props.participants.filter((p) => p.role === "externe");
   const nomDe = new Map(props.participants.map((p) => [p.compteId, p.nom]));
+  const [onglet, setOnglet] = useState<OngletFil>(props.ongletInitial);
   const [tout, setTout] = useState(false);
-  const debut = props.elements.length - DERNIERS_VISIBLES;
-  const visible = (e: ElementVu, i: number) => tout || i >= debut || enAttenteDe(e);
-  const caches = props.elements.filter((e, i) => !visible(e, i)).length;
+  const extras = (props.dossier.pv ? 1 : 0) + props.dossier.courriers.length + props.dossier.attestations.length;
+  const compte = compteurs(props.elements, props.aujourdhui, { documents: extras });
+  const elements = props.elements.filter((e) => dansOnglet(onglet, e.type));
+  const debut = elements.length - DERNIERS_VISIBLES;
+  const visible = (e: ElementVu, i: number) => onglet !== "fil" || tout || i >= debut || enAttenteDe(e);
+  const caches = elements.filter((e, i) => !visible(e, i)).length;
 
-  // Un lien vers un élément ancien (#fil-…) déplie tout le fil pour le montrer.
+  // L'onglet ouvert se lit dans l'adresse (?onglet=documents) : un lien y mène droit.
+  function choisir(o: OngletFil) {
+    setOnglet(o);
+    const url = new URL(window.location.href);
+    if (o === "fil") url.searchParams.delete("onglet");
+    else url.searchParams.set("onglet", o);
+    url.hash = "";
+    window.history.replaceState(null, "", url);
+  }
+
+  // Un lien vers un élément (#fil-…) ouvre le fil complet et le montre.
   useEffect(() => {
     const verifier = () => {
       const id = window.location.hash.startsWith("#fil-") ? window.location.hash.slice(5) : null;
       if (!id) return;
-      const i = props.elements.findIndex((e) => e.id === id);
-      if (i >= 0 && i < debut && !enAttenteDe(props.elements[i])) {
-        setTout(true);
-        requestAnimationFrame(() => document.getElementById(`fil-${id}`)?.scrollIntoView());
-      }
+      setOnglet("fil");
+      setTout(true);
+      requestAnimationFrame(() => document.getElementById(`fil-${id}`)?.scrollIntoView({ block: "center" }));
     };
     const image = requestAnimationFrame(verifier);
     window.addEventListener("hashchange", verifier);
@@ -250,84 +451,67 @@ export function Fil(props: { chantierId: string; interne: boolean; elements: Ele
       cancelAnimationFrame(image);
       window.removeEventListener("hashchange", verifier);
     };
-  }, [props.elements, debut]);
+  }, []);
 
   return (
-    <Section titre={`Fil (${props.elements.length})`}>
-      {props.elements.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Le fil est vide. Écrivez le premier message.</p>
-      ) : (
-        <ol className="flex flex-col gap-3">
-          {caches > 0 && (
-            <li>
-              <button type="button" onClick={() => setTout(true)} className="flex h-12 w-full items-center justify-center rounded-full bg-card text-sm font-semibold">
-                Afficher {caches > 1 ? `les ${caches} éléments plus anciens` : "l'élément plus ancien"} ↑
-              </button>
-            </li>
-          )}
-          {props.elements.map((e, i) => {
-            if (!visible(e, i)) return null;
-            const Icone = ICONE_TYPE[e.type];
-            const enAttente = enAttenteDe(e);
-            const estImage = e.fichier?.type.startsWith("image/");
-            return (
-              <li key={e.id} id={`fil-${e.id}`} className={enAttente ? "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 ring-2 ring-foreground" : "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5"}>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1 font-semibold text-foreground">
-                    <Icone className="size-3.5" aria-hidden /> {LIBELLE_TYPE[e.type]}
-                  </span>
-                  {e.statutSignalement && (
-                    <Badge variant={enAttente ? "default" : "secondary"}>{LIBELLE_SIGNALEMENT[e.statutSignalement]}</Badge>
-                  )}
-                  <span className="text-foreground">{e.auteur}</span>
-                  <span>{horodatage(e.creeLe)}</span>
-                  {e.lot && <span>· {e.lot}</span>}
-                </div>
-                <p className="whitespace-pre-wrap">{e.texte}</p>
-                {e.fichier &&
-                  (estImage ? (
-                    <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="block w-fit">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- image privée, servie après vérification des droits */}
-                      <img src={`/api/fichiers/${e.id}`} alt={e.texte} loading="lazy" className="max-h-64 max-w-full rounded-2xl object-contain" />
-                    </a>
-                  ) : (
-                    <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="flex w-fit items-center gap-2 text-sm underline">
-                      <FileText className="size-4" aria-hidden /> {e.fichier.nom} ({Math.max(1, Math.round(e.fichier.taille / 1024))} Ko)
-                    </a>
-                  ))}
-                {(e.destinataire || e.dateCible) && (
-                  <p className="text-xs text-muted-foreground">
-                    {e.destinataire ? `Pour ${e.destinataire}` : ""}
-                    {e.destinataire && e.dateCible ? " · " : ""}
-                    {e.dateCible ? (e.type === "demande" ? `à rendre le ${dateCourte(e.dateCible)}` : dateCourte(e.dateCible)) : ""}
-                  </p>
+    <Section titre="Fil du chantier">
+      {/* Les onglets : une barre qui défile au doigt sur téléphone, collée en haut au défilement. */}
+      <div role="tablist" aria-label="Filtrer le fil" className="sticky top-14 z-20 -mx-1 flex gap-1 overflow-x-auto bg-background px-1 py-1">
+        {ONGLETS_FIL.map((o) => {
+          const c = compte[o];
+          return (
+            <button
+              key={o}
+              type="button"
+              role="tab"
+              id={`onglet-fil-${o}`}
+              aria-selected={onglet === o}
+              aria-controls="panneau-fil"
+              onClick={() => choisir(o)}
+              className={cn(
+                "flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm whitespace-nowrap transition-colors",
+                onglet === o ? "bg-foreground font-semibold text-background" : "bg-card font-medium hover:bg-muted",
+              )}
+            >
+              {TITRE_ONGLET[o]}
+              {c.aTraiter > 0 ? (
+                <span className={cn("rounded-full px-1.5 text-xs font-bold tabular-nums", onglet === o ? "bg-background text-foreground" : "bg-foreground text-background")} aria-label={`${c.aTraiter} à traiter`}>
+                  {c.aTraiter}
+                </span>
+              ) : (
+                <span className={cn("text-xs tabular-nums", onglet === o ? "text-background/70" : "text-muted-foreground")}>{c.nombre}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div id="panneau-fil" role="tabpanel" aria-labelledby={`onglet-fil-${onglet}`} className="flex flex-col gap-5">
+        {onglet === "documents" ? (
+          <Documents elements={elements} dossier={props.dossier} interne={props.interne} nomDe={nomDe} />
+        ) : (
+          <>
+            {onglet === "demandes" && <BandeDispos elements={elements} aujourdhui={props.aujourdhui} />}
+            {elements.length === 0 ? (
+              <p className="rounded-3xl bg-card p-5 text-sm text-muted-foreground">
+                {onglet === "fil" ? "Le fil est vide. Écrivez le premier message." : onglet === "demandes" ? "Aucune demande ni disponibilité pour l'instant." : "Aucun signalement : rien à reprendre pour l'instant."}
+              </p>
+            ) : (
+              <ol className="flex flex-col gap-3">
+                {caches > 0 && (
+                  <li>
+                    <button type="button" onClick={() => setTout(true)} className="flex h-12 w-full items-center justify-center rounded-full bg-card text-sm font-semibold">
+                      Afficher {caches > 1 ? `les ${caches} éléments plus anciens` : "l'élément plus ancien"} ↑
+                    </button>
+                  </li>
                 )}
-                {e.motif && <p className="text-xs text-muted-foreground">Motif : {e.motif}</p>}
-                {props.interne && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-                    {/* Qui voit cet élément, dit en clair : c'est le cœur de « Qui voit ça ? ». */}
-                    {e.visiblePar.length === 0 ? (
-                      <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground">
-                        <Lock className="size-3.5 shrink-0" aria-hidden /> Vu par : l&apos;équipe seulement
-                      </span>
-                    ) : (
-                      <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-muted-foreground">
-                        <Users className="size-3.5 shrink-0" aria-hidden />
-                        <span className="min-w-0">Vu par : l&apos;équipe · {e.visiblePar.map((id) => nomDe.get(id) ?? "?").join(", ")}</span>
-                      </span>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {e.type === "signalement" && <Qualifier chantierId={props.chantierId} element={e} />}
-                      <QuiVoit chantierId={props.chantierId} element={e} externes={externes} />
-                    </div>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-      )}
-      <Ecrire chantierId={props.chantierId} interne={props.interne} participants={props.participants} lots={props.lots} />
+                {elements.map((e, i) => (visible(e, i) ? <CarteElement key={e.id} chantierId={props.chantierId} e={e} interne={props.interne} externes={externes} nomDe={nomDe} /> : null))}
+              </ol>
+            )}
+          </>
+        )}
+        <Ecrire key={onglet} chantierId={props.chantierId} interne={props.interne} participants={props.participants} lots={props.lots} onglet={onglet} />
+      </div>
     </Section>
   );
 }
