@@ -1,5 +1,20 @@
 # État de reprise
 
+## 19 octobre 2026, soir (semaine 3 terminée)
+
+**Fait**
+- En production : `socle-2` (n° 17), pistes C (n° 18), A2 (n° 19), D (n° 20). Toutes les exigences de la semaine 3 sont en ligne.
+- Rendus : `docs/rendus-semaine-3.md` (fonctions IA et ce que voit l'utilisateur quand le modèle se trompe ; coût par appel et par mois ; deux récits de boucle). Déroulé de la démo : `docs/demo-semaine-3.md`.
+
+**Reste**
+- Kerguelenn, en production : Réglages, L'entreprise ; « Courriers, documents et analyse » une première fois ; supprimer `DEPOT_ADRESSE` et `ENTREPRISE_NOM` de Vercel ; ménage Neon.
+- Remplacer les coûts estimés par les chiffres réels de la page Machine de nuit après quelques nuits.
+- Seuil de pertinence des questions (`RECHERCHE_DISTANCE_MAX`) à ajuster si des « je ne trouve pas » tombent à tort.
+- Semaine 4 : la mission de l'agent d'abord. Idée des trajets racontés : branche `idee-trajets-agent`. Espace « Dossier » en attente.
+
+**Cassé**
+- Rien de connu.
+
 ## 19 octobre 2026 (branche `socle-2` et pistes C, A2, D)
 
 **Fait**
