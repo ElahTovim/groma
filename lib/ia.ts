@@ -80,20 +80,28 @@ function messageDErreur(e: unknown): string {
 // dans le format est refusé (jamais « à peu près juste »).
 export async function demanderStructure<S extends z.ZodType>(
   d: Demandeur,
-  p: { gamme: Gamme; consigne: string; contenu: string; schema: S; maxJetons?: number },
+  // `pdf` : un PDF déposé (en base64), lu par le modèle avec le texte de `contenu`.
+  p: { gamme: Gamme; consigne: string; contenu: string; schema: S; maxJetons?: number; pdf?: string },
 ): Promise<{ ok: true; donnees: z.infer<S>; coutEur: number } | Echec> {
   const ia = anthropic();
   if (!ia) return { ok: false, erreur: "L'IA n'est pas configurée (clé MY_claude absente)." };
-  const verdict = await plafonds(d, p.contenu.length);
+  // Un PDF compte pour sa taille en caractères base64 divisée par 4 : de l'ordre de son texte.
+  const verdict = await plafonds(d, p.contenu.length + Math.round((p.pdf?.length ?? 0) / 4));
   if (!verdict.ok) return { ok: false, erreur: verdict.raison };
   const modele = MODELES[p.gamme];
   const debut = Date.now();
   try {
+    const contenu: Anthropic.ContentBlockParam[] | string = p.pdf
+      ? [
+          { type: "document", source: { type: "base64", media_type: "application/pdf", data: p.pdf } },
+          { type: "text", text: p.contenu },
+        ]
+      : p.contenu;
     const r = await ia.messages.parse({
       model: modele,
       max_tokens: p.maxJetons ?? 2000,
       system: [{ type: "text", text: `${CONSIGNE_COMMUNE}\n\n${p.consigne}`, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: p.contenu }],
+      messages: [{ role: "user", content: contenu }],
       output_config: { format: zodOutputFormat(p.schema) },
     });
     const usage = usageDe(r.usage);
