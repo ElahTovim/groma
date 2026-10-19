@@ -26,6 +26,8 @@ export default async function Espace({ children }: LayoutProps<"/">) {
             <Link href="/chantiers" className="font-medium">
               Chantiers
             </Link>
+            {qui.role !== "externe" && <Link href="/courriers" className="font-medium">Courriers</Link>}
+            {qui.role !== "externe" && <Link href="/questions" className="font-medium">Questions</Link>}
           </nav>
           <details className="group relative">
             <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm [&::-webkit-details-marker]:hidden">
