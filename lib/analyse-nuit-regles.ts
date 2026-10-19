@@ -19,7 +19,7 @@ export const REGLES_ANALYSE = {
   caracteresParCourrier: 1_200,
   courriersMax: 15,
   pointsMax: 8,
-  jetonsReponse: 1_500,
+  jetonsReponse: 3_000,
 };
 
 // Les titres des points ajoutés par groma lui-même (pas par le modèle).
