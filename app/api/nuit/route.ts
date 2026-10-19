@@ -2,13 +2,18 @@ import { alerterGerants } from "@/lib/courriel";
 import { ouEstCitee, reverifierEntreprises } from "@/lib/entreprises";
 import { journal } from "@/lib/journal";
 import { rattraper } from "@/lib/nuit";
-import { envoyerRecapitulatifs } from "@/lib/recap";
+import { etapesDuMatin } from "@/lib/nuit-etapes";
 import { relancerVigilance } from "@/lib/vigilance";
 import { heureDuRecap } from "@/lib/sante-nuit";
 
-// La tâche planifiée de la nuit, appelée par Vercel Cron (vercel.json) :
-// à 4 h UTC l'import, à 5 h et 6 h UTC un nouvel essai puis le récapitulatif (?recap=1),
-// qui ne part qu'une fois 7 h passées à Paris (heure d'été comme d'hiver).
+// La tâche planifiée de la nuit, appelée par Vercel Cron (vercel.json), en trois passages :
+// - 4 h UTC : l'import des événements, le registre des entreprises, la vigilance ;
+// - 5 h UTC (?recap=1) : un nouvel essai de l'import, puis les étapes du matin
+//   (courriers, documents, analyse de la nuit par le modèle) et le récapitulatif ;
+// - 6 h UTC (?recap=1&passage=2) : la reprise de ce que le passage de 5 h n'a pas fini.
+// Le récapitulatif ne part qu'une fois 7 h passées à Paris (heure d'été comme d'hiver).
+// Chaque étape tient dans le temps restant (lib/nuit-etapes-regles.ts) ; ce qui ne tient
+// pas est repris au passage suivant, sans rien doubler.
 // Protégée par CRON_SECRET : Vercel l'envoie dans l'en-tête Authorization ;
 // sans lui, personne d'autre ne peut la déclencher.
 export const maxDuration = 60;
@@ -17,6 +22,7 @@ export const dynamic = "force-dynamic";
 const SITE = process.env.SITE_URL ?? "https://gromaa.vercel.app";
 
 export async function GET(requete: Request) {
+  const debut = Date.now();
   const secret = process.env.CRON_SECRET;
   if (!secret || requete.headers.get("authorization") !== `Bearer ${secret}`) {
     journal("nuit_refusee", { raison: "secret absent ou faux" });
@@ -44,7 +50,9 @@ export async function GET(requete: Request) {
   // Au même passage : les sous-traitants dont l'attestation de vigilance manque ou expire.
   const vigilance = avecRecap ? null : await relancerVigilance(SITE);
 
-  // Avant 7 h à Paris (l'hiver, au passage de 5 h UTC), on attend le passage suivant.
-  const recap = avecRecap && heureDuRecap() ? await envoyerRecapitulatifs(SITE) : null;
-  return Response.json({ ok: !echec, bilans, registre, vigilance, recap });
+  // Les étapes du matin, aux passages de 5 h et 6 h. Avant 7 h à Paris (l'hiver, au
+  // passage de 5 h UTC), le récapitulatif attend le passage suivant.
+  const dernierPassage = new URL(requete.url).searchParams.get("passage") === "2";
+  const etapes = avecRecap ? await etapesDuMatin({ site: SITE, avecRecap: heureDuRecap(), dernierPassage, debut }) : [];
+  return Response.json({ ok: !echec, bilans, registre, vigilance, etapes });
 }
