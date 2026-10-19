@@ -4,7 +4,8 @@ import { alerterGerants } from "@/lib/courriel";
 import { db } from "@/lib/db";
 import { chantiers, evenementsFlux, executions, fil, recapitulatifs } from "@/lib/db/schema";
 import { appelerFlux, type ReponseFlux } from "@/lib/flux";
-import { decider, nuitsARattraper, type Decision } from "@/lib/flux-regles";
+import { decider, nuitsARattraper, photoDuFlux, type Decision } from "@/lib/flux-regles";
+import { PHOTOS_FICTIVES } from "@/lib/jeu-de-donnees";
 import { journal } from "@/lib/journal";
 import { chercherAdresse } from "@/lib/meteo";
 import { aujourdhuiParis } from "@/lib/regles";
@@ -148,6 +149,7 @@ async function appliquer(d: Exclude<Decision, { action: "rejeter" }>) {
       chefIndique: c.chef ?? null,
       categorie: c.categorie ?? null,
       avancementPct: c.avancement_pct ?? null,
+      photoUrl: photoDuFlux(c.reference, PHOTOS_FICTIVES),
     });
     return;
   }

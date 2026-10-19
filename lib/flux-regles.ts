@@ -104,6 +104,15 @@ export function decider(brut: unknown, referencesConnues: Set<string>): Decision
   return { id, type, action: "ecrire", reference: m.reference, de: m.de, texte: m.texte };
 }
 
+// La photo d'un chantier arrivé par le flux : une des photos du jeu de données,
+// toujours la même pour une même référence (rejouer une nuit ne la change pas).
+export function photoDuFlux(reference: string, photos: readonly string[]): string | null {
+  if (photos.length === 0) return null;
+  let h = 0;
+  for (const c of reference) h = (Math.imul(h, 31) + c.charCodeAt(0)) | 0;
+  return photos[Math.abs(h) % photos.length];
+}
+
 // Les nuits à rattraper : la nuit visée d'abord (celle qui vient de finir, attendue par
 // le récapitulatif du matin), puis les nuits manquées depuis la date de départ, dans l'ordre.
 export function nuitsARattraper(depuis: string, jusqua: string, dejaReussies: Set<string>, maximum: number): string[] {
