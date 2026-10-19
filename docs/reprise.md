@@ -1,5 +1,22 @@
 # État de reprise
 
+## 19 octobre 2026, après-midi (branche `fil-onglets-interface`, partie de `fil-onglets`)
+
+**Fait**
+- Visuel des onglets du fil, selon `docs/brief-interface-onglets.md`, dans `fil.tsx` seulement (logique inchangée).
+- Barre : onglet ouvert en aplat noir ; chiffre gris ou pastille pleine « à traiter » ; flèches, Début et Fin au clavier ; fondu en bord quand d'autres onglets dépassent ; l'onglet ouvert reste visible dans la barre.
+- Documents : une seule carte rangée en rubriques (petites capitales, ligne avec icône, titre, détail, état). Noir plein = un geste attend (à signer, expirée) ; contour coché = en règle. Interne ou partagé en simple texte. Bouton « Déposer » qui mène au formulaire. Place prévue en tête pour « Pièces attendues ».
+- Dispos : liste verticale sur téléphone (choix tranché : plus lisible qu'une bande à faire défiler), sept cases sur ordinateur ; jour occupé cerclé, jour vide en pointillé, pastille « Auj. ».
+- Formulaire : titre selon l'onglet, choix du geste masqué s'il n'y en a qu'un, bouton nommé selon le geste, pleine largeur sur téléphone.
+- 281 tests, lint, types et construction au vert.
+
+**Reste**
+- Vérification visuelle sur la prévisualisation (390 px et ordinateur ; chantier rempli, chantier vide, compte externe) : faite par Kerguelenn, l'IA ne se connecte pas.
+- Remarque pour la session technique : sur téléphone, un lien `?onglet=documents` ouvre la fiche sur l'onglet Lots (`onglets.tsx`), pas sur le fil.
+
+**Cassé**
+- Rien de connu.
+
 ## 19 octobre 2026, soir (semaine 3 terminée)
 
 **Fait**
