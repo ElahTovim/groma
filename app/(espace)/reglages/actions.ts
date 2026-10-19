@@ -66,3 +66,9 @@ export async function testerIa(): Promise<EtatJeu> {
   ].join(", ");
   return modele.ok && vecteurs.ok ? { message: `Tout est branché : ${etat}.` } : { erreur: `À corriger : ${etat}.` };
 }
+
+export async function enregistrerProfil(_: EtatJeu, formData: FormData): Promise<EtatJeu> {
+  const { modifierProfil } = await import("@/lib/operations/reglages");
+  const r = await modifierProfil(await appelant(), Object.fromEntries(formData) as Record<string, string>);
+  return r.ok ? { message: r.message } : { erreur: r.erreur };
+}

@@ -4,8 +4,6 @@ import { db } from "@/lib/db";
 import { chantiers, comptes, pvReception } from "@/lib/db/schema";
 import { garanties, texteCanonique, type ContenuPv } from "@/lib/reception-regles";
 
-// Le nom de l'entreprise qui utilise groma, tel qu'il apparaît sur le PV.
-export const NOM_ENTREPRISE = process.env.ENTREPRISE_NOM ?? "L'entreprise";
 
 export type PvVu = {
   id: string;
@@ -44,13 +42,13 @@ export async function lirePv(chantierId: string): Promise<PvVu | null> {
   };
 }
 
-export function contenuPv(c: Pick<typeof chantiers.$inferSelect, "reference" | "nom" | "adresse" | "codePostal" | "ville" | "client">, pv: Pick<PvVu, "dateReception" | "reserves" | "observations" | "signataire">): ContenuPv {
+export function contenuPv(c: Pick<typeof chantiers.$inferSelect, "reference" | "nom" | "adresse" | "codePostal" | "ville" | "client">, pv: Pick<PvVu, "dateReception" | "reserves" | "observations" | "signataire">, entreprise: string): ContenuPv {
   return {
     reference: c.reference,
     chantier: c.nom,
     adresse: `${c.adresse}, ${c.codePostal} ${c.ville}`,
     client: c.client,
-    entreprise: NOM_ENTREPRISE,
+    entreprise,
     dateReception: pv.dateReception,
     reserves: pv.reserves.map((r) => ({ texte: r.texte })),
     observations: pv.observations,
