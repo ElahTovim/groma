@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
-import { estimer, TARIFS_INDICATIFS } from "@/lib/couts";
+import { derniereAnalyse } from "@/lib/analyse-nuit";
+import { TITRE_CONSIGNE, TITRE_REFERENCES_RETIREES } from "@/lib/analyse-nuit-regles";
+import { bilanIa, estimer, TARIFS_INDICATIFS } from "@/lib/couts";
+import { coutsIaDuMois } from "@/lib/ia";
+import { PLAFONDS_IA } from "@/lib/ia-regles";
 import { consommationDuMois, dernieresExecutions, derniersRejets } from "@/lib/nuit";
 import { aujourdhuiParis } from "@/lib/regles";
 import { appelantObligatoire } from "@/lib/session";
@@ -14,6 +18,8 @@ export const maxDuration = 60;
 const LIBELLE = { en_cours: "En cours", ok: "Réussie", partiel: "Partielle", echec: "Échec" } as const;
 const DECLENCHEUR: Record<string, string> = { nuit: "Planifiée", rattrapage: "Rattrapage", manuel: "À la main" };
 
+const euros = (n: number, chiffres = 2) => n.toLocaleString("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: chiffres, maximumFractionDigits: chiffres });
+
 function heure(d: Date | null) {
   return d ? new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" }).format(d) : "—";
 }
@@ -23,6 +29,9 @@ export default async function MachineDeNuit() {
   const qui = await appelantObligatoire();
   if (qui.role !== "gerant") notFound();
   const [executions, rejets, conso] = await Promise.all([dernieresExecutions(40), derniersRejets(20), consommationDuMois()]);
+  // L'IA et son analyse : si leur lecture échoue, la section le dit et le reste de la page s'affiche.
+  const [lignesIa, analyse] = await Promise.allSettled([coutsIaDuMois(), derniereAnalyse()]);
+  const ia = lignesIa.status === "fulfilled" ? bilanIa(lignesIa.value, { budgetEuros: PLAFONDS_IA.budgetMensuelEuros }) : null;
   const estimation = estimer(conso);
   const derniere = executions[0];
 
@@ -31,7 +40,7 @@ export default async function MachineDeNuit() {
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Machine de nuit</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Chaque matin à 6 h, groma importe les événements de la nuit depuis le flux, puis réessaie à 7 h si le flux était en panne. Relancer une nuit ne double jamais rien : un événement déjà reçu est reconnu et ignoré.
+          Chaque matin, groma importe les événements de la nuit depuis le flux, puis lit les nouveaux courriers, met à jour l&apos;index des documents et fait analyser la nuit par le modèle, avant le récapitulatif de 7 h. Relancer ne double jamais rien : un événement ou un courrier déjà reçu est reconnu, un document inchangé n&apos;est pas revectorisé, et la nuit n&apos;est analysée qu&apos;une fois.
         </p>
       </div>
 
@@ -47,6 +56,34 @@ export default async function MachineDeNuit() {
       </div>
 
       <BoutonsNuit derniereNuit={aujourdhuiParis()} />
+
+      <Section titre="Ce que la nuit dit">
+        {analyse.status === "rejected" ? (
+          <p className="text-sm">L&apos;analyse de la nuit n&apos;a pas pu être lue. Rechargez la page dans un moment.</p>
+        ) : !analyse.value ? (
+          <p className="text-sm text-muted-foreground">Aucune analyse pour l&apos;instant. Elle est faite chaque matin après l&apos;import, ou avec « Courriers, documents et analyse ».</p>
+        ) : (
+          <div className="flex flex-col gap-3 border border-foreground p-4">
+            <p className="text-xs text-muted-foreground">Nuit du {analyse.value.nuit}, analysée le {heure(analyse.value.creeLe)}</p>
+            <p className="max-w-3xl text-sm">{analyse.value.texte}</p>
+            {analyse.value.points.length > 0 && (
+              <ul className="flex flex-col divide-y text-sm">
+                {analyse.value.points.map((p, i) => (
+                  <li key={i} className="flex flex-col gap-1 py-2">
+                    <span className="font-medium">
+                      {p.titre === TITRE_CONSIGNE || p.titre === TITRE_REFERENCES_RETIREES ? <Badge variant="default" className="mr-2">Signalé</Badge> : null}
+                      {p.titre}
+                    </span>
+                    <span className="text-muted-foreground">{p.detail}</span>
+                    {p.references.length > 0 && <span className="font-mono text-xs">{p.references.join(" · ")}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs text-muted-foreground">Une lecture du modèle, à vérifier : elle ne modifie rien et ne déclenche aucune action. Une consigne glissée dans un message du flux n&apos;est jamais suivie : elle est signalée ici.</p>
+          </div>
+        )}
+      </Section>
 
       <Section titre="Exécutions">
         {executions.length === 0 ? (
@@ -112,6 +149,60 @@ export default async function MachineDeNuit() {
         </p>
         <p className="text-xs text-muted-foreground">
           Tarifs indicatifs (lib/couts.ts) : {TARIFS_INDICATIFS.fonctionEuroParHeure} € l&apos;heure de fonction, {TARIFS_INDICATIFS.courrielEuro} € le courriel. À vérifier sur les pages de prix avant de décider.
+        </p>
+      </Section>
+
+      <Section titre="Ce que l'IA a coûté ce mois-ci">
+        {!ia ? (
+          <p className="text-sm">Les appels à l&apos;IA n&apos;ont pas pu être lus. Rechargez la page dans un moment.</p>
+        ) : ia.appels === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucun appel à l&apos;IA ce mois-ci. Budget du mois : {euros(ia.budget)}.</p>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[36rem] border-collapse text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-muted-foreground">
+                    <th className="py-2 font-medium">Fonction</th>
+                    <th className="py-2 text-right font-medium">Appels</th>
+                    <th className="py-2 text-right font-medium">Échecs</th>
+                    <th className="py-2 text-right font-medium">Coût moyen par appel</th>
+                    <th className="py-2 text-right font-medium">Coût du mois</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ia.fonctions.map((f) => (
+                    <tr key={f.fonction} className="border-b">
+                      <td className="py-2" title={f.fonction}>{f.nom}</td>
+                      <td className="py-2 text-right tabular-nums">{f.appels}</td>
+                      <td className="py-2 text-right tabular-nums">{f.echecs}</td>
+                      <td className="py-2 text-right tabular-nums">{euros(f.coutMoyen, 4)}</td>
+                      <td className="py-2 text-right tabular-nums">{euros(f.cout, 4)}</td>
+                    </tr>
+                  ))}
+                  <tr className="font-medium">
+                    <td className="py-2">Total</td>
+                    <td className="py-2 text-right tabular-nums">{ia.appels}</td>
+                    <td className="py-2 text-right tabular-nums">{ia.echecs}</td>
+                    <td className="py-2 text-right tabular-nums">{euros(ia.coutMoyen, 4)}</td>
+                    <td className="py-2 text-right tabular-nums">{euros(ia.total, 4)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-[auto_auto_auto_auto]">
+              <dt className="text-muted-foreground">Budget du mois</dt>
+              <dd className="tabular-nums">{euros(ia.budget)}</dd>
+              <dt className="text-muted-foreground">Reste</dt>
+              <dd className="tabular-nums">{euros(ia.reste)}</dd>
+              <dt className="text-muted-foreground">Estimation au mois plein</dt>
+              <dd className="tabular-nums">{euros(ia.estimationMoisPlein)}</dd>
+            </dl>
+            {ia.depasse && <p className="text-sm font-medium">Le budget du mois est atteint : l&apos;IA est en pause jusqu&apos;au 1er, le reste de groma fonctionne.</p>}
+          </>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Coût calculé à chaque appel, aux tarifs indicatifs de lib/ia-regles.ts (prix par million de jetons, conversion dollar en euro) : à vérifier sur les pages de prix d&apos;Anthropic et de Voyage avant de décider. L&apos;estimation au mois plein prolonge le rythme des jours écoulés.
         </p>
       </Section>
 

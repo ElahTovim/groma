@@ -1,4 +1,6 @@
 import { and, desc, eq, inArray, lt, ne } from "drizzle-orm";
+import { analyseDeLaNuit } from "@/lib/analyse-nuit";
+import { pointsPour } from "@/lib/analyse-nuit-regles";
 import { compterATraiter } from "@/lib/chantiers";
 import { envoyerCourriel } from "@/lib/courriel";
 import { db } from "@/lib/db";
@@ -74,11 +76,23 @@ export async function contenuPour(compte: { id: string; nom: string; role: "gera
     return { reference: c.reference, nom: c.nom, ville: c.ville, lien: lien(c.id), detail: `${a.entreprise ?? a.nom} : ${libelleEtat(a.etat).toLowerCase()}` };
   });
 
+  const nuit = await bilanDeLaNuit(jour);
+  // L'analyse de la nuit : entière pour le gérant ; pour l'équipe, les points de ses chantiers.
+  const a = await analyseDeLaNuit(jour);
+  const analyse: ContenuRecap["analyse"] = a
+    ? compte.role === "gerant"
+      ? { etat: "faite", texte: a.texte, points: a.points }
+      : { etat: "faite", texte: null, points: pointsPour(a.points, visibles.map((c) => c.reference)) }
+    : compte.role === "gerant" && nuit?.reussie
+      ? { etat: "absente" }
+      : null;
+
   return {
     prenom: compte.nom.split(" ")[0],
     jour,
     portee: compte.role === "gerant" ? "tous" : "les siens",
-    nuit: await bilanDeLaNuit(jour),
+    nuit,
+    analyse,
     aTraiter,
     demandesEnRetard,
     attestations,
