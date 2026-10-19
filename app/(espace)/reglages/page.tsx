@@ -4,7 +4,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { equipeVoitTout } from "@/lib/acces";
 import { appelantObligatoire } from "@/lib/session";
+import { lireProfil } from "@/lib/profil";
 import { BoutonIa } from "./bouton-ia";
+import { FormulaireProfil } from "./profil";
 import { BoutonJeu } from "./bouton-jeu";
 import { BoutonSentry } from "./bouton-sentry";
 
@@ -13,10 +15,22 @@ export const dynamic = "force-dynamic";
 export default async function Reglages() {
   const qui = await appelantObligatoire();
   if (qui.role !== "gerant") notFound();
+  const profil = await lireProfil();
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold">Réglages</h1>
+      <Card>
+        <CardHeader>
+          <CardTitle>L&apos;entreprise</CardTitle>
+          <CardDescription>
+            {profil.regle ? "Le nom et le dépôt de votre entreprise." : "À régler une première fois : le nom de votre entreprise et l'adresse de son dépôt."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormulaireProfil nom={profil.nom} depot={profil.depot} geolocalise={profil.depot?.latitude != null} />
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Jeu de données fictif</CardTitle>

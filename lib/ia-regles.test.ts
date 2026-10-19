@@ -24,6 +24,10 @@ describe("les plafonds", () => {
     expect(verifierPlafonds({ ...normal, appelsDuJour: PLAFONDS_IA.appelsParCompteEtParJour }).ok).toBe(false);
     expect(verifierPlafonds({ ...normal, machine: true, appelsDuJour: 10_000 }).ok).toBe(true);
   });
+  it("un PDF est limité par son poids, pas par son nombre de caractères", () => {
+    expect(verifierPlafonds({ ...normal, pdfOctets: 2 * 1024 * 1024 }).ok).toBe(true);
+    expect(verifierPlafonds({ ...normal, pdfOctets: PLAFONDS_IA.pdfOctetsMax + 1 }).ok).toBe(false);
+  });
   it("un texte trop long est refusé avant l'appel", () => {
     expect(verifierPlafonds({ ...normal, caracteres: PLAFONDS_IA.caracteresMaxParDemande + 1 }).ok).toBe(false);
   });
