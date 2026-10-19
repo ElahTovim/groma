@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import { and, count, desc, eq, gte, inArray, isNotNull, lt, sum } from "drizzle-orm";
+import { alerterGerants } from "@/lib/courriel";
 import { db } from "@/lib/db";
 import { chantiers, evenementsFlux, executions, fil, recapitulatifs } from "@/lib/db/schema";
 import { appelerFlux, type ReponseFlux } from "@/lib/flux";
@@ -65,6 +66,12 @@ export async function importerNuit(nuit: string, declencheur: "nuit" | "rattrapa
   if (!reponse.ok) {
     const erreur = `Flux indisponible après ${appels} tentative${appels > 1 ? "s" : ""} : ${reponse.erreur}`;
     Sentry.captureMessage(`Machine de nuit en échec (${nuit}) : ${erreur}`, "error");
+    // L'alerte au gérant, que l'import vienne de la nuit, d'un rattrapage ou d'un clic.
+    // Le rattrapage s'arrête au premier échec : un seul courriel par passage.
+    await alerterGerants(
+      `groma · alerte : la nuit du ${nuit} n'a pas pu être importée`,
+      `${erreur}\n\nLe reste du produit fonctionne. La nuit sera rattrapée au prochain passage.\n\n${process.env.SITE_URL ?? "https://gromaa.vercel.app"}/nuit`,
+    );
     return finir({ statut: "echec", recus: 0, doublons: 0, appliques: 0, rejetes: 0, erreur }, appels);
   }
 

@@ -1,15 +1,14 @@
-import { alerterGerants, envoyerCourriel } from "@/lib/courriel";
+import { alerterGerants } from "@/lib/courriel";
 import { ouEstCitee, reverifierEntreprises } from "@/lib/entreprises";
 import { journal } from "@/lib/journal";
 import { rattraper } from "@/lib/nuit";
 import { envoyerRecapitulatifs } from "@/lib/recap";
 import { relancerVigilance } from "@/lib/vigilance";
-import { db } from "@/lib/db";
-import { comptes } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { heureDuRecap } from "@/lib/sante-nuit";
 
 // La tâche planifiée de la nuit, appelée par Vercel Cron (vercel.json) :
-// à 6 h l'import, à 7 h un nouvel essai puis le récapitulatif (?recap=1).
+// à 4 h UTC l'import, à 5 h et 6 h UTC un nouvel essai puis le récapitulatif (?recap=1),
+// qui ne part qu'une fois 7 h passées à Paris (heure d'été comme d'hiver).
 // Protégée par CRON_SECRET : Vercel l'envoie dans l'en-tête Authorization ;
 // sans lui, personne d'autre ne peut la déclencher.
 export const maxDuration = 60;
@@ -27,20 +26,7 @@ export async function GET(requete: Request) {
   const bilans = await rattraper("nuit", 10);
   const echec = bilans.find((b) => b.statut === "echec");
 
-  // L'alerte : si le flux est en panne, le gérant est prévenu tout de suite (en plus de Sentry).
-  if (echec) {
-    const gerants = await db.select({ email: comptes.email }).from(comptes).where(eq(comptes.role, "gerant"));
-    await Promise.all(
-      gerants.map((g) =>
-        envoyerCourriel({
-          a: g.email,
-          sujet: `groma · alerte : la nuit du ${echec.nuit} n'a pas pu être importée`,
-          texte: `${echec.erreur ?? "Le flux de nuit ne répond pas."}\n\nLe reste du produit fonctionne. La nuit sera rattrapée au prochain passage.\n\n${SITE}/nuit`,
-        }),
-      ),
-    );
-  }
-
+  // L'alerte au gérant part depuis lib/nuit.ts, à chaque import en échec (en plus de Sentry).
   const avecRecap = new URL(requete.url).searchParams.get("recap") === "1";
 
   // Au passage de 6 h : les entreprises vérifiées il y a plus d'une semaine sont revérifiées
@@ -58,6 +44,7 @@ export async function GET(requete: Request) {
   // Au même passage : les sous-traitants dont l'attestation de vigilance manque ou expire.
   const vigilance = avecRecap ? null : await relancerVigilance(SITE);
 
-  const recap = avecRecap ? await envoyerRecapitulatifs(SITE) : null;
+  // Avant 7 h à Paris (l'hiver, au passage de 5 h UTC), on attend le passage suivant.
+  const recap = avecRecap && heureDuRecap() ? await envoyerRecapitulatifs(SITE) : null;
   return Response.json({ ok: !echec, bilans, registre, vigilance, recap });
 }
