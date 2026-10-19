@@ -24,6 +24,7 @@ import { EtapeChantier } from "./etape";
 import { Fil } from "./fil";
 import { FriseEtapes } from "./frise";
 import { Inviter } from "./inviter";
+import { Livraisons } from "./livraisons";
 import { Lots } from "./lots";
 import { Meteo } from "./meteo";
 import { SuiteFiche } from "./onglets";
@@ -171,6 +172,11 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
                   )}
                 </dl>
               </Section>
+              {interne && (
+                <Suspense fallback={<Skeleton className="h-56" />}>
+                  <Livraisons qui={qui} chantier={chantier} modifiable={!termine} />
+                </Suspense>
+              )}
               {interne && (
                 <Section titre="Le client" carte>
                   <p className="font-semibold">{chantier.client}</p>
