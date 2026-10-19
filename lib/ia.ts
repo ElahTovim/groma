@@ -37,7 +37,7 @@ export async function depenseDuMois(): Promise<number> {
   return Number(r.total);
 }
 
-async function plafonds(d: Demandeur, caracteres: number) {
+async function plafonds(d: Demandeur, caracteres: number, pdfOctets = 0) {
   const [[jour], mois] = await Promise.all([
     db
       .select({ n: sql<number>`count(*)::int` })
@@ -45,7 +45,7 @@ async function plafonds(d: Demandeur, caracteres: number) {
       .where(and(d.compteId ? eq(appelsIa.compteId, d.compteId) : isNull(appelsIa.compteId), gte(appelsIa.creeLe, debutDuJour()))),
     depenseDuMois(),
   ]);
-  return verifierPlafonds({ appelsDuJour: jour.n, depenseDuMois: mois, caracteres, machine: d.compteId === null });
+  return verifierPlafonds({ appelsDuJour: jour.n, depenseDuMois: mois, caracteres, machine: d.compteId === null, pdfOctets });
 }
 
 async function compter(d: Demandeur, modele: string, u: Usage, debut: number, erreur?: string) {
@@ -85,8 +85,8 @@ export async function demanderStructure<S extends z.ZodType>(
 ): Promise<{ ok: true; donnees: z.infer<S>; coutEur: number } | Echec> {
   const ia = anthropic();
   if (!ia) return { ok: false, erreur: "L'IA n'est pas configurée (clé MY_claude absente)." };
-  // Un PDF compte pour sa taille en caractères base64 divisée par 4 : de l'ordre de son texte.
-  const verdict = await plafonds(d, p.contenu.length + Math.round((p.pdf?.length ?? 0) / 4));
+  // Le texte est plafonné en caractères ; un PDF, par son poids (le base64 fait 4/3 du fichier).
+  const verdict = await plafonds(d, p.contenu.length, Math.round(((p.pdf?.length ?? 0) * 3) / 4));
   if (!verdict.ok) return { ok: false, erreur: verdict.raison };
   const modele = MODELES[p.gamme];
   const debut = Date.now();

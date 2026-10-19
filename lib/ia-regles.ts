@@ -22,6 +22,9 @@ export const DOLLAR_EN_EURO = 0.86; // à vérifier
 export const PLAFONDS_IA = {
   appelsParCompteEtParJour: 100,
   caracteresMaxParDemande: 20_000,
+  // Un PDF déposé est limité par son poids (comme les autres fichiers), pas en caractères :
+  // le modèle le lit page par page.
+  pdfOctetsMax: 4 * 1024 * 1024,
   budgetMensuelEuros: Number(process.env.IA_BUDGET_MENSUEL_EUR ?? 10),
 };
 
@@ -36,9 +39,10 @@ export function coutEuros(modele: string, u: Usage): number {
 
 export type VerdictPlafond = { ok: true } | { ok: false; raison: string };
 
-export function verifierPlafonds(p: { appelsDuJour: number; depenseDuMois: number; caracteres: number; machine: boolean }): VerdictPlafond {
+export function verifierPlafonds(p: { appelsDuJour: number; depenseDuMois: number; caracteres: number; machine: boolean; pdfOctets?: number }): VerdictPlafond {
   if (p.depenseDuMois >= PLAFONDS_IA.budgetMensuelEuros)
     return { ok: false, raison: `Le budget IA du mois (${PLAFONDS_IA.budgetMensuelEuros} €) est atteint : l'IA reprend le 1er du mois prochain. Le reste de groma fonctionne.` };
+  if ((p.pdfOctets ?? 0) > PLAFONDS_IA.pdfOctetsMax) return { ok: false, raison: "PDF trop lourd pour l'IA : 4 Mo au plus." };
   if (p.caracteres > PLAFONDS_IA.caracteresMaxParDemande) return { ok: false, raison: `Texte trop long pour l'IA : ${PLAFONDS_IA.caracteresMaxParDemande.toLocaleString("fr-FR")} caractères au plus.` };
   // La machine de nuit n'est pas un compte : seul le budget la limite.
   if (!p.machine && p.appelsDuJour >= PLAFONDS_IA.appelsParCompteEtParJour) return { ok: false, raison: "Plafond d'appels à l'IA atteint pour aujourd'hui. Réessayez demain." };
