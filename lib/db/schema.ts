@@ -97,8 +97,8 @@ export const participants = pgTable(
       .references(() => comptes.id, { onDelete: "cascade" }),
     // Un libellé (« client », « architecte »…), jamais une condition dans le code.
     qualite: text("qualite").notNull(),
-    // Contrat de sous-traitance d'au moins 5 000 € HT : l'attestation de vigilance
-    // URSSAF de son entreprise est exigée tous les 6 mois (lib/vigilance-regles.ts).
+    // Ancien drapeau « attestation de vigilance exigée », repris dans exigences_pieces
+    // (migration 0013). N'est plus lu ni écrit : à supprimer à la prochaine migration de ménage.
     vigilance: boolean("vigilance").notNull().default(false),
     inviteLe: timestamp("invite_le", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -280,8 +280,8 @@ export const pvReception = pgTable("pv_reception", {
   empreinte: text("empreinte"),
 });
 
-// Les attestations de vigilance URSSAF, rangées par entreprise (SIREN).
-// La plus récente fait foi ; le fichier est privé, servi par /api/attestations/[id].
+// Anciennes attestations de vigilance, reprises dans `pieces` (migration 0013). Ne sont plus
+// écrites ; la route /api/attestations/[id] reste pour les liens déjà envoyés.
 export const attestations = pgTable("attestations", {
   id: uuid("id").primaryKey().defaultRandom(),
   siren: text("siren")
@@ -297,7 +297,7 @@ export const attestations = pgTable("attestations", {
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// Une relance par palier et par échéance : la machine de nuit ne relance pas deux fois.
+// Anciennes relances de vigilance, remplacées par relances_pieces. Ne sont plus écrites.
 export const relancesVigilance = pgTable(
   "relances_vigilance",
   {
@@ -435,3 +435,70 @@ export const profilEntreprise = pgTable("profil_entreprise", {
   modifiePar: uuid("modifie_par").references(() => comptes.id, { onDelete: "set null" }),
   modifieLe: timestamp("modifie_le", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ——— Les pièces attendues ———
+
+export const statutPiece = pgEnum("statut_piece", ["deposee", "validee", "refusee"]);
+
+// Ce qu'on attend, chantier par chantier : de tel intervenant (compteId), ou du chantier lui-même
+// (compteId vide : le DOE, l'autorisation d'urbanisme…). Une exigence peut bloquer une étape.
+// Le type renvoie aux paramètres de lib/pieces-regles.ts.
+export const exigencesPieces = pgTable(
+  "exigences_pieces",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    chantierId: uuid("chantier_id")
+      .notNull()
+      .references(() => chantiers.id, { onDelete: "cascade" }),
+    compteId: uuid("compte_id").references(() => comptes.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    bloque: text("bloque"), // demarrage, cloture, ou vide
+    creePar: uuid("cree_par").references(() => comptes.id, { onDelete: "set null" }),
+    creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("une_exigence").on(t.chantierId, t.compteId, t.type).nullsNotDistinct()],
+);
+
+// Une pièce fournie. Celle d'un intervenant (compteId) sert sur tous ses chantiers ; celle d'un
+// chantier (chantierId) lui est propre. La plus récente fait foi. Fichier privé, servi par
+// /api/pieces/[id] après vérification des droits.
+export const pieces = pgTable(
+  "pieces",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: text("type").notNull(),
+    compteId: uuid("compte_id").references(() => comptes.id, { onDelete: "cascade" }),
+    chantierId: uuid("chantier_id").references(() => chantiers.id, { onDelete: "cascade" }),
+    fichierUrl: text("fichier_url").notNull(),
+    fichierNom: text("fichier_nom").notNull(),
+    fichierType: text("fichier_type").notNull(),
+    fichierTaille: integer("fichier_taille").notNull(),
+    delivreeLe: date("delivree_le"),
+    expireLe: date("expire_le"),
+    // Le code de sécurité imprimé sur une attestation URSSAF, vérifiable sur urssaf.fr.
+    codeSecurite: text("code_securite"),
+    statut: statutPiece("statut").notNull().default("deposee"),
+    motif: text("motif"),
+    deposePar: uuid("depose_par").references(() => comptes.id, { onDelete: "set null" }),
+    valideePar: uuid("validee_par").references(() => comptes.id, { onDelete: "set null" }),
+    valideLe: timestamp("validee_le", { withTimezone: true }),
+    creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("pieces_compte_type").on(t.compteId, t.type, t.creeLe), index("pieces_chantier_type").on(t.chantierId, t.type, t.creeLe)],
+);
+
+// Une relance par pièce, palier et échéance : la machine de nuit ne relance pas deux fois.
+export const relancesPieces = pgTable(
+  "relances_pieces",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    compteId: uuid("compte_id")
+      .notNull()
+      .references(() => comptes.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    palier: text("palier").notNull(),
+    echeance: text("echeance").notNull(),
+    envoyeeLe: timestamp("envoyee_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("une_relance_de_piece").on(t.compteId, t.type, t.palier, t.echeance)],
+);

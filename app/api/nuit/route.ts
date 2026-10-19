@@ -3,11 +3,11 @@ import { ouEstCitee, reverifierEntreprises } from "@/lib/entreprises";
 import { journal } from "@/lib/journal";
 import { rattraper } from "@/lib/nuit";
 import { etapesDuMatin } from "@/lib/nuit-etapes";
-import { relancerVigilance } from "@/lib/vigilance";
+import { relancerPieces } from "@/lib/pieces";
 import { heureDuRecap } from "@/lib/sante-nuit";
 
 // La tâche planifiée de la nuit, appelée par Vercel Cron (vercel.json), en trois passages :
-// - 4 h UTC : l'import des événements, le registre des entreprises, la vigilance ;
+// - 4 h UTC : l'import des événements, le registre des entreprises, les relances de pièces ;
 // - 5 h UTC (?recap=1) : un nouvel essai de l'import, puis les étapes du matin
 //   (courriers, documents, analyse de la nuit par le modèle) et le récapitulatif ;
 // - 6 h UTC (?recap=1&passage=2) : la reprise de ce que le passage de 5 h n'a pas fini.
@@ -47,12 +47,12 @@ export async function GET(requete: Request) {
     );
   }
 
-  // Au même passage : les sous-traitants dont l'attestation de vigilance manque ou expire.
-  const vigilance = avecRecap ? null : await relancerVigilance(SITE);
+  // Au même passage : les intervenants dont une pièce attendue manque, est refusée ou expire.
+  const pieces = avecRecap ? null : await relancerPieces(SITE);
 
   // Les étapes du matin, aux passages de 5 h et 6 h. Avant 7 h à Paris (l'hiver, au
   // passage de 5 h UTC), le récapitulatif attend le passage suivant.
   const dernierPassage = new URL(requete.url).searchParams.get("passage") === "2";
   const etapes = avecRecap ? await etapesDuMatin({ site: SITE, avecRecap: heureDuRecap(), dernierPassage, debut }) : [];
-  return Response.json({ ok: !echec, bilans, registre, vigilance, etapes });
+  return Response.json({ ok: !echec, bilans, registre, pieces, etapes });
 }

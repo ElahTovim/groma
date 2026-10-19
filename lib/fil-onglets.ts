@@ -49,13 +49,13 @@ export type Compteur = { nombre: number; aTraiter: number };
 
 // Le chiffre de chaque onglet, et ce qui y demande une action : il s'affiche en noir.
 // Demandes : celles dont l'échéance est passée. Signalements : à qualifier ou réserve ouverte.
-export function compteurs(elements: ElementCompte[], aujourdhui: string, extras: { documents?: number } = {}): Record<OngletFil, Compteur> {
+export function compteurs(elements: ElementCompte[], aujourdhui: string, extras: { documents?: number; documentsATraiter?: number } = {}): Record<OngletFil, Compteur> {
   const de = (o: OngletFil) => elements.filter((e) => dansOnglet(o, e.type));
   const signalements = de("signalements");
   const demandes = de("demandes");
   return {
     fil: { nombre: elements.length, aTraiter: 0 },
-    documents: { nombre: de("documents").length + (extras.documents ?? 0), aTraiter: 0 },
+    documents: { nombre: de("documents").length + (extras.documents ?? 0), aTraiter: extras.documentsATraiter ?? 0 },
     demandes: { nombre: demandes.length, aTraiter: demandes.filter((e) => e.type === "demande" && e.dateCible !== null && e.dateCible < aujourdhui).length },
     signalements: {
       nombre: signalements.length,

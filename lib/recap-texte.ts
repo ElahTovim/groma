@@ -11,7 +11,7 @@ export type ContenuRecap = {
   nuit: { reussie: boolean; nouveaux: number; misesAJour: number; messages: number; misDeCote: number; erreur?: string } | null;
   aTraiter: LigneRecap[];
   demandesEnRetard: LigneRecap[];
-  // Les attestations de vigilance manquantes ou qui expirent, sur les chantiers en jeu.
+  // Les pièces attendues qui manquent, ont été refusées ou expirent, sur les chantiers en jeu.
   attestations: LigneRecap[];
   lienNuit: string | null;
   // L'analyse de la nuit par le modèle (lib/analyse-nuit.ts). Le gérant la reçoit entière ;
@@ -64,7 +64,7 @@ export function composerRecap(c: ContenuRecap): { sujet: string; texte: string }
     sectionAnalyse(c.analyse),
     liste("À TRAITER", c.aTraiter, "Rien : aucun signalement en attente, aucune réserve ouverte, aucun lot en retard."),
     liste("DEMANDES DONT L'ÉCHÉANCE EST PASSÉE", c.demandesEnRetard, "Aucune."),
-    liste("ATTESTATIONS DE VIGILANCE À OBTENIR", c.attestations, "Aucune : les sous-traitants sont en règle."),
+    liste("PIÈCES À OBTENIR", c.attestations, "Aucune : toutes les pièces attendues sont fournies."),
     "Ce récapitulatif part une fois par jour.",
   ]
     .filter((l, i, t) => !(l === "" && t[i - 1] === ""))

@@ -4,6 +4,7 @@
 // l'appelant par sa session, puis passent par la porte unique (lib/operations/chantier.ts).
 
 import * as op from "@/lib/operations/chantier";
+import * as pieces from "@/lib/operations/pieces";
 import { appelant } from "@/lib/session";
 
 export type { Resultat, ResultatInvitation, ResultatRecherche } from "@/lib/operations/chantier";
@@ -71,10 +72,28 @@ export async function signerPv(...a: SansAppelant<typeof op.signerPv>[0]): SansA
   return op.signerPv(await appelant(), ...a);
 }
 
-export async function exigerVigilance(...a: SansAppelant<typeof op.exigerVigilance>[0]): SansAppelant<typeof op.exigerVigilance>[1] {
-  return op.exigerVigilance(await appelant(), ...a);
+// ——— Les pièces attendues (lib/operations/pieces.ts) ———
+
+export async function exigerPieces(...a: SansAppelant<typeof pieces.exiger>[0]): SansAppelant<typeof pieces.exiger>[1] {
+  return pieces.exiger(await appelant(), ...a);
 }
 
-export async function deposerAttestation(...a: SansAppelant<typeof op.deposerAttestation>[0]): SansAppelant<typeof op.deposerAttestation>[1] {
-  return op.deposerAttestation(await appelant(), ...a);
+export async function reglerBlocagePiece(...a: SansAppelant<typeof pieces.reglerBlocage>[0]): SansAppelant<typeof pieces.reglerBlocage>[1] {
+  return pieces.reglerBlocage(await appelant(), ...a);
+}
+
+export async function retirerPiece(...a: SansAppelant<typeof pieces.retirer>[0]): SansAppelant<typeof pieces.retirer>[1] {
+  return pieces.retirer(await appelant(), ...a);
+}
+
+export async function deposerPiece(...a: SansAppelant<typeof pieces.deposer>[0]): SansAppelant<typeof pieces.deposer>[1] {
+  return pieces.deposer(await appelant(), ...a);
+}
+
+export async function validerPiece(...a: SansAppelant<typeof pieces.valider>[0]): SansAppelant<typeof pieces.valider>[1] {
+  return pieces.valider(await appelant(), ...a);
+}
+
+export async function refuserPiece(...a: SansAppelant<typeof pieces.refuser>[0]): SansAppelant<typeof pieces.refuser>[1] {
+  return pieces.refuser(await appelant(), ...a);
 }
