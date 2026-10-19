@@ -1,5 +1,23 @@
 # État de reprise
 
+## 18 octobre 2026 (branche `socle-ia`, semaine 3, phase 0)
+
+**Fait**
+- Fusionnés dans `main` : `reception` (avec `sirene`), n° 10, et `ui-mobile`, n° 11. Production vérifiée.
+- Socle de la semaine 3 : migration 0010 (pgvector, courriers, documents, morceaux, appels_ia, analyses_nuit, trajets, coordonnées des entreprises, délai fournisseur). `lib/ia.ts` (sortie structurée, streaming, vecteurs Voyage ; plafonds et coût par appel). `lib/operations/chantier.ts` : la porte unique reçoit l'appelant. Réglages : « Tester l'IA ». `/api/sante` : `ia` et `vecteurs`.
+- Prévisualisation `socle-ia` : base migrée, IA et vecteurs branchés (`MY_claude`, `VOYAGE_AI`).
+- Pistes A (`piste-a-courriers`, dossier `groma-piste-a`) et B (`piste-b-documents`, dossier `groma-piste-b`) lancées en sessions-filles, depuis `socle-ia`.
+
+**Reste**
+- Kerguelenn : « Tester l'IA » sur la prévisualisation `socle-ia`, puis fusion du socle.
+- Intégrer A et B, puis lancer C (nuit intelligente et coûts IA) et D (distances et livraisons).
+- Branche `ci` (vérifications des migrations et de la construction) : à fusionner.
+- `ENTREPRISE_NOM` à ajouter dans Vercel.
+- Espace « Dossier » : en attente.
+
+**Cassé**
+- Rien de connu.
+
 ## 11 octobre 2026, soir (branche `reception`, partie de `sirene`)
 
 **Fait**
