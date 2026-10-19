@@ -19,6 +19,9 @@ function anthropic(): Anthropic | null {
   return client;
 }
 
+// Le plus de place qu'on accorde à une réponse au format fixé, après un premier essai coupé.
+const JETONS_MAX = 8000;
+
 export type Demandeur = { compteId: string | null; fonction: string };
 export type Echec = { ok: false; erreur: string };
 
@@ -37,7 +40,7 @@ export async function depenseDuMois(): Promise<number> {
   return Number(r.total);
 }
 
-async function plafonds(d: Demandeur, caracteres: number) {
+async function plafonds(d: Demandeur, caracteres: number, pdfOctets = 0) {
   const [[jour], mois] = await Promise.all([
     db
       .select({ n: sql<number>`count(*)::int` })
@@ -45,7 +48,7 @@ async function plafonds(d: Demandeur, caracteres: number) {
       .where(and(d.compteId ? eq(appelsIa.compteId, d.compteId) : isNull(appelsIa.compteId), gte(appelsIa.creeLe, debutDuJour()))),
     depenseDuMois(),
   ]);
-  return verifierPlafonds({ appelsDuJour: jour.n, depenseDuMois: mois, caracteres, machine: d.compteId === null });
+  return verifierPlafonds({ appelsDuJour: jour.n, depenseDuMois: mois, caracteres, machine: d.compteId === null, pdfOctets });
 }
 
 async function compter(d: Demandeur, modele: string, u: Usage, debut: number, erreur?: string) {
@@ -62,7 +65,9 @@ async function compter(d: Demandeur, modele: string, u: Usage, debut: number, er
     ok: !erreur,
     erreur: erreur?.slice(0, 500) ?? null,
   });
-  journal("appel_ia", { fonction: d.fonction, compte: d.compteId, modele, cout_eur: cout, ok: !erreur });
+  // En cas d'échec, la vraie erreur du service va au journal (jamais à l'écran) : sans elle,
+  // « l'IA ne répond pas » ne dit pas pourquoi.
+  journal("appel_ia", { fonction: d.fonction, compte: d.compteId, modele, cout_eur: cout, ok: !erreur, ...(erreur ? { erreur: erreur.slice(0, 400) } : {}) });
   return cout;
 }
 
@@ -80,31 +85,62 @@ function messageDErreur(e: unknown): string {
 // dans le format est refusé (jamais « à peu près juste »).
 export async function demanderStructure<S extends z.ZodType>(
   d: Demandeur,
-  p: { gamme: Gamme; consigne: string; contenu: string; schema: S; maxJetons?: number },
+  // `pdf` : un PDF déposé (en base64), lu par le modèle avec le texte de `contenu`.
+  p: { gamme: Gamme; consigne: string; contenu: string; schema: S; maxJetons?: number; pdf?: string },
 ): Promise<{ ok: true; donnees: z.infer<S>; coutEur: number } | Echec> {
   const ia = anthropic();
   if (!ia) return { ok: false, erreur: "L'IA n'est pas configurée (clé MY_claude absente)." };
-  const verdict = await plafonds(d, p.contenu.length);
+  // Le texte est plafonné en caractères ; un PDF, par son poids (le base64 fait 4/3 du fichier).
+  const verdict = await plafonds(d, p.contenu.length, Math.round(((p.pdf?.length ?? 0) * 3) / 4));
   if (!verdict.ok) return { ok: false, erreur: verdict.raison };
   const modele = MODELES[p.gamme];
   const debut = Date.now();
   try {
-    const r = await ia.messages.parse({
-      model: modele,
-      max_tokens: p.maxJetons ?? 2000,
-      system: [{ type: "text", text: `${CONSIGNE_COMMUNE}\n\n${p.consigne}`, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: p.contenu }],
-      output_config: { format: zodOutputFormat(p.schema) },
-    });
-    const usage = usageDe(r.usage);
-    if (r.parsed_output == null) {
-      await compter(d, modele, usage, debut, "réponse hors format");
-      return { ok: false, erreur: "La réponse de l'IA n'était pas dans le format attendu : rien n'a été enregistré." };
+    const contenu: Anthropic.ContentBlockParam[] | string = p.pdf
+      ? [
+          { type: "document", source: { type: "base64", media_type: "application/pdf", data: p.pdf } },
+          { type: "text", text: p.contenu },
+        ]
+      : p.contenu;
+    // On lit la réponse nous-mêmes plutôt que par messages.parse : une réponse coupée ou hors
+    // format coûte quand même, et son coût doit être compté. Coupée faute de place (max_tokens),
+    // on redemande une fois avec deux fois plus de place.
+    let maxJetons = p.maxJetons ?? 2000;
+    for (let essai = 1; essai <= 2; essai++) {
+      const r = await ia.messages.create({
+        model: modele,
+        max_tokens: maxJetons,
+        system: [{ type: "text", text: `${CONSIGNE_COMMUNE}\n\n${p.consigne}`, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: contenu }],
+        output_config: { format: zodOutputFormat(p.schema) },
+      });
+      const usage = usageDe(r.usage);
+      if (r.stop_reason === "max_tokens") {
+        await compter(d, modele, usage, debut, `réponse coupée à ${maxJetons} jetons`);
+        if (essai === 1 && maxJetons < JETONS_MAX) {
+          maxJetons = Math.min(maxJetons * 2, JETONS_MAX);
+          continue;
+        }
+        return { ok: false, erreur: "La réponse de l'IA était trop longue et a été coupée : rien n'a été enregistré." };
+      }
+      const texte = r.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+      let brut: unknown;
+      try {
+        brut = JSON.parse(texte);
+      } catch {
+        brut = undefined;
+      }
+      const lu = p.schema.safeParse(brut);
+      if (!lu.success) {
+        await compter(d, modele, usage, debut, "réponse hors format");
+        return { ok: false, erreur: "La réponse de l'IA n'était pas dans le format attendu : rien n'a été enregistré." };
+      }
+      const coutEur = await compter(d, modele, usage, debut);
+      return { ok: true, donnees: lu.data as z.infer<S>, coutEur };
     }
-    const coutEur = await compter(d, modele, usage, debut);
-    return { ok: true, donnees: r.parsed_output as z.infer<S>, coutEur };
+    return { ok: false, erreur: "La réponse de l'IA était trop longue et a été coupée : rien n'a été enregistré." };
   } catch (e) {
-    await compter(d, modele, { entree: 0, sortie: 0, cache: 0 }, debut, String(e));
+    await compter(d, modele, { entree: 0, sortie: 0, cache: 0 }, debut, e instanceof Anthropic.APIError ? `HTTP ${e.status} ${e.message}` : String(e));
     return { ok: false, erreur: messageDErreur(e) };
   }
 }

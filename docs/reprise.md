@@ -1,5 +1,23 @@
 # État de reprise
 
+## 19 octobre 2026 (branche `socle-2` et pistes C, A2, D)
+
+**Fait**
+- En production : pistes A (courriers, n° 15) et B (questions, n° 14), `heure-hiver` (n° 16 : récapitulatif à 7 h été comme hiver, alerte à chaque import en échec). Clé du flux de production corrigée (la ligne Preview avait été modifiée à la place). Rendu semaine 2 obtenu : captures Sentry et UptimeRobot d'une vraie panne (`project_rules/`).
+- `socle-2` : migration 0011 (courriers déposés : origine, fichier, motif de rejet, erreur de lecture) ; `demanderStructure` lit un PDF ; PDF plafonné à 4 Mo (et non en caractères). `docs/rendus-semaine-3.md` (fonctions IA, premiers coûts, récit de la boucle Neon).
+- Piste C (`piste-c-nuit`) : la nuit importe les courriers, indexe les documents, fait analyser la nuit par le modèle (une analyse par nuit, références vérifiées, consignes cachées signalées) ; section « Ce que la nuit dit » du récapitulatif ; coût de l'IA par fonction sur Machine de nuit. Étapes réparties entre les passages de 5 h et 6 h UTC.
+- Piste A2 (`piste-a2-depot`) : déposer un courrier (texte ou PDF) ; bilan juste, corrigé, inventé, manqué, par courrier et en total.
+- Piste D (`piste-d-distances`) : carte « Livraisons et trajets » (itinéraire IGN, zones de déplacement, délai fournisseur, date limite de commande). Réglage `DEPOT_ADRESSE`.
+
+**Reste**
+- Kerguelenn : essayer C, A2, D sur leurs prévisualisations ; `DEPOT_ADRESSE` et `ENTREPRISE_NOM` dans Vercel.
+- Fusion dans l'ordre : `socle-2`, puis C, A2, D (aucun conflit entre elles).
+- Après fusion : chiffres réels de coût dans `docs/rendus-semaine-3.md` ; régler le seuil de pertinence des questions ; répétition de la démo.
+- Semaine 4 : mission de l'agent. Espace « Dossier » en attente.
+
+**Cassé**
+- Rien de connu.
+
 ## 18 octobre 2026 (branche `socle-ia`, semaine 3, phase 0)
 
 **Fait**

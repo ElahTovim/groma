@@ -341,7 +341,13 @@ export const statutCourrier = pgEnum("statut_courrier", ["a_relire", "valide", "
 // Les courriers du flux, lus par le modèle. Ce qu'il en tire reste une proposition
 // tant que quelqu'un ne l'a pas validée.
 export const courriers = pgTable("courriers", {
-  id: text("id").primaryKey(), // l'identifiant du flux
+  id: text("id").primaryKey(), // l'identifiant du flux, ou « depot-… » pour un courrier déposé
+  // D'où vient le courrier : le flux du séminaire, ou déposé dans groma (collé ou en PDF).
+  origine: text("origine").notNull().default("flux"),
+  deposePar: uuid("depose_par").references(() => comptes.id, { onDelete: "set null" }),
+  // Le PDF déposé, privé sur Vercel Blob.
+  fichierUrl: text("fichier_url"),
+  fichierNom: text("fichier_nom"),
   texte: text("texte").notNull(),
   // Les champs proposés par le modèle (expéditeur, société, référence, date, catégorie, montant) ; null si absent.
   champs: jsonb("champs").$type<Record<string, unknown>>(),
@@ -354,6 +360,9 @@ export const courriers = pgTable("courriers", {
   statut: statutCourrier("statut").notNull().default("a_relire"),
   validePar: uuid("valide_par").references(() => comptes.id, { onDelete: "set null" }),
   valideLe: timestamp("valide_le", { withTimezone: true }),
+  motifRejet: text("motif_rejet"),
+  // Pourquoi la lecture par l'IA a échoué (panne, plafond, réponse hors format).
+  erreurLecture: text("erreur_lecture"),
   luLe: timestamp("lu_le", { withTimezone: true }),
   recuLe: timestamp("recu_le", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -409,3 +418,20 @@ export const trajets = pgTable(
   },
   (t) => [unique("un_trajet").on(t.origine, t.destination)],
 );
+
+// ——— L'entreprise qui utilise groma ———
+
+// Le profil de l'entreprise : une seule ligne (id = 1), modifiée par le gérant dans Réglages.
+// Une donnée que le gérant peut vouloir changer vit en base, jamais dans une variable de Vercel.
+export const profilEntreprise = pgTable("profil_entreprise", {
+  id: integer("id").primaryKey().default(1),
+  nom: text("nom").notNull(),
+  // Le dépôt : point de départ des trajets de l'équipe et du calcul des zones de déplacement.
+  depotAdresse: text("depot_adresse"),
+  depotCodePostal: text("depot_code_postal"),
+  depotVille: text("depot_ville"),
+  depotLatitude: doublePrecision("depot_latitude"),
+  depotLongitude: doublePrecision("depot_longitude"),
+  modifiePar: uuid("modifie_par").references(() => comptes.id, { onDelete: "set null" }),
+  modifieLe: timestamp("modifie_le", { withTimezone: true }).notNull().defaultNow(),
+});
