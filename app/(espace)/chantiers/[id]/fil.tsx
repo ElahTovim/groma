@@ -547,11 +547,15 @@ function BarreOnglets(props: { actif: OngletFil; compte: Record<OngletFil, Compt
     };
   }, []);
 
+  // Le trait sous l'onglet ouvert glisse d'un titre à l'autre.
+  const [trait, setTrait] = useState<{ x: number; l: number } | null>(null);
+
   // L'onglet ouvert reste visible dans la barre (sans faire défiler la page).
   useEffect(() => {
     const el = barre.current;
     const onglet = document.getElementById(`onglet-fil-${props.actif}`);
     if (!el || !onglet) return;
+    setTrait({ x: onglet.offsetLeft + 12, l: onglet.offsetWidth - 24 });
     const debut = onglet.offsetLeft - 24;
     const fin = onglet.offsetLeft + onglet.offsetWidth - el.clientWidth + 24;
     if (el.scrollLeft > debut) el.scrollLeft = debut;
@@ -570,8 +574,8 @@ function BarreOnglets(props: { actif: OngletFil; compte: Record<OngletFil, Compt
   }
 
   return (
-    <div className="sticky top-14 z-20 -mx-1 bg-background">
-      <div ref={barre} role="tablist" aria-label="Filtrer le fil" onKeyDown={clavier} className="relative flex gap-1.5 overflow-x-auto px-1 py-1.5 [scrollbar-width:none]">
+    <div className="sticky top-14 z-20 -mx-1 border-b bg-background/95 backdrop-blur">
+      <div ref={barre} role="tablist" aria-label="Filtrer le fil" onKeyDown={clavier} className="relative flex overflow-x-auto px-1 [scrollbar-width:none]">
         {ONGLETS_FIL.map((o) => {
           const c = props.compte[o];
           const actif = props.actif === o;
@@ -586,23 +590,22 @@ function BarreOnglets(props: { actif: OngletFil; compte: Record<OngletFil, Compt
               tabIndex={actif ? 0 : -1}
               onClick={() => props.choisir(o)}
               className={cn(
-                "flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
-                actif ? "bg-foreground font-semibold text-background" : "bg-card font-medium hover:bg-muted",
+                "flex h-12 shrink-0 items-center gap-2 px-3 text-[15px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground",
+                actif ? "font-semibold" : "font-medium text-muted-foreground hover:text-foreground",
               )}
             >
               {TITRE_ONGLET[o]}
               {c.aTraiter > 0 ? (
                 <span
                   className={cn(
-                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold tabular-nums",
-                    actif ? "bg-background text-foreground" : "bg-foreground text-background",
+                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 font-mono text-[11px] font-semibold text-background tabular-nums",
                   )}
                 >
                   {c.aTraiter}
                   <span className="sr-only"> à traiter</span>
                 </span>
               ) : (
-                <span className={cn("text-xs tabular-nums", actif ? "text-background/65" : "text-muted-foreground")}>
+                <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
                   {c.nombre}
                   <span className="sr-only"> élément{c.nombre > 1 ? "s" : ""}</span>
                 </span>
@@ -610,6 +613,7 @@ function BarreOnglets(props: { actif: OngletFil; compte: Record<OngletFil, Compt
             </button>
           );
         })}
+        {trait && <span aria-hidden className="glisse absolute bottom-0 left-0 h-0.5 bg-foreground" style={{ transform: `translateX(${trait.x}px)`, width: trait.l }} />}
       </div>
       <span aria-hidden className={cn("pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background transition-opacity", bords.gauche ? "opacity-100" : "opacity-0")} />
       <span aria-hidden className={cn("pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background transition-opacity", bords.droite ? "opacity-100" : "opacity-0")} />

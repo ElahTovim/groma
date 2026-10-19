@@ -4,11 +4,13 @@ import { cn } from "@/lib/utils";
 
 const CYCLE: StatutChantier[] = ["devis", "signe", "planifie", "en_cours", "reception", "clos"];
 
-// Les six étapes du chantier en segments : pleins jusqu'à l'étape actuelle, en gras.
+// Les six étapes du chantier en segments, comme un jalon d'arpenteur.
 // Sur téléphone, pas de liste des six libellés : l'étape actuelle et la suivante suffisent.
 export function FriseEtapes({ statut }: { statut: StatutChantier }) {
   const rang = CYCLE.indexOf(statut);
   if (rang < 0) return null; // annulé : le badge suffit
+  // Clos : tout le jalon est plein, il n'y a plus d'étape en cours.
+  const enCours = statut === "clos" ? -1 : rang;
 
   return (
     <div className="flex flex-col gap-2">
@@ -18,15 +20,15 @@ export function FriseEtapes({ statut }: { statut: StatutChantier }) {
         </span>
         {CYCLE[rang + 1] && <span className="text-muted-foreground">Ensuite : {LIBELLE_STATUT[CYCLE[rang + 1]]}</span>}
       </p>
-      <ol className="grid grid-cols-6 gap-1" aria-label={`Étape ${rang + 1} sur ${CYCLE.length} : ${LIBELLE_STATUT[statut]}`}>
+      <ol className="grid grid-cols-6 gap-[3px]" aria-label={`Étape ${rang + 1} sur ${CYCLE.length} : ${LIBELLE_STATUT[statut]}`}>
         {CYCLE.map((s, i) => (
           <li key={s} className="flex min-w-0 flex-col gap-2" aria-current={i === rang ? "step" : undefined}>
-            {/* Les étapes franchies se remplissent l'une après l'autre. */}
-            <span className="h-2 overflow-hidden rounded-full bg-foreground/10">
-              {i <= rang && <span className="remplit block h-full rounded-full bg-foreground" style={{ "--rang": i } as React.CSSProperties} />}
+            {/* Un jalon d'arpenteur : les étapes franchies en plein, l'étape en cours hachurée,
+                les suivantes en simple contour. */}
+            <span className={cn("h-2.5 overflow-hidden", i === enCours ? "hachure ring-1 ring-foreground ring-inset" : i > rang && "ring-1 ring-foreground/35 ring-inset")}>
+              {(i < rang || (i === rang && enCours < 0)) && <span className="remplit block h-full bg-foreground" style={{ "--rang": i } as React.CSSProperties} />}
             </span>
-            <span className={cn("hidden truncate text-sm md:block", i === rang ? "font-bold" : i > rang && "text-muted-foreground")}>
-              {i === rang && "● "}
+            <span className={cn("annotation hidden truncate text-[10px] md:block", i === rang ? "font-semibold" : "text-muted-foreground")}>
               {LIBELLE_STATUT[s]}
             </span>
           </li>

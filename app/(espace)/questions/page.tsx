@@ -12,13 +12,16 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // Poser une question sur les documents du flux, et lire la réponse qui cite ses pages.
-export default async function PageQuestions() {
+export default async function PageQuestions({ searchParams }: PageProps<"/questions">) {
   const qui = await appelantObligatoire();
   if (!voitLInterne(qui.role)) {
     journal("question_refusee", { compte: qui.id, role: qui.role, page: "/questions" });
     notFound();
   }
   const n = await nombreDeDocuments();
+  // Une question venue de la recherche de l'accueil (?q=…) arrive déjà posée.
+  const { q } = await searchParams;
+  const questionInitiale = typeof q === "string" ? q.slice(0, 2000) : undefined;
   const gerant = qui.role === "gerant";
 
   return (
@@ -53,7 +56,7 @@ export default async function PageQuestions() {
           )}
         </div>
       ) : (
-        <Questions />
+        <Questions questionInitiale={questionInitiale} />
       )}
     </div>
   );

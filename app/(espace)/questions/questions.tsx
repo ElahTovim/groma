@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, TriangleAlert } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { decouperEnCitations, separerAVerifier, type CitationControlee } from "@/lib/recherche-citations";
@@ -45,8 +45,10 @@ function TexteCite({ texte, controle }: { texte: string; controle: Map<string, C
   );
 }
 
-export function Questions() {
-  const [question, setQuestion] = useState("");
+export function Questions({ questionInitiale }: { questionInitiale?: string }) {
+  const [question, setQuestion] = useState(questionInitiale ?? "");
+  const formulaire = useRef<HTMLFormElement>(null);
+  const dejaPosee = useRef(false);
   const [posee, setPosee] = useState("");
   const [etape, setEtape] = useState<Etape>("repos");
   const [texte, setTexte] = useState("");
@@ -109,6 +111,14 @@ export function Questions() {
     setEtape(echec ? "erreur" : "fini");
   }
 
+  // Arrivée depuis l'accueil avec une question : elle part d'elle-même, une seule fois.
+  useEffect(() => {
+    if (questionInitiale && !dejaPosee.current) {
+      dejaPosee.current = true;
+      formulaire.current?.requestSubmit();
+    }
+  }, [questionInitiale]);
+
   const parCitation = controle ? new Map(controle.map((c) => [c.brut, c])) : null;
   const invalides = controle?.filter((c) => c.statut !== "valide") ?? [];
   const citees = new Set(controle?.filter((c) => c.statut === "valide").map((c) => `${c.documentId}#${c.page}`) ?? []);
@@ -116,7 +126,7 @@ export function Questions() {
 
   return (
     <div className="flex flex-col gap-6">
-      <form onSubmit={poser} className="flex flex-col gap-3">
+      <form ref={formulaire} onSubmit={poser} className="flex flex-col gap-3">
         <label htmlFor="question" className="text-sm font-medium">
           Votre question
         </label>

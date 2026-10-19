@@ -131,7 +131,7 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
         )}
       </header>
 
-      {interne && <Chiffres lots={lots} montantHt={chantier.montantHt} finPrevue={chantier.finPrevue} />}
+      {interne && <Chiffres lots={lots} montantHt={chantier.montantHt} debutPrevu={chantier.debutPrevu} finPrevue={chantier.finPrevue} client={chantier.client} />}
 
       <FriseEtapes statut={chantier.statut} />
       {chantier.statut === "annule" && <BadgeStatut statut={chantier.statut} />}

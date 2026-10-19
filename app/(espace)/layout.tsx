@@ -1,7 +1,9 @@
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/auth";
+import { voitLInterne } from "@/lib/acces";
 import { appelantObligatoire } from "@/lib/session";
+import { BarreBas, LiensHaut, MargeBarreBas } from "./navigation";
 
 const LIBELLE_ROLE = { gerant: "gérant", equipe: "équipe", externe: "externe" } as const;
 
@@ -20,14 +22,7 @@ export default async function Espace({ children }: LayoutProps<"/">) {
             <Link href="/" id="logo-groma" className="logo-groma text-2xl">
               groma
             </Link>
-            <Link href="/" className="font-medium">
-              Accueil
-            </Link>
-            <Link href="/chantiers" className="font-medium">
-              Chantiers
-            </Link>
-            {qui.role !== "externe" && <Link href="/courriers" className="font-medium">Courriers</Link>}
-            {qui.role !== "externe" && <Link href="/questions" className="font-medium">Questions</Link>}
+            <LiensHaut interne={voitLInterne(qui.role)} />
           </nav>
           <details className="group relative">
             <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm [&::-webkit-details-marker]:hidden">
@@ -60,7 +55,11 @@ export default async function Espace({ children }: LayoutProps<"/">) {
           </details>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+        {children}
+        <MargeBarreBas interne={voitLInterne(qui.role)} />
+      </main>
+      <BarreBas interne={voitLInterne(qui.role)} />
     </div>
   );
 }
