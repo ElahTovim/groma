@@ -1,5 +1,23 @@
 # État de reprise
 
+## 19 octobre 2026, soir (branche `arpenteur`, et demande n° 24 `photos-nuit`)
+
+**Fait**
+- Direction visuelle « Arpenteur », validée par Kerguelenn sur maquettes (canvas « Groma · Arpenteur ») : le langage du plan et de la groma, sur le fond gris actuel.
+- Accueil : bande quadrillée très légère avec le bonjour et un seul champ « Un chantier, une question… » (chantiers filtrés pendant la frappe ; « Demander à groma » ouvre Questions avec la question déjà posée ; ⌘K) ; « À viser » marqué du réticule ; « Le terrain » en cartes avec photos (par défaut) ou en liste, choix retenu sur l'appareil ; carrousel qui s'aligne sur téléphone, grille sur ordinateur ; avancement en ligne de cote (`lib/cote.ts`, testé) ; cadre météo animé conservé ; semaine en ligne de temps, derniers messages en lignes. Les grands chiffres de l'accueil et « À la une » sont retirés.
+- Navigation : lien de la page ouverte souligné sur ordinateur ; barre d'onglets en bas sur téléphone (absente des pages de détail).
+- Fiche : cartouche de plan (client, montant, début, fin, lots, retards) ; frise des étapes en jalon (en cours hachurée) ; trait qui glisse sous l'onglet du fil.
+- `photos-nuit` (demande n° 24, vérifications au vert) : un chantier importé la nuit reçoit une photo du jeu de données, stable pour sa référence.
+- 292 tests, lint, types et construction au vert.
+
+**Reste**
+- Kerguelenn : fusionner n° 24, essayer la prévisualisation `arpenteur` (téléphone et ordinateur), puis fusionner.
+- Les chantiers déjà importés n'ont pas de photo (reprise non faite, à décider).
+- Pages restantes à passer en Arpenteur : liste des chantiers, courriers, questions, réglages.
+
+**Cassé**
+- Rien de connu.
+
 ## 19 octobre 2026, nuit (branche `pieces-attendues`)
 
 **Fait**

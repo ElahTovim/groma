@@ -21,3 +21,14 @@ export function ResumeATraiter({ a, compact = false }: { a: ATraiter | null; com
     </ul>
   );
 }
+
+// Le même résumé en une phrase, pour une ligne ou une carte.
+export function texteATraiter(a: ATraiter | null): string | null {
+  if (!a) return null;
+  const morceaux = [
+    a.aQualifier > 0 && `${a.aQualifier} à qualifier`,
+    a.reservesOuvertes > 0 && `${a.reservesOuvertes} réserve${a.reservesOuvertes > 1 ? "s" : ""} ouverte${a.reservesOuvertes > 1 ? "s" : ""}`,
+    a.lotsEnRetard > 0 && `${a.lotsEnRetard} lot${a.lotsEnRetard > 1 ? "s" : ""} en retard`,
+  ].filter(Boolean);
+  return morceaux.length ? morceaux.join(" · ") : null;
+}

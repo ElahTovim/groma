@@ -3,34 +3,41 @@ import type { LotVu } from "@/lib/fiche";
 import { euros } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-function dateSansAnnee(iso: string | null) {
+function datePoints(iso: string | null) {
   if (!iso) return "—";
-  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(iso));
+  const [a, m, j] = iso.split("-");
+  return `${j}.${m}.${a.slice(2)}`;
 }
 
-// L'essentiel du chantier en quatre chiffres lisibles de loin. Les retards passent
-// en aplat noir dès qu'il y en a un : c'est ce qui doit sauter aux yeux.
-export function Chiffres(props: { lots: LotVu[]; montantHt: string | null | undefined; finPrevue: string | null }) {
+// L'essentiel du chantier dans un cartouche, comme le bloc-titre d'un plan :
+// des cases cerclées d'un trait, l'intitulé en annotation, la valeur dessous.
+// Les retards passent en aplat noir dès qu'il y en a un : c'est ce qui doit sauter aux yeux.
+export function Chiffres(props: { lots: LotVu[]; montantHt: string | null | undefined; debutPrevu: string | null; finPrevue: string | null; client: string }) {
   const finis = props.lots.filter((l) => l.statut === "fini").length;
   const enRetard = props.lots.filter((l) => l.enRetard).length;
-  const cartes = [
-    { titre: "Lots finis", valeur: <Compteur valeur={finis} />, suite: ` / ${props.lots.length}` },
-    { titre: "En retard", valeur: <Compteur valeur={enRetard} />, suite: enRetard > 1 ? " lots" : enRetard === 1 ? " lot" : "", alerte: enRetard > 0 },
-    { titre: "Fin prévue", valeur: dateSansAnnee(props.finPrevue) },
+  const cases: { titre: string; valeur: React.ReactNode; alerte?: boolean; mono?: boolean }[] = [
+    { titre: "Client", valeur: props.client },
     { titre: "Montant HT", valeur: props.montantHt == null ? euros(props.montantHt) : <Compteur valeur={Number(props.montantHt)} format="euros" /> },
+    { titre: "Début", valeur: datePoints(props.debutPrevu), mono: true },
+    { titre: "Fin prévue", valeur: datePoints(props.finPrevue), mono: true },
+    { titre: "Lots finis", valeur: <><Compteur valeur={finis} /> sur {props.lots.length}</> },
+    { titre: "En retard", valeur: enRetard ? <><Compteur valeur={enRetard} /> lot{enRetard > 1 ? "s" : ""}</> : "Aucun", alerte: enRetard > 0 },
   ];
 
   return (
-    <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      {cartes.map((c, i) => (
-        <li key={c.titre} style={{ "--rang": i } as React.CSSProperties} className={cn("apparait flex min-w-0 flex-col justify-between gap-6 rounded-3xl p-5", c.alerte ? "bg-foreground text-background" : "bg-card")}>
-          <span className={cn("text-sm font-medium", c.alerte ? "text-background/80" : "text-muted-foreground")}>{c.titre}</span>
-          <span className="font-display font-extrabold text-[1.75rem] leading-none tracking-tight whitespace-nowrap tabular-nums md:text-4xl">
-            {c.valeur}
-            {c.suite && <span className={cn("text-xl tracking-tight md:text-2xl", c.alerte ? "text-background/70" : "text-muted-foreground")}>{c.suite}</span>}
-          </span>
-        </li>
+    <dl className="apparait grid grid-cols-2 overflow-hidden rounded-md border border-foreground md:grid-cols-6">
+      {cases.map((c) => (
+        <div
+          key={c.titre}
+          className={cn(
+            "flex min-w-0 flex-col gap-1 border-foreground/25 px-3 py-2.5 [&:not(:nth-child(2n))]:border-r md:[&:not(:last-child)]:border-r [&:nth-child(-n+4)]:border-b md:[&:nth-child(-n+4)]:border-b-0",
+            c.alerte && "bg-foreground text-background",
+          )}
+        >
+          <dt className={cn("annotation text-[10px]", c.alerte ? "text-background/75" : "text-muted-foreground")}>{c.titre}</dt>
+          <dd className={cn("truncate font-semibold tabular-nums", c.mono && "font-mono text-sm tracking-wide")}>{c.valeur}</dd>
+        </div>
       ))}
-    </ul>
+    </dl>
   );
 }
