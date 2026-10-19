@@ -22,6 +22,8 @@ const ctx: ContexteChantier = {
   signalementsAQualifier: 0,
   reservesOuvertes: 0,
   pvSigne: true,
+  piecesDemarrage: [],
+  piecesCloture: [],
 };
 
 describe("la règle de clôture", () => {
@@ -36,6 +38,18 @@ describe("la règle de clôture", () => {
   it("cas piégé : un signalement arrivé la veille bloque la clôture", () => {
     const v = verifierPassage("reception", "clos", { ...ctx, signalementsAQualifier: 1 });
     expect(v).toEqual({ ok: false, raisons: ["1 signalement à qualifier."] });
+  });
+
+  it("une pièce attendue qui bloque la clôture l'empêche, avec son nom", () => {
+    expect(verifierPassage("reception", "clos", { ...ctx, piecesCloture: ["DOE (dossier des ouvrages exécutés) : manquante."] })).toEqual({
+      ok: false,
+      raisons: ["Pièce manquante : DOE (dossier des ouvrages exécutés) : manquante."],
+    });
+  });
+
+  it("une décennale manquante bloque le démarrage", () => {
+    const v = verifierPassage("planifie", "en_cours", { ...ctx, debutPrevu: "2026-10-01", piecesDemarrage: ["Attestation d'assurance décennale de Plomberie Ferrand : manquante."] });
+    expect(v.ok).toBe(false);
   });
 
   it("sans PV de réception signé, pas de clôture", () => {

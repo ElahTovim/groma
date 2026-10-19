@@ -39,6 +39,9 @@ export type ContexteChantier = {
   reservesOuvertes: number;
   // Le PV de réception est signé par le maître d'ouvrage (lib/reception-regles.ts).
   pvSigne: boolean;
+  // Les pièces attendues qui manquent et bloquent une étape (lib/pieces-regles.ts), une phrase chacune.
+  piecesDemarrage: string[];
+  piecesCloture: string[];
 };
 
 export function verifierPassage(de: StatutChantier, vers: StatutChantier, c: ContexteChantier): Verdict {
@@ -54,6 +57,7 @@ export function verifierPassage(de: StatutChantier, vers: StatutChantier, c: Con
   if (vers === "en_cours" && c.debutPrevu && c.debutPrevu > c.aujourdhui) {
     raisons.push("La date de début prévue n'est pas encore atteinte.");
   }
+  if (vers === "en_cours") raisons.push(...c.piecesDemarrage.map((p) => `Pièce manquante : ${p}`));
   if (vers === "reception") {
     const nonFinis = c.lots.filter((l) => l.statut !== "fini").map((l) => l.nom);
     if (nonFinis.length > 0) {
@@ -62,6 +66,7 @@ export function verifierPassage(de: StatutChantier, vers: StatutChantier, c: Con
   }
   if (vers === "clos") {
     if (!c.pvSigne) raisons.push("Faites signer le PV de réception par le maître d'ouvrage.");
+    raisons.push(...c.piecesCloture.map((p) => `Pièce manquante : ${p}`));
     // La règle phare : pas de clôture avec un signalement en attente ou une réserve ouverte.
     if (c.signalementsAQualifier > 0) {
       raisons.push(`${c.signalementsAQualifier} signalement${c.signalementsAQualifier > 1 ? "s" : ""} à qualifier.`);

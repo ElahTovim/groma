@@ -38,9 +38,9 @@ stateDiagram-v2
 | création → devis | gérant, équipe | client et adresse renseignés | oui |
 | devis → signé | gérant, équipe | devis joint au fil | oui |
 | signé → planifié | gérant, équipe | date de début, au moins un lot | non |
-| planifié → en cours | gérant, équipe | date de début atteinte | non |
+| planifié → en cours | gérant, équipe | date de début atteinte, **aucune pièce bloquant le démarrage ne manque** | non |
 | en cours → réception | gérant, équipe | **tous les lots sont finis** | oui |
-| réception → clos | gérant, équipe | **PV de réception signé par le maître d'ouvrage, aucun signalement à qualifier, aucune réserve ouverte** | non |
+| réception → clos | gérant, équipe | **PV de réception signé par le maître d'ouvrage, aucune pièce bloquant la clôture ne manque, aucun signalement à qualifier, aucune réserve ouverte** | non |
 | devis, signé, planifié → annulé | gérant, équipe | motif obligatoire ; impossible une fois en cours | oui |
 
 ## Le lot
@@ -97,7 +97,7 @@ Un signalement suit son propre statut : `à qualifier` → `réserve ouverte` �
 5. Les montants, les lots et leurs retards sont internes : un externe ne les voit jamais à l'écran. Pour l'informer d'un retard, l'équipe lui écrit un message dans le fil et coche son nom.
 6. Un externe dont l'entreprise vérifiée est fermée (registre Sirene) ne peut pas être invité sur un autre chantier. Partout où elle apparaît, l'entreprise fermée porte le badge « Fermée ».
 7. **Le PV de réception.** Une fois la réception déclarée, l'équipe prépare le PV : date, signataire (un externe du chantier, le maître d'ouvrage), et les réserves ouvertes, recopiées. Pas de PV tant qu'un signalement est à qualifier. Le signataire, et lui seul, le signe depuis son compte : nom tapé et case cochée. Signé, le PV est figé (contenu et empreinte SHA-256) ; il fait partir les garanties (parfait achèvement 1 an, biennale 2 ans, décennale 10 ans) et la retenue de garantie se libère un an après. Pas de clôture sans PV signé.
-8. **L'attestation de vigilance.** Pour un sous-traitant dont le contrat atteint 5 000 € HT, l'équipe coche « attestation exigée ». L'attestation se rattache à l'entreprise vérifiée du sous-traitant, qui peut la déposer lui-même (PDF, date de délivrance, code de sécurité facultatif). Elle vaut 6 mois. La machine de nuit relance le sous-traitant quand elle manque, expire dans les 15 jours ou a expiré (une fois par palier), et le récapitulatif du matin la signale. Seuil, durée et préavis sont des paramètres (`lib/vigilance-regles.ts`).
+8. **Les pièces attendues.** Sur chaque chantier, l'équipe demande à chaque intervenant ses pièces. groma propose les habituelles selon la qualité saisie à l'invitation : plans et CCTP à un architecte ; décennale, vigilance URSSAF et Kbis à un sous-traitant ; autorisation des travaux en assemblée générale à un syndic… Ce n'est qu'une proposition, la qualité reste un libellé. Le chantier a aussi ses propres pièces (DOE, autorisation d'urbanisme). Une pièce d'intervenant sert sur tous ses chantiers ; elle a une durée de validité (6 mois pour la vigilance, 12 pour la décennale, 3 pour le Kbis). Déposée par l'intervenant, elle attend la validation de l'équipe ; refusée, elle porte un motif. Chaque exigence peut **bloquer le démarrage** (la décennale, par défaut) ou **la clôture** (le DOE, par défaut), réglable pièce par pièce. La machine de nuit relance l'intervenant quand une pièce manque, a été refusée, expire dans les 15 jours ou a expiré (une fois par palier), et le récapitulatif du matin liste les pièces à obtenir. Types, durées, suggestions et blocages par défaut sont des paramètres (`lib/pieces-regles.ts`, `lib/operations/pieces.ts`). L'ancienne attestation de vigilance est devenue une pièce comme les autres.
 
 ## Les tables
 
@@ -109,8 +109,9 @@ Un signalement suit son propre statut : `à qualifier` → `réserve ouverte` �
 | fil | type, texte, fichier, statut du signalement, **liste des participants qui le voient** | un chantier, parfois un lot, un auteur |
 | entreprises | SIREN, nom officiel, adresse, activité, en activité ou fermée, date de vérification (interne) | le client d'un chantier, le compte d'un externe |
 | pv_reception | date, réserves recopiées, observations, signataire, signature (nom, date, contenu figé, empreinte) | un chantier (un seul PV), un compte signataire |
-| attestations | date de délivrance, code de sécurité, fichier privé | une entreprise (SIREN) |
-| relances_vigilance | les relances déjà envoyées, par palier et échéance | un compte |
+| exigences_pieces | la pièce attendue, de qui, et l'étape qu'elle bloque | un chantier, parfois un compte |
+| pieces | la pièce fournie : fichier privé, date de délivrance, échéance, statut (déposée, validée, refusée), motif | un compte (pièce d'intervenant) ou un chantier |
+| relances_pieces | les relances déjà envoyées, par pièce, palier et échéance | un compte |
 
 Les comptes sont gérés à part par Auth.js.
 

@@ -8,8 +8,7 @@ import { chantiers, comptes, evenementsFlux, executions, fil, participants, reca
 import { journal } from "@/lib/journal";
 import { composerRecap, type ContenuRecap, type LigneRecap } from "@/lib/recap-texte";
 import { aujourdhuiParis } from "@/lib/regles";
-import { attestationsARenouveler } from "@/lib/vigilance";
-import { libelleEtat } from "@/lib/vigilance-regles";
+import { piecesAObtenir } from "@/lib/pieces";
 
 // Qui reçoit le récapitulatif (décision de Kerguelenn) : le gérant pour tous les
 // chantiers, chaque membre de l'équipe pour ses seuls chantiers. Jamais un externe.
@@ -71,9 +70,10 @@ export async function contenuPour(compte: { id: string; nom: string; role: "gera
     return { reference: c.reference, nom: c.nom, ville: c.ville, lien: lien(c.id), detail: `« ${d.texte.slice(0, 80)} », à rendre le ${d.dateCible}` };
   });
 
-  const attestations: LigneRecap[] = (await attestationsARenouveler(ids)).map((a) => {
+  // Les pièces attendues qui manquent, ont été refusées ou expirent (lib/pieces.ts).
+  const attestations: LigneRecap[] = (await piecesAObtenir(ids)).map((a) => {
     const c = parId.get(a.chantierId)!;
-    return { reference: c.reference, nom: c.nom, ville: c.ville, lien: lien(c.id), detail: `${a.entreprise ?? a.nom} : ${libelleEtat(a.etat).toLowerCase()}` };
+    return { reference: c.reference, nom: c.nom, ville: c.ville, lien: `${lien(c.id)}?onglet=documents`, detail: `${a.libelle}${a.qui ? ` de ${a.qui}` : ""} : ${a.etat.toLowerCase()}` };
   });
 
   const nuit = await bilanDeLaNuit(jour);

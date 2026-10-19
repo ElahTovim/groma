@@ -1,5 +1,19 @@
 # État de reprise
 
+## 19 octobre 2026, nuit (branche `pieces-attendues`)
+
+**Fait**
+- En production : onglets du fil (n° 22) et leur visuel (session interface).
+- Pièces attendues : migration 0013 (`exigences_pieces`, `pieces`, `relances_pieces`) avec reprise des attestations de vigilance et des exigences cochées. Règles pures `lib/pieces-regles.ts` (types et durées, suggestions par qualité, état, dépôt, blocages, relances), lecture `lib/pieces.ts`, opérations `lib/operations/pieces.ts`, route `/api/pieces/[id]`. Blocages du démarrage et de la clôture dans `lib/regles.ts`. Relances de nuit et récapitulatif (« PIÈCES À OBTENIR ») sur les pièces. Rubrique « Pièces attendues » en tête de l'onglet Documents. Ancien écran et anciens modules de vigilance retirés.
+
+**Reste**
+- Kerguelenn : essayer la prévisualisation `pieces-attendues`, puis fusion.
+- Dette assumée : `participants.vigilance`, `attestations` et `relances_vigilance` ne sont plus lus ni écrits ; à supprimer par une migration de ménage, une fois la reprise vérifiée en production. La route `/api/attestations/[id]` reste pour les liens déjà envoyés.
+- Suggestions à l'invitation : aujourd'hui proposées dans « Demander des pièces » ; les cocher dès la fenêtre d'invitation viendra ensuite.
+
+**Cassé**
+- Rien de connu.
+
 ## 19 octobre 2026, après-midi (branche `fil-onglets-interface`, partie de `fil-onglets`)
 
 **Fait**

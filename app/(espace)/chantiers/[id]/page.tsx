@@ -9,11 +9,10 @@ import { voitLInterne } from "@/lib/acces";
 import { lireChantier } from "@/lib/chantiers";
 import { lireEntreprises, type EntrepriseVue } from "@/lib/entreprises";
 import { lirePv } from "@/lib/reception";
-import { dernieresAttestations, type DerniereAttestation } from "@/lib/vigilance";
-import { etatAttestation, libelleEtat } from "@/lib/vigilance-regles";
+import { lireExigences } from "@/lib/pieces";
 import { courriersDuChantier } from "@/lib/courriers";
 import { ongletDepuis } from "@/lib/fil-onglets";
-import { contexteChantier, lireFil, lireLots, lireParticipants, maParticipation } from "@/lib/fiche";
+import { contexteChantier, lireFil, lireLots, lireParticipants } from "@/lib/fiche";
 import { dateCourte, euros } from "@/lib/format";
 import { journal } from "@/lib/journal";
 import { aujourdhuiParis, etapeSuivante, verifierPassage } from "@/lib/regles";
@@ -32,14 +31,8 @@ import { Meteo } from "./meteo";
 import { SuiteFiche } from "./onglets";
 import { PhotoChantier } from "./photo";
 import { Reception } from "./reception";
-import { MaVigilance, VigilanceParticipant, type VigilanceAffichee } from "./vigilance";
 
 export const dynamic = "force-dynamic";
-
-function vigilance(exigee: boolean, siren: string | null, dernieres: Map<string, DerniereAttestation>, jour: string): VigilanceAffichee {
-  const a = siren ? (dernieres.get(siren) ?? null) : null;
-  return { exigee, etat: etatAttestation(a?.delivreeLe ?? null, jour), attestation: a && { id: a.id, delivreeLe: a.delivreeLe, codeSecurite: a.codeSecurite }, entrepriseVerifiee: Boolean(siren) };
-}
 
 function pourAfficher(e: EntrepriseVue | undefined): EntrepriseAffichee | null {
   if (!e) return null;
@@ -79,18 +72,19 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
   const pv = await lirePv(chantier.id);
   // Un externe ne voit le PV que s'il en est le signataire.
   const pvVisible = pv && (interne || pv.signataireId === qui.id) ? pv : null;
-  // L'externe : son attestation de vigilance, si elle est exigée sur ce chantier.
-  const maPlace = interne ? null : await maParticipation(chantier.id, qui.id);
-  const attestations = await dernieresAttestations(interne ? participants.map((p) => p.siren) : [maPlace?.siren ?? null]);
+  // Les pièces attendues : toutes pour l'équipe ; pour un externe, seulement les siennes.
+  const exigences = (await lireExigences(chantier.id, aujourdhui)).filter((x) => interne || x.compteId === qui.id);
 
-  // L'onglet Documents rassemble ce qui vit ailleurs : PV, courriers rattachés, attestations.
+  // L'onglet Documents rassemble ce qui vit ailleurs : pièces attendues, PV, courriers rattachés.
   const dossier: DossierFiche = {
     pv: pvVisible && { lien: `/api/pv/${chantier.id}`, signeLe: pvVisible.signeLe, dateReception: pvVisible.dateReception, reserves: pvVisible.reserves.length },
     courriers: interne ? await courriersDuChantier(chantier.id) : [],
-    attestations: (interne ? participants.filter((p) => p.role === "externe" && p.vigilance) : maPlace?.vigilance ? [{ nom: "Votre attestation", siren: maPlace.siren }] : []).map((p) => {
-      const v = vigilance(true, p.siren, attestations, aujourdhui);
-      return { nom: p.nom, etat: libelleEtat(v.etat), aJour: v.etat.etat === "a_jour", lien: v.attestation ? `/api/attestations/${v.attestation.id}` : null };
-    }),
+    pieces: {
+      exigences,
+      intervenants: participants.filter((p) => p.role === "externe").map((p) => ({ compteId: p.compteId, nom: p.nom, qualite: p.qualite })),
+      moi: qui.id,
+      modifiable: !termine,
+    },
   };
 
   const onglets = [
@@ -156,7 +150,6 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
           aujourdhui={aujourdhui}
         />
       )}
-      {!interne && maPlace?.vigilance && !termine && <MaVigilance chantierId={chantier.id} moi={qui.id} v={vigilance(true, maPlace.siren, attestations, aujourdhui)} />}
 
       <SuiteFiche
         meteo={
@@ -210,7 +203,6 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
                           {p.role === "externe" && (
                             <Entreprise chantierId={chantier.id} cible={p.compteId} suggestion="" entreprise={pourAfficher(entreprises.get(p.siren ?? ""))} modifiable={!termine} compacte />
                           )}
-                          {p.role === "externe" && <VigilanceParticipant chantierId={chantier.id} compteId={p.compteId} v={vigilance(p.vigilance, p.siren, attestations, aujourdhui)} modifiable={!termine} />}
                         </li>
                       ))}
                     </ul>

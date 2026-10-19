@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, Check, ClipboardCheck, Eye, FileText, Flag, ImageIcon, Lock, Mail, MessageSquare, Plus, Send, ShieldCheck, Users } from "lucide-react";
+import { CalendarClock, Check, ClipboardCheck, Eye, FileText, Flag, ImageIcon, Lock, Mail, MessageSquare, Plus, Send, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,10 @@ import type { ElementVu, LotVu, ParticipantVu } from "@/lib/fiche";
 import { dateCourte } from "@/lib/format";
 import { bandeDesJours, compteurs, dansOnglet, GESTE_PAR_DEFAUT, gestesDe, ONGLETS_FIL, TITRE_ONGLET, type Compteur, type OngletFil } from "@/lib/fil-onglets";
 import { LIBELLE_SIGNALEMENT, LIBELLE_TYPE } from "@/lib/libelles";
+import type { ExigenceVue } from "@/lib/pieces";
+import { estFournie } from "@/lib/pieces-regles";
 import { cn } from "@/lib/utils";
+import { PiecesAttendues, type Intervenant } from "./pieces";
 import { ecrireDansLeFil, partagerElement, qualifierSignalement } from "./actions";
 import { useActionChantier } from "./use-action-chantier";
 
@@ -261,7 +264,8 @@ function enAttenteDe(e: ElementVu) {
 export type DossierFiche = {
   pv: { lien: string; signeLe: string | null; dateReception: string; reserves: number } | null;
   courriers: { id: string; titre: string; date: string; origine: string }[];
-  attestations: { nom: string; etat: string; aJour: boolean; lien: string | null }[];
+  // Les pièces attendues (lib/pieces.ts) : pour un externe, seulement les siennes.
+  pieces: { exigences: ExigenceVue[]; intervenants: Intervenant[]; moi: string; modifiable: boolean };
 };
 
 function CarteElement(props: { chantierId: string; e: ElementVu; interne: boolean; externes: ParticipantVu[]; nomDe: Map<string, string> }) {
@@ -413,7 +417,7 @@ function jourMois(iso: string) {
 // L'onglet Documents se lit comme un dossier rangé : une seule carte, des rubriques
 // l'une sous l'autre. La rubrique « Pièces attendues » (tranche suivante) viendra
 // se poser en tête de cette carte, avant « Documents du chantier ».
-function Documents(props: { elements: ElementVu[]; dossier: DossierFiche; interne: boolean; nomDe: Map<string, string> }) {
+function Documents(props: { chantierId: string; elements: ElementVu[]; dossier: DossierFiche; interne: boolean; nomDe: Map<string, string> }) {
   const { dossier } = props;
   // « Déposer » mène au formulaire en bas de l'onglet, déjà réglé sur le dépôt d'un document.
   const deposer = () => {
@@ -421,7 +425,10 @@ function Documents(props: { elements: ElementVu[]; dossier: DossierFiche; intern
     document.getElementById("fichier")?.focus({ preventScroll: true });
   };
   return (
-    <div className="flex flex-col divide-y rounded-3xl bg-card">
+    <div className="flex flex-col gap-5">
+      {/* En tête : ce qu'on attend de chacun, avant ce qui a été déposé. */}
+      <PiecesAttendues chantierId={props.chantierId} exigences={dossier.pieces.exigences} intervenants={dossier.pieces.intervenants} interne={props.interne} moi={dossier.pieces.moi} modifiable={dossier.pieces.modifiable} />
+      <div className="flex flex-col divide-y rounded-3xl bg-card">
       <Rubrique
         titre="Documents du chantier"
         nombre={props.elements.length}
@@ -454,13 +461,6 @@ function Documents(props: { elements: ElementVu[]; dossier: DossierFiche; intern
           ))}
         </Rubrique>
       )}
-      {dossier.attestations.length > 0 && (
-        <Rubrique titre="Attestations de vigilance" nombre={dossier.attestations.length}>
-          {dossier.attestations.map((a) => (
-            <Ligne key={a.nom} lien={a.lien} icone={ShieldCheck} titre={a.nom} detail="Attestation URSSAF, renouvelée tous les 6 mois" etat={<Etat aFaire={!a.aJour}>{a.etat}</Etat>} />
-          ))}
-        </Rubrique>
-      )}
       <Rubrique titre="Fin de chantier" nombre={dossier.pv ? 1 : 0} vide="Le PV de réception se rangera ici quand le chantier passera en réception.">
         {dossier.pv && (
           <Ligne
@@ -472,6 +472,7 @@ function Documents(props: { elements: ElementVu[]; dossier: DossierFiche; intern
           />
         )}
       </Rubrique>
+      </div>
     </div>
   );
 }
@@ -630,8 +631,10 @@ export function Fil(props: {
   const nomDe = new Map(props.participants.map((p) => [p.compteId, p.nom]));
   const [onglet, setOnglet] = useState<OngletFil>(props.ongletInitial);
   const [tout, setTout] = useState(false);
-  const extras = (props.dossier.pv ? 1 : 0) + props.dossier.courriers.length + props.dossier.attestations.length;
-  const compte = compteurs(props.elements, props.aujourdhui, { documents: extras });
+  const extras = (props.dossier.pv ? 1 : 0) + props.dossier.courriers.length + props.dossier.pieces.exigences.length;
+  // Une pièce attend une action quand elle n'est pas fournie : manquante, refusée, expirée, ou à valider (équipe).
+  const piecesATraiter = props.dossier.pieces.exigences.filter((x) => !estFournie(x.etat) && (props.interne || x.etat.etat !== "a_valider")).length;
+  const compte = compteurs(props.elements, props.aujourdhui, { documents: extras, documentsATraiter: piecesATraiter });
   const elements = props.elements.filter((e) => dansOnglet(onglet, e.type));
   const debut = elements.length - DERNIERS_VISIBLES;
   const visible = (e: ElementVu, i: number) => onglet !== "fil" || tout || i >= debut || enAttenteDe(e);
@@ -670,7 +673,7 @@ export function Fil(props: {
 
       <div id="panneau-fil" role="tabpanel" aria-labelledby={`onglet-fil-${onglet}`} className="flex flex-col gap-5">
         {onglet === "documents" ? (
-          <Documents elements={elements} dossier={props.dossier} interne={props.interne} nomDe={nomDe} />
+          <Documents chantierId={props.chantierId} elements={elements} dossier={props.dossier} interne={props.interne} nomDe={nomDe} />
         ) : (
           <>
             {onglet === "demandes" && <BandeDispos elements={elements} aujourdhui={props.aujourdhui} />}

@@ -6,7 +6,7 @@ import { peutCreerChantier, voitLInterne } from "@/lib/acces";
 import { formulaireChantier } from "@/lib/chantier-forme";
 import { lireChantier, prochaineReference } from "@/lib/chantiers";
 import { db } from "@/lib/db";
-import { attestations, chantiers, comptes, entreprises, fil, pvReception, lots, participants, type StatutChantier, type StatutLot, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
+import { chantiers, comptes, entreprises, fil, pvReception, lots, participants, type StatutChantier, type StatutLot, type StatutSignalement, type TypeFil } from "@/lib/db/schema";
 import { adresseDuSite, alerterGerants, envoyerCourriel } from "@/lib/courriel";
 import { chercherDansLeRegistre, enregistrer, lireDuRegistre } from "@/lib/entreprises";
 import { estSiren, lireRecherche, type FicheEntreprise } from "@/lib/entreprises-regles";
@@ -15,7 +15,6 @@ import { contexteChantier, estParticipant } from "@/lib/fiche";
 import { lireProfil } from "@/lib/profil";
 import { contenuPv, lirePv } from "@/lib/reception";
 import { texteCanonique, verifierPreparation, verifierSignature } from "@/lib/reception-regles";
-import { verifierDepot } from "@/lib/vigilance-regles";
 import { nomPropre, verifierFichier } from "@/lib/fichiers";
 import { formulaireInvitation } from "@/lib/invitation";
 import { creerJeton } from "@/lib/jetons";
@@ -547,58 +546,6 @@ export async function signerPv(demandeur: Appelant | null, chantierId: string, d
   );
   rafraichir(chantierId);
   return { ok: true, message: "PV signé. Merci : l'entreprise en est informée." };
-}
-
-// ——— Attestations de vigilance ———
-
-export async function exigerVigilance(demandeur: Appelant | null, chantierId: string, compteId: string, exigee: boolean): Promise<Resultat> {
-  const p = await porte(demandeur, chantierId, true);
-  if ("ok" in p) return p;
-  const c = await cibleValable(chantierId, compteId);
-  if (!c.ok || c.client) return { ok: false, erreur: "Cette personne ne participe pas à ce chantier." };
-  await db.update(participants).set({ vigilance: exigee === true }).where(and(eq(participants.chantierId, chantierId), eq(participants.compteId, compteId)));
-  journal("vigilance_exigee", { compte: p.qui.id, chantier: chantierId, externe: compteId, exigee: exigee === true });
-  rafraichir(chantierId);
-  return { ok: true, message: exigee ? "Attestation de vigilance exigée." : "Attestation de vigilance plus exigée sur ce chantier." };
-}
-
-// L'équipe dépose l'attestation d'un sous-traitant, ou le sous-traitant dépose la sienne.
-export async function deposerAttestation(demandeur: Appelant | null, chantierId: string, compteId: string, formData: FormData): Promise<Resultat> {
-  const p = await porte(demandeur, chantierId, false);
-  if ("ok" in p) return p;
-  const { qui } = p;
-  const interne = voitLInterne(qui.role);
-  if (!interne && qui.id !== compteId) {
-    journal("action_refusee", { compte: qui.id, role: qui.role, chantier: chantierId, action: "attestation" });
-    return { ok: false, erreur: "Vous ne pouvez déposer que votre propre attestation." };
-  }
-  const c = await cibleValable(chantierId, compteId);
-  if (!c.ok || c.client) return { ok: false, erreur: "Cette personne ne participe pas à ce chantier." };
-  const [compte] = await db.select({ siren: comptes.siren }).from(comptes).where(eq(comptes.id, compteId)).limit(1);
-  if (!compte?.siren) return { ok: false, erreur: interne ? "Vérifiez d'abord l'entreprise de cette personne : l'attestation s'y rattache." : "Votre entreprise n'est pas encore vérifiée : demandez à l'équipe de le faire." };
-
-  const f = formData.get("fichier");
-  if (!(f instanceof File) || f.size === 0) return { ok: false, erreur: "Joignez l'attestation en PDF." };
-  const delivreeLe = typeof formData.get("delivreeLe") === "string" ? String(formData.get("delivreeLe")) : "";
-  const codeSecurite = (typeof formData.get("codeSecurite") === "string" ? String(formData.get("codeSecurite")) : "").replace(/\s/g, "").toUpperCase();
-  const forme = verifierFichier(f);
-  if (!forme.ok) return { ok: false, erreur: forme.raison };
-  const verdict = verifierDepot({ delivreeLe, aujourdhui: aujourdhuiParis(), codeSecurite, type: f.type });
-  if (!verdict.ok) return { ok: false, erreur: verdict.raison };
-  if (await atteinte("fichiersParJour", qui.id)) return { ok: false, erreur: "Plafond de dépôts atteint pour aujourd'hui. Réessayez demain." };
-  await noter("fichiersParJour", qui.id);
-
-  let url: string;
-  try {
-    url = (await put(`attestations/${compte.siren}/${nomPropre(f.name)}`, f, { access: "private", addRandomSuffix: true, contentType: f.type })).url;
-  } catch (err) {
-    journal("fichier_echec", { compte: qui.id, chantier: chantierId, erreur: String(err) });
-    return { ok: false, erreur: "Le fichier n'a pas pu être enregistré. Réessayez." };
-  }
-  await db.insert(attestations).values({ siren: compte.siren, delivreeLe, codeSecurite: codeSecurite || null, fichierUrl: url, fichierNom: f.name.slice(0, 200), fichierTaille: f.size, deposePar: qui.id });
-  journal("attestation_deposee", { compte: qui.id, chantier: chantierId, siren: compte.siren, delivree_le: delivreeLe });
-  rafraichir(chantierId);
-  return { ok: true, message: "Attestation enregistrée." };
 }
 
 const LIBELLE_LOT: Record<StatutLot, string> = {
