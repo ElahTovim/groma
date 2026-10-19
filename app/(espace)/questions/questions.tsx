@@ -201,6 +201,9 @@ export function Questions() {
                           {controle && <span className="ml-2 text-xs text-muted-foreground">{citee ? "citée" : "non citée"}</span>}
                         </summary>
                         <p className="mt-2 max-h-72 overflow-auto text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">{s.extrait}</p>
+                        <a href={`/questions/documents/${s.documentId}#page-${s.page}`} className="mt-2 inline-block text-xs underline underline-offset-2">
+                          Ouvrir le document à la page {s.page}
+                        </a>
                       </details>
                     </li>
                   );

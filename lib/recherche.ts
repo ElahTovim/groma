@@ -1,6 +1,6 @@
-import { asc, cosineDistance, eq, sql } from "drizzle-orm";
+import { asc, cosineDistance, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { documents, morceaux } from "@/lib/db/schema";
+import { chantiers, documents, morceaux } from "@/lib/db/schema";
 import { appelerFlux } from "@/lib/flux";
 import { vectoriser, type Demandeur } from "@/lib/ia";
 import { journal } from "@/lib/journal";
@@ -38,7 +38,7 @@ export type BilanIndexation =
 
 const LECTURES_EN_PARALLELE = 4;
 
-async function lireUnDocument(id: string): Promise<{ ok: true; doc: DocumentLu } | { ok: false; id: string; raison: string }> {
+export async function lireUnDocument(id: string): Promise<{ ok: true; doc: DocumentLu } | { ok: false; id: string; raison: string }> {
   const r = await appelerFlux("documents", { id });
   if (!r.ok) return { ok: false, id, raison: `le flux a répondu ${r.statut ?? "rien"} : ${r.erreur.slice(0, 120)}` };
   const lu = lireDocument(r.corps, id);
@@ -158,4 +158,15 @@ export async function chercherPassages(demandeur: Demandeur, question: string): 
     .limit(REGLAGES_RECHERCHE.passagesMax * 2);
   const passages = lignes.map((l) => ({ ...l, distance: Number(l.distance) }));
   return { ok: true, sources: retenirSources(passages), plusProche: passages[0]?.distance ?? null };
+}
+
+// Les références de chantier citées dans un document, et celles qui existent dans groma.
+// Les documents du flux décrivent l'entreprise fictive du séminaire : la plupart de leurs
+// références ne correspondent à aucun chantier de groma, et l'écran le dit.
+export async function referencesCitees(pages: string[]): Promise<{ reference: string; chantierId: string | null }[]> {
+  const trouvees = [...new Set(pages.join("\n").match(/\bCHA?-\d{4,8}-[A-Z0-9]{2,4}\b/g) ?? [])];
+  if (trouvees.length === 0) return [];
+  const connus = await db.select({ id: chantiers.id, reference: chantiers.reference }).from(chantiers).where(inArray(chantiers.reference, trouvees));
+  const parRef = new Map(connus.map((c) => [c.reference, c.id]));
+  return trouvees.map((reference) => ({ reference, chantierId: parRef.get(reference) ?? null }));
 }

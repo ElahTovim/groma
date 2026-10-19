@@ -24,7 +24,10 @@ export default async function DocumentsIndexes() {
         ← Questions
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Documents indexés</h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Documents indexés</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">Les documents de référence fournis par le flux : procédures, contrats types, comptes rendus, notes de service. Ils ne sont rattachés à aucun chantier ; ils servent de base aux réponses. Cliquez sur un titre pour le lire.</p>
+        </div>
         {qui.role === "gerant" && <BoutonIndexer libelle={docs.length ? "Mettre à jour l'index" : "Indexer les documents du flux"} variant={docs.length ? "outline" : "default"} />}
       </div>
 
@@ -49,7 +52,9 @@ export default async function DocumentsIndexes() {
               {docs.map((d) => (
                 <tr key={d.id} className="border-b">
                   <td className="py-2 pr-3">
-                    <span className="font-medium">{d.titre}</span>
+                    <Link href={`/questions/documents/${d.id}`} className="font-medium underline-offset-2 hover:underline">
+                      {d.titre}
+                    </Link>
                     <span className="block font-mono text-xs text-muted-foreground">{d.id}</span>
                   </td>
                   <td className="py-2 pr-3">{d.type ?? "non précisé"}</td>
