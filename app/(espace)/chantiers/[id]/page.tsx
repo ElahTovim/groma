@@ -10,7 +10,9 @@ import { lireChantier } from "@/lib/chantiers";
 import { lireEntreprises, type EntrepriseVue } from "@/lib/entreprises";
 import { lirePv } from "@/lib/reception";
 import { dernieresAttestations, type DerniereAttestation } from "@/lib/vigilance";
-import { etatAttestation } from "@/lib/vigilance-regles";
+import { etatAttestation, libelleEtat } from "@/lib/vigilance-regles";
+import { courriersDuChantier } from "@/lib/courriers";
+import { ongletDepuis } from "@/lib/fil-onglets";
 import { contexteChantier, lireFil, lireLots, lireParticipants, maParticipation } from "@/lib/fiche";
 import { dateCourte, euros } from "@/lib/format";
 import { journal } from "@/lib/journal";
@@ -21,7 +23,7 @@ import { ATraiterFiche } from "./a-traiter";
 import { Chiffres } from "./chiffres";
 import { Entreprise, type EntrepriseAffichee } from "./entreprise";
 import { EtapeChantier } from "./etape";
-import { Fil } from "./fil";
+import { Fil, type DossierFiche } from "./fil";
 import { FriseEtapes } from "./frise";
 import { Inviter } from "./inviter";
 import { Livraisons } from "./livraisons";
@@ -50,7 +52,7 @@ function pourAfficher(e: EntrepriseVue | undefined): EntrepriseAffichee | null {
 export default async function FicheChantier({ params, searchParams }: PageProps<"/chantiers/[id]">) {
   const qui = await appelantObligatoire();
   const { id } = await params;
-  const { cree } = await searchParams;
+  const { cree, onglet } = await searchParams;
 
   const chantier = await lireChantier(qui, id);
   if (!chantier) {
@@ -81,9 +83,19 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
   const maPlace = interne ? null : await maParticipation(chantier.id, qui.id);
   const attestations = await dernieresAttestations(interne ? participants.map((p) => p.siren) : [maPlace?.siren ?? null]);
 
+  // L'onglet Documents rassemble ce qui vit ailleurs : PV, courriers rattachés, attestations.
+  const dossier: DossierFiche = {
+    pv: pvVisible && { lien: `/api/pv/${chantier.id}`, signeLe: pvVisible.signeLe, dateReception: pvVisible.dateReception, reserves: pvVisible.reserves.length },
+    courriers: interne ? await courriersDuChantier(chantier.id) : [],
+    attestations: (interne ? participants.filter((p) => p.role === "externe" && p.vigilance) : maPlace?.vigilance ? [{ nom: "Votre attestation", siren: maPlace.siren }] : []).map((p) => {
+      const v = vigilance(true, p.siren, attestations, aujourdhui);
+      return { nom: p.nom, etat: libelleEtat(v.etat), aJour: v.etat.etat === "a_jour", lien: v.attestation ? `/api/attestations/${v.attestation.id}` : null };
+    }),
+  };
+
   const onglets = [
     ...(interne ? [{ cle: "lots", titre: "Lots", nombre: lots.length, contenu: <Lots chantierId={chantier.id} lots={lots} participants={participants} modifiable={!termine} aujourdhui={aujourdhui} /> }] : []),
-    { cle: "fil", titre: "Fil", nombre: elements.length, contenu: <Fil chantierId={chantier.id} interne={interne} elements={elements} participants={participants} lots={lots} /> },
+    { cle: "fil", titre: "Fil", nombre: elements.length, contenu: <Fil chantierId={chantier.id} interne={interne} elements={elements} participants={participants} lots={lots} dossier={dossier} ongletInitial={ongletDepuis(onglet)} aujourdhui={aujourdhui} /> },
   ];
 
   return (
