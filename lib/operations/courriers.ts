@@ -1,12 +1,15 @@
+import { put } from "@vercel/blob";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { voitLInterne } from "@/lib/acces";
 import { lireChantier } from "@/lib/chantiers";
 import { db } from "@/lib/db";
 import { courriers, fil } from "@/lib/db/schema";
-import { champsCorriges, elementDuFil, formulaireValidation, motifRejetValide, type ChampsCourrier } from "@/lib/courriers-regles";
-import { importerCourriers, lireParLIa, rangerLecture, type ChampsRanges } from "@/lib/courriers";
+import { champsCorriges, elementDuFil, formulaireValidation, idDepot, motifRejetValide, ressembleAUnPdf, verifierDepot, type ChampsCourrier } from "@/lib/courriers-regles";
+import { importerCourriers, lireParLIa, pdfDuCourrier, rangerLecture, type ChampsRanges } from "@/lib/courriers";
+import { nomPropre } from "@/lib/fichiers";
 import { journal } from "@/lib/journal";
+import { atteinte, noter } from "@/lib/limites";
 import type { Appelant } from "@/lib/session";
 
 // Les opérations sur les courriers : la porte unique de AGENTS.md.
@@ -61,6 +64,53 @@ export async function importer(qui: Appelant | null): Promise<Resultat> {
   return b.echecsLecture === 0 ? { ok: true, message: texte } : { ok: false, erreur: texte };
 }
 
+// ——— Déposer un courrier (gérant et équipe) : un texte collé, ou un PDF ———
+
+export type ResultatDepot = { ok: true; id: string; message: string; lu: boolean } | { ok: false; erreur: string };
+
+// Le courrier est créé « à relire », puis lu tout de suite par le modèle, comme ceux du flux.
+// Si la lecture échoue, le courrier existe quand même : sa fiche le dit, et propose de relire.
+export async function deposer(qui: Appelant | null, donnees: FormData): Promise<ResultatDepot> {
+  const refus = interne(qui, "courrier_deposer");
+  if (refus) return refus as { ok: false; erreur: string };
+
+  const brut = donnees?.get?.("fichier");
+  const fichier = brut instanceof File ? brut : null;
+  const v = verifierDepot({ texte: donnees?.get?.("texte"), fichier });
+  if (!v.ok) return { ok: false, erreur: v.raison };
+
+  let pdf: string | undefined;
+  let rangement: { fichierUrl: string; fichierNom: string } | null = null;
+  if (v.mode === "pdf" && fichier) {
+    const octets = new Uint8Array(await fichier.arrayBuffer());
+    if (!ressembleAUnPdf(octets)) return { ok: false, erreur: "Ce fichier n'est pas un vrai PDF. Collez plutôt le texte du courrier." };
+    if (await atteinte("fichiersParJour", qui!.id)) return { ok: false, erreur: "Plafond de dépôts atteint pour aujourd'hui. Réessayez demain." };
+    await noter("fichiersParJour", qui!.id);
+    try {
+      // En accès privé : il ne sera servi que par /api/courriers/[id]/fichier, à l'équipe.
+      const b = await put(`courriers/${nomPropre(fichier.name)}`, fichier, { access: "private", addRandomSuffix: true, contentType: "application/pdf" });
+      rangement = { fichierUrl: b.url, fichierNom: fichier.name.slice(0, 200) };
+    } catch (err) {
+      journal("fichier_echec", { compte: qui!.id, quoi: "courrier", erreur: String(err) });
+      return { ok: false, erreur: "Le PDF n'a pas pu être enregistré. Réessayez." };
+    }
+    pdf = Buffer.from(octets).toString("base64");
+  }
+
+  const id = idDepot(crypto.randomUUID());
+  // Pour un PDF, le texte est vide jusqu'à ce que le modèle en rende la transcription.
+  await db.insert(courriers).values({ id, origine: "depot", deposePar: qui!.id, texte: v.mode === "texte" ? v.texte : "", ...rangement });
+  journal("courrier_depose", { compte: qui!.id, role: qui!.role, courrier: id, mode: v.mode, taille: fichier?.size ?? null });
+
+  const r = await lireParLIa({ compteId: qui!.id, fonction: FONCTION_IA }, v.mode === "texte" ? v.texte : "", pdf);
+  await rangerLecture(id, r);
+  journal("courrier_relu", { compte: qui!.id, courrier: id, ok: r.ok, pdf: Boolean(pdf) });
+  rafraichir(id);
+  return r.ok
+    ? { ok: true, id, lu: true, message: "Courrier déposé et lu par l'IA. Relisez les champs proposés avant de valider." }
+    : { ok: true, id, lu: false, message: `Courrier déposé, mais l'IA n'a pas pu le lire : ${r.erreur}` };
+}
+
 // ——— Relancer la lecture d'un courrier ———
 
 export async function relire(qui: Appelant | null, id: string): Promise<Resultat> {
@@ -69,9 +119,16 @@ export async function relire(qui: Appelant | null, id: string): Promise<Resultat
   const c = await courrierARelire(id);
   if (!c) return { ok: false, erreur: "Courrier introuvable." };
   if (c.statut !== "a_relire") return { ok: false, erreur: "Ce courrier est déjà traité : il ne se relit plus." };
-  const r = await lireParLIa({ compteId: qui!.id, fonction: FONCTION_IA }, c.texte);
+  // Un courrier déposé en PDF se relit depuis son fichier, pas depuis sa transcription.
+  let pdf: string | undefined;
+  if (c.fichierUrl) {
+    const lu = await pdfDuCourrier(c.fichierUrl);
+    if (!lu) return { ok: false, erreur: "Le PDF de ce courrier est introuvable. Remplissez les champs à la main." };
+    pdf = lu;
+  }
+  const r = await lireParLIa({ compteId: qui!.id, fonction: FONCTION_IA }, c.texte, pdf);
   const range = await rangerLecture(c.id, r);
-  journal("courrier_relu", { compte: qui!.id, courrier: c.id, ok: r.ok });
+  journal("courrier_relu", { compte: qui!.id, courrier: c.id, ok: r.ok, pdf: Boolean(pdf) });
   rafraichir(c.id);
   if (!range) return { ok: false, erreur: "Ce courrier a changé entre-temps. La page va se recharger." };
   return r.ok ? { ok: true, message: "Courrier relu par l'IA. Vérifiez les champs proposés." } : { ok: false, erreur: `Lecture impossible : ${r.erreur}` };
@@ -153,7 +210,7 @@ export async function rejeter(qui: Appelant | null, id: string, motif: string): 
   if (!m) return { ok: false, erreur: "Indiquez le motif du rejet." };
   const fait = await db
     .update(courriers)
-    .set({ champs: { ...((c.champs ?? {}) as ChampsRanges), motifRejet: m }, statut: "rejete", validePar: qui!.id, valideLe: new Date() })
+    .set({ motifRejet: m, statut: "rejete", validePar: qui!.id, valideLe: new Date() })
     .where(and(eq(courriers.id, c.id), eq(courriers.statut, "a_relire")))
     .returning({ id: courriers.id });
   if (fait.length === 0) return { ok: false, erreur: "Ce courrier a changé entre-temps. La page va se recharger." };

@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { voitLInterne } from "@/lib/acces";
-import { chantiersRattachables, lireCourrier, PREFIXE_ECHEC, type ChampsRanges } from "@/lib/courriers";
-import { CATEGORIES_COURRIER, libelleCategorie, NOMS_CHAMPS, proposerRattachement } from "@/lib/courriers-regles";
+import { chantiersRattachables, lireCourrier, type ChampsRanges } from "@/lib/courriers";
+import {
+  bilanChamps,
+  CATEGORIES_COURRIER,
+  erreurDeLecture,
+  estDepot,
+  incertitudesAffichees,
+  libelleCategorie,
+  motifDuRejet,
+  NOMS_CHAMPS,
+  proposerRattachement,
+} from "@/lib/courriers-regles";
 import { appelantObligatoire } from "@/lib/session";
 import { FicheCourrier } from "./fiche";
 
@@ -35,7 +45,10 @@ export default async function PageCourrier({ params }: PageProps<"/courriers/[id
   const rattachables = await chantiersRattachables(qui);
   // Le rattachement proposé est recalculé : un chantier créé depuis la lecture est trouvé.
   const propose = c.statut === "a_relire" ? (proposerRattachement(champs?.reference ?? null, rattachables) ?? null) : null;
-  const echec = c.incertitudes.find((i) => i.startsWith(PREFIXE_ECHEC)) ?? null;
+  const echec = erreurDeLecture(c);
+  const depose = estDepot(c);
+  // Le bilan d'un courrier validé : ce que l'IA proposait (champs.ia) face à ce qui a été retenu.
+  const bilan = c.statut === "valide" && champs?.ia ? bilanChamps(champs.ia, champs) : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -45,7 +58,7 @@ export default async function PageCourrier({ params }: PageProps<"/courriers/[id
         </Link>
         <h1 className="font-display text-3xl font-extrabold tracking-tight md:text-4xl">{champs?.expediteur ?? champs?.societe ?? "Courrier"}</h1>
         <p className="text-sm text-muted-foreground">
-          Reçu le {jour(c.recuLe)} · identifiant du flux {c.id}
+          {depose ? `Déposé le ${jour(c.recuLe)}${lu.deposant ? ` par ${lu.deposant}` : ""}${c.fichierNom ? " · PDF" : " · texte collé"}` : `Reçu le ${jour(c.recuLe)} · identifiant du flux ${c.id}`}
           {c.luLe && ` · lu par l'IA le ${jour(c.luLe)}`}
         </p>
       </div>
@@ -53,13 +66,16 @@ export default async function PageCourrier({ params }: PageProps<"/courriers/[id
       <FicheCourrier
         id={c.id}
         texte={c.texte}
+        fichier={c.fichierUrl ? { href: `/api/courriers/${encodeURIComponent(c.id)}/fichier`, nom: c.fichierNom ?? "courrier.pdf" } : null}
+        bilan={bilan}
+        valideSansLecture={c.statut === "valide" && !champs?.ia}
         statut={c.statut}
         lu={Boolean(c.luLe)}
         echec={echec}
         champs={Object.fromEntries(NOMS_CHAMPS.map((k) => [k, champs?.[k] ?? null])) as Record<(typeof NOMS_CHAMPS)[number], string | number | null>}
         proposeParIa={Object.fromEntries(NOMS_CHAMPS.map((k) => [k, (champs?.ia ?? champs)?.[k] ?? null])) as Record<(typeof NOMS_CHAMPS)[number], string | number | null>}
         corriges={champs?.corriges ?? []}
-        incertitudes={c.incertitudes.filter((i) => i !== echec)}
+        incertitudes={incertitudesAffichees(c.incertitudes)}
         resume={c.resume}
         brouillon={c.brouillon}
         categories={CATEGORIES_COURRIER.map((x) => ({ code: x.code, libelle: x.libelle }))}
@@ -67,7 +83,7 @@ export default async function PageCourrier({ params }: PageProps<"/courriers/[id
         chantiers={rattachables}
         chantierPropose={propose}
         chantierRattache={lu.chantierReference ? { id: c.chantierId!, reference: lu.chantierReference, nom: lu.chantierNom ?? "" } : null}
-        traitement={c.statut === "a_relire" ? null : { par: lu.validateur ?? "un compte supprimé", le: jour(c.valideLe), motif: champs?.motifRejet ?? null }}
+        traitement={c.statut === "a_relire" ? null : { par: lu.validateur ?? "un compte supprimé", le: jour(c.valideLe), motif: motifDuRejet(c) }}
       />
     </div>
   );

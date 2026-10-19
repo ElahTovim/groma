@@ -6,7 +6,7 @@
 import * as op from "@/lib/operations/courriers";
 import { appelant } from "@/lib/session";
 
-export type { Resultat } from "@/lib/operations/courriers";
+export type { Resultat, ResultatDepot } from "@/lib/operations/courriers";
 
 export async function importerCourriers() {
   return op.importer(await appelant());
@@ -22,4 +22,8 @@ export async function validerCourrier(id: string, donnees: Record<string, string
 
 export async function rejeterCourrier(id: string, motif: string) {
   return op.rejeter(await appelant(), id, motif);
+}
+
+export async function deposerCourrier(donnees: FormData) {
+  return op.deposer(await appelant(), donnees);
 }

@@ -1,27 +1,42 @@
+import { get } from "@vercel/blob";
 import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { equipeVoitTout } from "@/lib/acces";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
 import { chantiers, comptes, courriers, participants } from "@/lib/db/schema";
 import { appelerFlux } from "@/lib/flux";
 import { demanderStructure, type Demandeur } from "@/lib/ia";
 import { enDocument } from "@/lib/ia-regles";
-import { CONSIGNE_LECTURE, decrireForme, lireCourriersDuFlux, schemaLecture, verifierLecture, type ChampsCourrier, type Lecture } from "@/lib/courriers-regles";
+import {
+  bilanGlobal,
+  CONSIGNE_LECTURE,
+  CONSIGNE_LECTURE_PDF,
+  decrireForme,
+  lireCourriersDuFlux,
+  messagePdfTropLourd,
+  pdfTropLourdPourLIa,
+  REGLES_DEPOT,
+  schemaLecture,
+  schemaLecturePdf,
+  transcriptionValide,
+  verifierLecture,
+  type ChampsCourrier,
+  type Lecture,
+} from "@/lib/courriers-regles";
 import { journal } from "@/lib/journal";
 import { aujourdhuiParis } from "@/lib/regles";
 import type { Appelant } from "@/lib/session";
 
-// Les courriers du flux : les importer, les faire lire par le modèle, les lister.
+// Les courriers du flux et les courriers déposés : les importer, les faire lire par le modèle, les lister.
 // Ce module ne décide rien : il est appelé par la porte unique (lib/operations/courriers.ts),
 // qui vérifie d'abord qui appelle. Ce que le modèle propose reste « à relire ».
 
 export type StatutCourrier = (typeof courriers.$inferSelect)["statut"];
 
 // Ce qui est rangé dans la colonne « champs » : les valeurs, et après validation,
-// ce que l'IA avait proposé (pour compter ce qu'elle a raté ou inventé) et le motif d'un rejet.
+// ce que l'IA avait proposé (pour le bilan : ce qu'elle a eu juste, raté ou inventé).
+// motifRejet n'y est plus écrit (il a sa colonne) : il n'y reste que sur les anciens courriers.
 export type ChampsRanges = Partial<ChampsCourrier> & { ia?: Partial<ChampsCourrier> | null; corriges?: string[]; motifRejet?: string; chantierPropose?: string | null };
-
-// Le préfixe d'une incertitude qui dit que la lecture a échoué : l'écran la montre telle quelle.
-export const PREFIXE_ECHEC = "Lecture par l'IA impossible :";
 
 // Les chantiers qu'on peut proposer au rattachement, selon les droits de la personne.
 export async function chantiersRattachables(qui: Appelant | null): Promise<{ id: string; reference: string; nom: string }[]> {
@@ -33,23 +48,52 @@ export async function chantiersRattachables(qui: Appelant | null): Promise<{ id:
     .orderBy(chantiers.reference);
 }
 
+export type ResultatLecture = { ok: true; lecture: Lecture; transcription?: string | null } | { ok: false; erreur: string };
+
 // Faire lire un courrier par le modèle, puis passer sa réponse aux règles.
-export async function lireParLIa(demandeur: Demandeur, texte: string): Promise<{ ok: true; lecture: Lecture } | { ok: false; erreur: string }> {
+// Avec un PDF (en base64), le modèle lit le fichier et en rend aussi la transcription :
+// les vérifications (référence citée, montant écrit) portent alors sur ce texte.
+export async function lireParLIa(demandeur: Demandeur, texte: string, pdf?: string): Promise<ResultatLecture> {
+  const refs = async () => (await db.select({ id: chantiers.id, reference: chantiers.reference }).from(chantiers)).map((c) => ({ id: c.id, reference: c.reference }));
+  if (pdf) {
+    if (pdfTropLourdPourLIa(Math.floor((pdf.length * 3) / 4))) return { ok: false, erreur: messagePdfTropLourd() };
+    const r = await demanderStructure(demandeur, {
+      gamme: "rapide",
+      consigne: CONSIGNE_LECTURE_PDF,
+      contenu: enDocument("Le courrier à lire est le PDF joint."),
+      schema: schemaLecturePdf,
+      maxJetons: REGLES_DEPOT.jetonsLecturePdf,
+      pdf,
+    });
+    if (!r.ok) return r;
+    const transcription = transcriptionValide(r.donnees.transcription);
+    return { ok: true, transcription, lecture: verifierLecture(r.donnees, transcription ?? "", { aujourdhui: aujourdhuiParis(), chantiers: await refs() }) };
+  }
   const r = await demanderStructure(demandeur, {
     gamme: "rapide",
     consigne: CONSIGNE_LECTURE,
     contenu: enDocument(texte),
     schema: schemaLecture,
-    maxJetons: 1500,
+    maxJetons: REGLES_DEPOT.jetonsLectureTexte,
   });
   if (!r.ok) return r;
-  const refs = (await db.select({ id: chantiers.id, reference: chantiers.reference }).from(chantiers)).map((c) => ({ id: c.id, reference: c.reference }));
-  return { ok: true, lecture: verifierLecture(r.donnees, texte, { aujourdhui: aujourdhuiParis(), chantiers: refs }) };
+  return { ok: true, lecture: verifierLecture(r.donnees, texte, { aujourdhui: aujourdhuiParis(), chantiers: await refs() }) };
+}
+
+// Le PDF d'un courrier déposé, relu depuis Vercel Blob (accès privé) pour une nouvelle lecture.
+export async function pdfDuCourrier(fichierUrl: string): Promise<string | null> {
+  try {
+    const b = await get(fichierUrl, { access: "private" });
+    if (!b?.stream) return null;
+    return Buffer.from(await new Response(b.stream).arrayBuffer()).toString("base64");
+  } catch {
+    return null;
+  }
 }
 
 // Ranger le résultat d'une lecture. Seulement sur un courrier encore « à relire » :
 // un courrier validé ou rejeté entre-temps ne bouge plus.
-export async function rangerLecture(id: string, r: Awaited<ReturnType<typeof lireParLIa>>): Promise<boolean> {
+export async function rangerLecture(id: string, r: ResultatLecture): Promise<boolean> {
   const valeurs = r.ok
     ? {
         champs: { ...r.lecture.champs, chantierPropose: r.lecture.chantierPropose } satisfies ChampsRanges,
@@ -57,10 +101,13 @@ export async function rangerLecture(id: string, r: Awaited<ReturnType<typeof lir
         categorie: r.lecture.champs.categorie,
         resume: r.lecture.resume,
         brouillon: r.lecture.brouillon,
+        erreurLecture: null,
         luLe: new Date(),
+        // La transcription d'un PDF devient le texte du courrier.
+        ...(r.transcription ? { texte: r.transcription } : {}),
       }
-    : // Une IA en panne laisse le courrier sans champs, et le dit.
-      { champs: null, incertitudes: [`${PREFIXE_ECHEC} ${r.erreur}`], categorie: null, resume: null, brouillon: null, luLe: null };
+    : // Une IA en panne laisse le courrier sans champs, et le dit dans sa colonne.
+      { champs: null, incertitudes: [], erreurLecture: r.erreur.slice(0, 500), categorie: null, resume: null, brouillon: null, luLe: null };
   const fait = await db
     .update(courriers)
     .set(valeurs)
@@ -108,11 +155,12 @@ export async function importerCourriers(demandeur: Demandeur): Promise<BilanImpo
     nouveaux = inseres.length;
   }
 
-  // Tous les courriers encore à lire, y compris ceux qu'une IA en panne avait laissés.
+  // Tous les courriers du flux encore à lire, y compris ceux qu'une IA en panne avait laissés.
+  // Un courrier déposé se relit depuis sa fiche (« Relire avec l'IA »), avec son PDF.
   const aLire = await db
     .select({ id: courriers.id, texte: courriers.texte })
     .from(courriers)
-    .where(and(eq(courriers.statut, "a_relire"), isNull(courriers.luLe)))
+    .where(and(eq(courriers.statut, "a_relire"), isNull(courriers.luLe), eq(courriers.origine, "flux")))
     .orderBy(courriers.recuLe)
     .limit(20);
 
@@ -162,8 +210,12 @@ export async function listerCourriers(statut: StatutCourrier) {
   return db
     .select({
       id: courriers.id,
+      origine: courriers.origine,
+      fichierNom: courriers.fichierNom,
       texte: courriers.texte,
       champs: courriers.champs,
+      motifRejet: courriers.motifRejet,
+      erreurLecture: courriers.erreurLecture,
       categorie: courriers.categorie,
       resume: courriers.resume,
       incertitudes: courriers.incertitudes,
@@ -180,17 +232,26 @@ export async function listerCourriers(statut: StatutCourrier) {
 }
 
 export async function lireCourrier(id: string) {
+  const deposant = alias(comptes, "deposant");
   const [c] = await db
     .select({
       courrier: courriers,
       chantierReference: chantiers.reference,
       chantierNom: chantiers.nom,
       validateur: comptes.nom,
+      deposant: deposant.nom,
     })
     .from(courriers)
     .leftJoin(chantiers, eq(courriers.chantierId, chantiers.id))
     .leftJoin(comptes, eq(courriers.validePar, comptes.id))
+    .leftJoin(deposant, eq(courriers.deposePar, deposant.id))
     .where(eq(courriers.id, id))
     .limit(1);
   return c ?? null;
+}
+
+// Le bilan de l'IA sur tous les courriers validés (lib/courriers-regles.ts : bilanGlobal).
+export async function bilanDesCourriers() {
+  const valides = await db.select({ champs: courriers.champs }).from(courriers).where(eq(courriers.statut, "valide"));
+  return bilanGlobal(valides);
 }
