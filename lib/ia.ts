@@ -62,7 +62,9 @@ async function compter(d: Demandeur, modele: string, u: Usage, debut: number, er
     ok: !erreur,
     erreur: erreur?.slice(0, 500) ?? null,
   });
-  journal("appel_ia", { fonction: d.fonction, compte: d.compteId, modele, cout_eur: cout, ok: !erreur });
+  // En cas d'échec, la vraie erreur du service va au journal (jamais à l'écran) : sans elle,
+  // « l'IA ne répond pas » ne dit pas pourquoi.
+  journal("appel_ia", { fonction: d.fonction, compte: d.compteId, modele, cout_eur: cout, ok: !erreur, ...(erreur ? { erreur: erreur.slice(0, 400) } : {}) });
   return cout;
 }
 
@@ -112,7 +114,7 @@ export async function demanderStructure<S extends z.ZodType>(
     const coutEur = await compter(d, modele, usage, debut);
     return { ok: true, donnees: r.parsed_output as z.infer<S>, coutEur };
   } catch (e) {
-    await compter(d, modele, { entree: 0, sortie: 0, cache: 0 }, debut, String(e));
+    await compter(d, modele, { entree: 0, sortie: 0, cache: 0 }, debut, e instanceof Anthropic.APIError ? `HTTP ${e.status} ${e.message}` : String(e));
     return { ok: false, erreur: messageDErreur(e) };
   }
 }
