@@ -1,7 +1,7 @@
 "use client";
 
-import { CalendarClock, Eye, FileText, Flag, Lock, MessageSquare, Send, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CalendarClock, Check, ClipboardCheck, Eye, FileText, Flag, ImageIcon, Lock, Mail, MessageSquare, Plus, Send, ShieldCheck, Users } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { TypeFil } from "@/lib/db/schema";
 import type { ElementVu, LotVu, ParticipantVu } from "@/lib/fiche";
 import { dateCourte } from "@/lib/format";
-import { bandeDesJours, compteurs, dansOnglet, GESTE_PAR_DEFAUT, gestesDe, ONGLETS_FIL, TITRE_ONGLET, type OngletFil } from "@/lib/fil-onglets";
+import { bandeDesJours, compteurs, dansOnglet, GESTE_PAR_DEFAUT, gestesDe, ONGLETS_FIL, TITRE_ONGLET, type Compteur, type OngletFil } from "@/lib/fil-onglets";
 import { LIBELLE_SIGNALEMENT, LIBELLE_TYPE } from "@/lib/libelles";
 import { cn } from "@/lib/utils";
 import { ecrireDansLeFil, partagerElement, qualifierSignalement } from "./actions";
@@ -140,27 +140,57 @@ const AIDE: Record<TypeFil, string> = {
   reponse: "Votre réponse.",
 };
 
+// Le titre du formulaire suit l'onglet ouvert, le bouton suit le geste choisi.
+const TITRE_ECRIRE: Record<OngletFil, string> = {
+  fil: "Écrire dans le fil",
+  documents: "Déposer un document",
+  demandes: "Demander ou proposer une dispo",
+  signalements: "Signaler un problème",
+};
+
+const ENVOYER: Record<TypeFil, string> = {
+  message: "Envoyer",
+  signalement: "Signaler",
+  document: "Déposer le document",
+  demande: "Envoyer la demande",
+  disponibilite: "Donner ma dispo",
+  reponse: "Répondre",
+};
+
 function Ecrire(props: { chantierId: string; interne: boolean; participants: ParticipantVu[]; lots: LotVu[]; onglet: OngletFil }) {
   const { enCours, lancer } = useActionChantier();
   const gestes = GESTES.filter((g) => (props.interne || !g.interneSeulement) && gestesDe(props.onglet, [g.type]).length > 0);
   const parDefaut = gestes.some((g) => g.type === GESTE_PAR_DEFAUT[props.onglet]) ? GESTE_PAR_DEFAUT[props.onglet] : (gestes[0]?.type ?? "message");
   const [type, setType] = useState<TypeFil>(parDefaut);
   const [cle, setCle] = useState(0);
+  // Un externe, dans Demandes et dispos, ne peut que donner ses disponibilités : le titre le dit.
+  const titre = props.onglet === "demandes" && !props.interne ? "Donner mes disponibilités" : TITRE_ECRIRE[props.onglet];
 
   return (
-    <div className="flex flex-col gap-3 rounded-3xl bg-card p-5">
-      {!props.interne && (
-        <p className="text-sm">
-          Vous pouvez écrire à l&apos;équipe, <strong>signaler un problème</strong>, joindre un document ou <strong>donner vos disponibilités</strong>. Seule l&apos;équipe voit ce que vous écrivez.
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Type d'élément">
-        {gestes.map(({ type: t, libelle, icone: Icone }) => (
-          <Button key={t} type="button" variant={type === t ? "default" : "outline"} aria-pressed={type === t} onClick={() => setType(t)}>
-            <Icone aria-hidden /> {libelle}
-          </Button>
-        ))}
+    <section id="ecrire-fil" aria-labelledby="ecrire-fil-titre" className="flex scroll-mt-32 flex-col gap-4 rounded-3xl bg-card p-5 md:p-6">
+      <div className="flex flex-col gap-1">
+        <h3 id="ecrire-fil-titre" className="font-display text-lg font-bold tracking-tight">
+          {titre}
+        </h3>
+        {!props.interne &&
+          (props.onglet === "fil" ? (
+            <p className="text-sm">
+              Vous pouvez écrire à l&apos;équipe, <strong>signaler un problème</strong>, joindre un document ou <strong>donner vos disponibilités</strong>. Seule l&apos;équipe voit ce que vous écrivez.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Seule l&apos;équipe voit ce que vous envoyez.</p>
+          ))}
       </div>
+      {/* Un seul geste possible dans l'onglet : le titre suffit, pas de choix à faire. */}
+      {gestes.length > 1 && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Type d'élément">
+          {gestes.map(({ type: t, libelle, icone: Icone }) => (
+            <Button key={t} type="button" variant={type === t ? "default" : "outline"} aria-pressed={type === t} onClick={() => setType(t)}>
+              <Icone aria-hidden /> {libelle}
+            </Button>
+          ))}
+        </div>
+      )}
       <form
         key={cle}
         className="flex flex-col gap-3"
@@ -209,14 +239,13 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
             <Input id="fichier" name="fichier" type="file" required accept="application/pdf,image/jpeg,image/png,image/webp,image/heic" />
           </div>
         )}
-        <Textarea name="texte" required placeholder={AIDE[type]} />
-        <div>
-          <Button type="submit" size="lg" disabled={enCours}>
-            {enCours ? "Envoi…" : "Ajouter au fil"}
-          </Button>
-        </div>
+        <Textarea name="texte" required placeholder={AIDE[type]} aria-label={type === "document" ? "Titre du document" : "Texte"} />
+        {/* Sur téléphone, le bouton prend toute la largeur, en bas du formulaire, sous le pouce. */}
+        <Button type="submit" size="lg" disabled={enCours} className="h-12 w-full text-base md:h-10 md:w-fit md:text-sm">
+          {enCours ? "Envoi…" : ENVOYER[type]}
+        </Button>
       </form>
-    </div>
+    </section>
   );
 }
 
@@ -298,75 +327,148 @@ function VuPar({ e, nomDe }: { e: ElementVu; nomDe: Map<string, string> }) {
   );
 }
 
-function Rubrique(props: { titre: string; children: React.ReactNode; vide?: string; nombre: number }) {
+// Le dossier : chaque rubrique est un tiroir, titre discret en petites capitales,
+// puis ses lignes. Une rubrique vide dit quoi faire pour la remplir.
+function Rubrique(props: { titre: string; nombre: number; vide?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{props.titre}</h3>
-      {props.nombre === 0 ? <p className="rounded-3xl bg-card p-5 text-sm text-muted-foreground">{props.vide}</p> : <ul className="flex flex-col divide-y rounded-3xl bg-card px-5">{props.children}</ul>}
+    <section className="flex flex-col px-5 py-4 md:px-6">
+      <div className="flex min-h-10 items-center justify-between gap-3">
+        <h3 className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+          {props.titre}
+          {props.nombre > 0 && <span className="tabular-nums"> · {props.nombre}</span>}
+        </h3>
+        {props.action}
+      </div>
+      {props.nombre === 0 ? <p className="py-2 text-sm text-muted-foreground">{props.vide}</p> : <ul className="flex flex-col divide-y">{props.children}</ul>}
     </section>
   );
 }
 
-function Ligne(props: { lien: string | null; titre: string; detail: string; aside?: React.ReactNode }) {
+// L'état d'une pièce, sans couleur : en noir plein, ce qui attend un geste (à signer,
+// expirée) ; en contour avec une coche, ce qui est en règle (signé, à jour).
+function Etat(props: { aFaire: boolean; children: React.ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold whitespace-nowrap",
+        props.aFaire ? "border-foreground bg-foreground text-background" : "border-foreground/40",
+      )}
+    >
+      {!props.aFaire && <Check className="size-3.5" strokeWidth={3} aria-hidden />}
+      {props.children}
+    </span>
+  );
+}
+
+// Interne ou partagé : une information, pas un état à traiter. Du texte, sans cadre.
+function Diffusion({ visiblePar, nomDe }: { visiblePar: string[]; nomDe: Map<string, string> }) {
+  if (visiblePar.length === 0) {
+    return (
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+        <Lock className="size-3.5" aria-hidden /> Interne
+      </span>
+    );
+  }
+  const noms = visiblePar.map((id) => nomDe.get(id) ?? "?").join(", ");
+  return (
+    <span className="flex max-w-56 items-center gap-1 text-xs font-medium" title={`Partagé avec ${noms}`}>
+      <Users className="size-3.5 shrink-0" aria-hidden />
+      <span className="truncate max-md:hidden">Partagé avec {noms}</span>
+      <span className="md:hidden">Partagé ({visiblePar.length})</span>
+    </span>
+  );
+}
+
+function Ligne(props: { lien: string | null; icone: typeof Flag; titre: string; detail: string; etat?: React.ReactNode }) {
+  const Icone = props.icone;
   const corps = (
     <>
-      <FileText className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate font-medium">{props.titre}</span>
-        <span className="text-xs text-muted-foreground">{props.detail}</span>
+      <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted">
+        <Icone className="size-[18px]" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate font-semibold group-hover:underline">{props.titre}</span>
+        <span className="truncate text-sm text-muted-foreground">{props.detail}</span>
       </span>
     </>
   );
   return (
-    <li className="flex min-h-14 items-start gap-3 py-3 text-sm">
+    <li className="flex min-h-16 items-center gap-3 py-3">
       {props.lien ? (
-        <a href={props.lien} target="_blank" rel="noopener" className="flex min-w-0 flex-1 items-start gap-3 hover:underline">
+        <a href={props.lien} target="_blank" rel="noopener" className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground">
           {corps}
         </a>
       ) : (
-        <span className="flex min-w-0 flex-1 items-start gap-3">{corps}</span>
+        <span className="flex min-w-0 flex-1 items-center gap-3">{corps}</span>
       )}
-      {props.aside}
+      {props.etat && <span className="shrink-0">{props.etat}</span>}
     </li>
   );
 }
 
+function jourMois(iso: string) {
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" }).format(new Date(iso));
+}
+
+// L'onglet Documents se lit comme un dossier rangé : une seule carte, des rubriques
+// l'une sous l'autre. La rubrique « Pièces attendues » (tranche suivante) viendra
+// se poser en tête de cette carte, avant « Documents du chantier ».
 function Documents(props: { elements: ElementVu[]; dossier: DossierFiche; interne: boolean; nomDe: Map<string, string> }) {
   const { dossier } = props;
+  // « Déposer » mène au formulaire en bas de l'onglet, déjà réglé sur le dépôt d'un document.
+  const deposer = () => {
+    document.getElementById("ecrire-fil")?.scrollIntoView({ block: "start" });
+    document.getElementById("fichier")?.focus({ preventScroll: true });
+  };
   return (
-    <div className="flex flex-col gap-5">
-      <Rubrique titre="Documents du chantier" nombre={props.elements.length} vide="Aucun document déposé. Devis signé, plans, photos : déposez-les ci-dessous.">
+    <div className="flex flex-col divide-y rounded-3xl bg-card">
+      <Rubrique
+        titre="Documents du chantier"
+        nombre={props.elements.length}
+        vide={
+          props.interne
+            ? "Aucun document. Déposez le devis signé, les plans ou les photos : ils restent internes tant que vous ne les partagez pas."
+            : "Aucun document partagé avec vous pour l'instant. Vous pouvez en déposer un pour l'équipe."
+        }
+        action={
+          <Button type="button" variant="outline" size="sm" onClick={deposer}>
+            <Plus aria-hidden /> Déposer
+          </Button>
+        }
+      >
         {props.elements.map((e) => (
           <Ligne
             key={e.id}
             lien={e.fichier ? `/api/fichiers/${e.id}` : null}
+            icone={e.fichier?.type.startsWith("image/") ? ImageIcon : FileText}
             titre={e.texte}
-            detail={`${e.auteur} · ${horodatage(e.creeLe)}${e.fichier ? ` · ${e.fichier.nom}` : ""}`}
-            aside={props.interne ? <span className="shrink-0 text-xs text-muted-foreground">{e.visiblePar.length ? `Partagé (${e.visiblePar.length})` : "Interne"}</span> : undefined}
+            detail={[e.fichier?.nom, e.auteur, jourMois(e.creeLe)].filter(Boolean).join(" · ")}
+            etat={props.interne ? <Diffusion visiblePar={e.visiblePar} nomDe={props.nomDe} /> : undefined}
           />
         ))}
       </Rubrique>
       {props.interne && (
-        <Rubrique titre="Courriers reçus" nombre={dossier.courriers.length} vide="Aucun courrier validé n'est rattaché à ce chantier.">
+        <Rubrique titre="Courriers reçus" nombre={dossier.courriers.length} vide="Aucun courrier rattaché. Un courrier validé dans Courriers se range ici de lui-même.">
           {dossier.courriers.map((c) => (
-            <Ligne key={c.id} lien={`/courriers/${c.id}`} titre={c.titre} detail={`${c.origine === "depot" ? "Déposé" : "Flux"} · validé le ${horodatage(c.date)}`} />
+            <Ligne key={c.id} lien={`/courriers/${c.id}`} icone={Mail} titre={c.titre} detail={`${c.origine === "depot" ? "Déposé" : "Flux"} · validé le ${jourMois(c.date)}`} />
           ))}
         </Rubrique>
       )}
       {dossier.attestations.length > 0 && (
         <Rubrique titre="Attestations de vigilance" nombre={dossier.attestations.length}>
           {dossier.attestations.map((a) => (
-            <Ligne key={a.nom} lien={a.lien} titre={a.nom} detail="Attestation URSSAF, renouvelée tous les 6 mois" aside={<Badge variant={a.aJour ? "outline" : "default"}>{a.etat}</Badge>} />
+            <Ligne key={a.nom} lien={a.lien} icone={ShieldCheck} titre={a.nom} detail="Attestation URSSAF, renouvelée tous les 6 mois" etat={<Etat aFaire={!a.aJour}>{a.etat}</Etat>} />
           ))}
         </Rubrique>
       )}
-      <Rubrique titre="Fin de chantier" nombre={dossier.pv ? 1 : 0} vide="Le PV de réception apparaîtra ici une fois préparé.">
+      <Rubrique titre="Fin de chantier" nombre={dossier.pv ? 1 : 0} vide="Le PV de réception se rangera ici quand le chantier passera en réception.">
         {dossier.pv && (
           <Ligne
             lien={dossier.pv.lien}
+            icone={ClipboardCheck}
             titre="PV de réception"
             detail={`Réception du ${dateCourte(dossier.pv.dateReception)} · ${dossier.pv.reserves ? `${dossier.pv.reserves} réserve${dossier.pv.reserves > 1 ? "s" : ""}` : "sans réserve"}`}
-            aside={<Badge variant={dossier.pv.signeLe ? "default" : "outline"}>{dossier.pv.signeLe ? "Signé" : "À signer"}</Badge>}
+            etat={<Etat aFaire={!dossier.pv.signeLe}>{dossier.pv.signeLe ? "Signé" : "À signer"}</Etat>}
           />
         )}
       </Rubrique>
@@ -374,6 +476,10 @@ function Documents(props: { elements: ElementVu[]; dossier: DossierFiche; intern
   );
 }
 
+// Qui est là sur les sept prochains jours. Un jour avec quelqu'un : carte blanche
+// cerclée de noir ; un jour vide : simple pointillé. Aujourd'hui porte une pastille.
+// Sur téléphone, une liste verticale plutôt qu'une bande à faire défiler : sept
+// lignes courtes se lisent d'un coup d'œil, sans rien cacher sur le côté.
 function BandeDispos(props: { elements: ElementVu[]; aujourdhui: string }) {
   const bande = bandeDesJours(
     props.elements.filter((e) => e.type === "disponibilite").map((e) => ({ dateCible: e.dateCible, auteur: e.auteur })),
@@ -382,26 +488,131 @@ function BandeDispos(props: { elements: ElementVu[]; aujourdhui: string }) {
   const jourCourt = (iso: string) => new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
   return (
     <section className="flex flex-col gap-2">
-      <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Qui est là cette semaine</h3>
-      <div className="overflow-x-auto">
-        <ol className="grid min-w-[36rem] grid-cols-7 gap-2">
-          {bande.map((j) => (
-            <li key={j.jour} className={j.presents.length ? "flex min-h-24 flex-col gap-1 rounded-2xl bg-card p-3 ring-1 ring-foreground" : "flex min-h-24 flex-col gap-1 rounded-2xl bg-card p-3"}>
-              <span className="text-xs font-semibold capitalize">{jourCourt(j.jour)}</span>
-              {j.presents.length === 0 ? (
-                <span className="text-xs text-muted-foreground">personne</span>
+      <h3 className="text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase">Qui est là cette semaine</h3>
+      <ol className="flex flex-col gap-1.5 md:grid md:grid-cols-7 md:gap-2">
+        {bande.map((j) => {
+          const auj = j.jour === props.aujourdhui;
+          const quelquun = j.presents.length > 0;
+          return (
+            <li
+              key={j.jour}
+              className={cn(
+                "flex min-h-12 items-center gap-3 rounded-2xl px-4 py-2 md:min-h-28 md:flex-col md:items-start md:gap-2 md:p-3",
+                quelquun ? "bg-card ring-1 ring-foreground" : "border border-dashed border-foreground/30",
+              )}
+            >
+              <span className="flex w-24 shrink-0 items-center gap-1.5 md:w-full md:justify-between">
+                <span className={cn("text-sm capitalize", auj ? "font-bold" : "font-semibold")}>{jourCourt(j.jour)}</span>
+                {auj && <span className="rounded-full bg-foreground px-1.5 py-0.5 text-[11px] leading-none font-semibold text-background">Auj.</span>}
+              </span>
+              {quelquun ? (
+                <span className="flex min-w-0 flex-wrap gap-x-2 text-sm font-medium md:flex-col">
+                  {j.presents.map((n) => (
+                    <span key={n} className="truncate">
+                      {n}
+                    </span>
+                  ))}
+                </span>
               ) : (
-                j.presents.map((n) => (
-                  <span key={n} className="truncate text-xs">
-                    {n}
-                  </span>
-                ))
+                <span className="text-sm text-muted-foreground">Personne</span>
               )}
             </li>
-          ))}
-        </ol>
-      </div>
+          );
+        })}
+      </ol>
     </section>
+  );
+}
+
+// La barre des onglets. L'onglet ouvert est un aplat noir ; à côté de chaque titre,
+// un chiffre gris (le nombre d'éléments) ou une pastille pleine (ce qui attend un geste).
+// Sur téléphone elle défile au doigt, et un fondu en bord dit qu'il y a d'autres onglets.
+// Au clavier : flèches gauche et droite, Début et Fin.
+function BarreOnglets(props: { actif: OngletFil; compte: Record<OngletFil, Compteur>; choisir: (o: OngletFil) => void }) {
+  const barre = useRef<HTMLDivElement>(null);
+  const [bords, setBords] = useState({ gauche: false, droite: false });
+
+  useEffect(() => {
+    const el = barre.current;
+    if (!el) return;
+    const mesurer = () => setBords({ gauche: el.scrollLeft > 4, droite: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+    mesurer();
+    el.addEventListener("scroll", mesurer, { passive: true });
+    const observateur = new ResizeObserver(mesurer);
+    observateur.observe(el);
+    return () => {
+      el.removeEventListener("scroll", mesurer);
+      observateur.disconnect();
+    };
+  }, []);
+
+  // L'onglet ouvert reste visible dans la barre (sans faire défiler la page).
+  useEffect(() => {
+    const el = barre.current;
+    const onglet = document.getElementById(`onglet-fil-${props.actif}`);
+    if (!el || !onglet) return;
+    const debut = onglet.offsetLeft - 24;
+    const fin = onglet.offsetLeft + onglet.offsetWidth - el.clientWidth + 24;
+    if (el.scrollLeft > debut) el.scrollLeft = debut;
+    else if (el.scrollLeft < fin) el.scrollLeft = fin;
+  }, [props.actif]);
+
+  function clavier(e: React.KeyboardEvent) {
+    const i = ONGLETS_FIL.indexOf(props.actif);
+    const n = ONGLETS_FIL.length;
+    const cible = { ArrowRight: (i + 1) % n, ArrowLeft: (i - 1 + n) % n, Home: 0, End: n - 1 }[e.key];
+    if (cible === undefined) return;
+    e.preventDefault();
+    const o = ONGLETS_FIL[cible];
+    props.choisir(o);
+    document.getElementById(`onglet-fil-${o}`)?.focus();
+  }
+
+  return (
+    <div className="sticky top-14 z-20 -mx-1 bg-background">
+      <div ref={barre} role="tablist" aria-label="Filtrer le fil" onKeyDown={clavier} className="relative flex gap-1.5 overflow-x-auto px-1 py-1.5 [scrollbar-width:none]">
+        {ONGLETS_FIL.map((o) => {
+          const c = props.compte[o];
+          const actif = props.actif === o;
+          return (
+            <button
+              key={o}
+              type="button"
+              role="tab"
+              id={`onglet-fil-${o}`}
+              aria-selected={actif}
+              aria-controls="panneau-fil"
+              tabIndex={actif ? 0 : -1}
+              onClick={() => props.choisir(o)}
+              className={cn(
+                "flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground",
+                actif ? "bg-foreground font-semibold text-background" : "bg-card font-medium hover:bg-muted",
+              )}
+            >
+              {TITRE_ONGLET[o]}
+              {c.aTraiter > 0 ? (
+                <span
+                  className={cn(
+                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold tabular-nums",
+                    actif ? "bg-background text-foreground" : "bg-foreground text-background",
+                  )}
+                >
+                  {c.aTraiter}
+                  <span className="sr-only"> à traiter</span>
+                </span>
+              ) : (
+                <span className={cn("text-xs tabular-nums", actif ? "text-background/65" : "text-muted-foreground")}>
+                  {c.nombre}
+                  <span className="sr-only"> élément{c.nombre > 1 ? "s" : ""}</span>
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <span aria-hidden className={cn("pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-background transition-opacity", bords.gauche ? "opacity-100" : "opacity-0")} />
+      <span aria-hidden className={cn("pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-background transition-opacity", bords.droite ? "opacity-100" : "opacity-0")} />
+    </div>
   );
 }
 
@@ -455,36 +666,7 @@ export function Fil(props: {
 
   return (
     <Section titre="Fil du chantier">
-      {/* Les onglets : une barre qui défile au doigt sur téléphone, collée en haut au défilement. */}
-      <div role="tablist" aria-label="Filtrer le fil" className="sticky top-14 z-20 -mx-1 flex gap-1 overflow-x-auto bg-background px-1 py-1">
-        {ONGLETS_FIL.map((o) => {
-          const c = compte[o];
-          return (
-            <button
-              key={o}
-              type="button"
-              role="tab"
-              id={`onglet-fil-${o}`}
-              aria-selected={onglet === o}
-              aria-controls="panneau-fil"
-              onClick={() => choisir(o)}
-              className={cn(
-                "flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm whitespace-nowrap transition-colors",
-                onglet === o ? "bg-foreground font-semibold text-background" : "bg-card font-medium hover:bg-muted",
-              )}
-            >
-              {TITRE_ONGLET[o]}
-              {c.aTraiter > 0 ? (
-                <span className={cn("rounded-full px-1.5 text-xs font-bold tabular-nums", onglet === o ? "bg-background text-foreground" : "bg-foreground text-background")} aria-label={`${c.aTraiter} à traiter`}>
-                  {c.aTraiter}
-                </span>
-              ) : (
-                <span className={cn("text-xs tabular-nums", onglet === o ? "text-background/70" : "text-muted-foreground")}>{c.nombre}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <BarreOnglets actif={onglet} compte={compte} choisir={choisir} />
 
       <div id="panneau-fil" role="tabpanel" aria-labelledby={`onglet-fil-${onglet}`} className="flex flex-col gap-5">
         {onglet === "documents" ? (
@@ -494,7 +676,13 @@ export function Fil(props: {
             {onglet === "demandes" && <BandeDispos elements={elements} aujourdhui={props.aujourdhui} />}
             {elements.length === 0 ? (
               <p className="rounded-3xl bg-card p-5 text-sm text-muted-foreground">
-                {onglet === "fil" ? "Le fil est vide. Écrivez le premier message." : onglet === "demandes" ? "Aucune demande ni disponibilité pour l'instant." : "Aucun signalement : rien à reprendre pour l'instant."}
+                {onglet === "fil"
+                  ? "Le fil est vide. Écrivez le premier message ci-dessous."
+                  : onglet === "demandes"
+                    ? props.interne
+                      ? "Aucune demande. Demandez une pièce ou une date à un intervenant ci-dessous."
+                      : "Aucune demande pour vous. Donnez vos disponibilités ci-dessous."
+                    : "Aucun signalement. Un problème constaté sur place ? Signalez-le ci-dessous."}
               </p>
             ) : (
               <ol className="flex flex-col gap-3">
