@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { comptes, entreprises, lots, trajets, type StatutLot } from "@/lib/db/schema";
 import { arrondir, cleDuPoint, lireItineraire, type Point } from "@/lib/distances-regles";
 import { journal } from "@/lib/journal";
+import { lireProfil } from "@/lib/profil";
 import { chercherAdresse } from "@/lib/meteo";
 import type { Appelant } from "@/lib/session";
 
@@ -78,13 +79,15 @@ export async function tempsDeRoute(depart: Point, arrivee: Point): Promise<Resul
 
 export type Depot = { etat: "absent" } | { etat: "introuvable"; adresse: string } | { etat: "ok"; adresse: string; point: Point };
 
-// L'adresse du dépôt est un réglage (DEPOT_ADRESSE). Elle est géolocalisée une fois par
-// instance du serveur : le dépôt ne déménage pas entre deux pages.
+// Le dépôt se règle dans groma (Réglages, « L'entreprise ») et y est géolocalisé une fois.
+// Pendant la transition, l'ancienne variable DEPOT_ADRESSE sert de valeur de départ.
 const depotsConnus = new Map<string, Point>();
 
 export async function lireDepot(): Promise<Depot> {
-  const adresse = process.env.DEPOT_ADRESSE?.trim();
-  if (!adresse) return { etat: "absent" };
+  const { depot } = await lireProfil();
+  if (!depot) return { etat: "absent" };
+  const adresse = [depot.adresse, `${depot.codePostal} ${depot.ville}`.trim()].filter(Boolean).join(", ");
+  if (depot.latitude != null && depot.longitude != null) return { etat: "ok", adresse, point: { latitude: depot.latitude, longitude: depot.longitude } };
   const connu = depotsConnus.get(adresse);
   if (connu) return { etat: "ok", adresse, point: connu };
   const trouve = await chercherAdresse(adresse);

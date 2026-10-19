@@ -45,13 +45,11 @@ function DuDepot({ depot, chantier, trajet }: { depot: Depot; chantier: Point | 
   if (depot.etat === "absent") {
     return (
       <Note>
-        L&apos;adresse du dépôt n&apos;est pas réglée. Pour voir le trajet de l&apos;équipe et sa zone de déplacement, ajoutez la variable DEPOT_ADRESSE (l&apos;adresse complète du
-        dépôt) dans les réglages du projet sur Vercel, puis redéployez.
-      </Note>
+        L&apos;adresse du dépôt n&apos;est pas réglée. Pour voir le trajet de l&apos;équipe et sa zone de déplacement, le gérant la renseigne dans Réglages, carte « L&apos;entreprise ».</Note>
     );
   }
   if (depot.etat === "introuvable") {
-    return <Note>Adresse du dépôt introuvable pour le moment (« {depot.adresse} »). Vérifiez la variable DEPOT_ADRESSE ; le service d&apos;adresses peut aussi être indisponible.</Note>;
+    return <Note>Adresse du dépôt introuvable pour le moment (« {depot.adresse} »). Vérifiez-la dans Réglages ; le service d&apos;adresses peut aussi être indisponible.</Note>;
   }
   if (!chantier) return <Note>Adresse du chantier introuvable : trajet impossible. Vérifiez l&apos;adresse du chantier.</Note>;
 
