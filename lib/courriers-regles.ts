@@ -410,17 +410,16 @@ export function verifierDepot(p: { texte: unknown; fichier: FichierDepose | null
   return { ok: true, mode: "texte", texte: texte.slice(0, REGLES_DEPOT.longueurTexte) };
 }
 
-// Le plafond de taille d'une demande à l'IA (lib/ia-regles.ts) compte un PDF pour sa taille
-// en base64 divisée par 4, soit environ le tiers de ses octets. Au-delà, la lecture est
-// refusée avant tout appel : on le dit avec des mots, plutôt qu'en « caractères ».
+// Le poids maximal d'un PDF que l'IA accepte de lire (lib/ia-regles.ts) : 4 Mo,
+// comme tout fichier déposé. Au-delà, la lecture est refusée avant tout appel.
 export function taillePdfLisible(): number {
-  return Math.floor((PLAFONDS_IA.caracteresMaxParDemande - 200) * 3);
+  return PLAFONDS_IA.pdfOctetsMax;
 }
 export function pdfTropLourdPourLIa(octets: number): boolean {
   return octets > taillePdfLisible();
 }
 export function messagePdfTropLourd(): string {
-  return `PDF trop lourd pour la lecture par l'IA : ${Math.floor(taillePdfLisible() / 1000)} Ko au plus pour l'instant. Le PDF est gardé : remplissez les champs à la main, ou collez son texte dans un nouveau dépôt.`;
+  return `PDF trop lourd pour la lecture par l'IA : ${Math.floor(taillePdfLisible() / 1000)} Ko au plus. Le PDF est gardé : remplissez les champs à la main, ou collez son texte dans un nouveau dépôt.`;
 }
 
 // Un PDF commence par « %PDF- » : un fichier renommé en .pdf ne passe pas.

@@ -110,7 +110,7 @@ export function FormulaireDepot() {
           </p>
           {fichier && pdfTropLourdPourLIa(fichier.size) && (
             <p role="status" className="rounded-2xl border border-foreground p-3 text-sm">
-              Ce PDF sera gardé, mais il dépasse ce que l&apos;IA accepte de lire pour l&apos;instant ({Math.floor(taillePdfLisible() / 1000)} Ko au plus). Pour le faire lire, collez plutôt son texte.
+              Ce PDF sera gardé, mais il dépasse ce que l&apos;IA accepte de lire ({Math.floor(taillePdfLisible() / 1000)} Ko au plus). Pour le faire lire, collez plutôt son texte.
             </p>
           )}
         </div>

@@ -116,7 +116,7 @@ describe("les anciennes données, déjà en production", () => {
 
 describe("la taille d'un PDF que l'IA accepte de lire", () => {
   it("un petit PDF passe, un PDF de 1 Mo dépasse le plafond actuel de l'IA", () => {
-    expect(pdfTropLourdPourLIa(30_000)).toBe(false);
-    expect(pdfTropLourdPourLIa(1_000_000)).toBe(true);
+    expect(pdfTropLourdPourLIa(2 * 1024 * 1024)).toBe(false);
+    expect(pdfTropLourdPourLIa(5 * 1024 * 1024)).toBe(true);
   });
 });
