@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decider, decouperAdresse, nuitsARattraper } from "./flux-regles";
+import { decider, decouperAdresse, nuitsARattraper, photoDuFlux } from "./flux-regles";
 
 const creation = {
   id: "CHA-20261010-06",
@@ -105,5 +105,24 @@ describe("outils", () => {
   it("respecte le plafond, et saute la nuit du jour si elle est déjà importée", () => {
     expect(nuitsARattraper("2026-10-01", "2026-10-05", new Set(), 2)).toEqual(["2026-10-05", "2026-10-01"]);
     expect(nuitsARattraper("2026-10-01", "2026-10-05", new Set(["2026-10-05"]), 2)).toEqual(["2026-10-01", "2026-10-02"]);
+  });
+});
+
+describe("photoDuFlux", () => {
+  const photos = ["/a.jpg", "/b.jpg", "/c.jpg"];
+
+  it("donne une photo de la liste, toujours la même pour une référence", () => {
+    const p = photoDuFlux("CHA-20261010-06", photos);
+    expect(photos).toContain(p);
+    expect(photoDuFlux("CHA-20261010-06", photos)).toBe(p);
+  });
+
+  it("répartit les chantiers sur plusieurs photos", () => {
+    const vues = new Set(Array.from({ length: 30 }, (_, i) => photoDuFlux(`CHA-20261010-${i}`, photos)));
+    expect(vues.size).toBeGreaterThan(1);
+  });
+
+  it("sans photo disponible, ne met rien", () => {
+    expect(photoDuFlux("CHA-20261010-06", [])).toBeNull();
   });
 });
