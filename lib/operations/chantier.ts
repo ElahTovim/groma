@@ -12,6 +12,7 @@ import { chercherDansLeRegistre, enregistrer, lireDuRegistre } from "@/lib/entre
 import { estSiren, lireRecherche, type FicheEntreprise } from "@/lib/entreprises-regles";
 import { empreinte } from "@/lib/empreinte";
 import { contexteChantier, estParticipant } from "@/lib/fiche";
+import { lireProfil } from "@/lib/profil";
 import { contenuPv, lirePv } from "@/lib/reception";
 import { texteCanonique, verifierPreparation, verifierSignature } from "@/lib/reception-regles";
 import { verifierDepot } from "@/lib/vigilance-regles";
@@ -530,7 +531,8 @@ export async function signerPv(demandeur: Appelant | null, chantierId: string, d
   }
   // On relit le chantier complet : c'est le contenu affiché qui est signé, et figé.
   const [c] = await db.select().from(chantiers).where(eq(chantiers.id, chantierId)).limit(1);
-  const contenu = contenuPv(c, pv);
+  // Le nom de l'entreprise vient de Réglages (lib/profil.ts), figé avec le reste à la signature.
+  const contenu = contenuPv(c, pv, (await lireProfil()).nom);
   const fait = await db
     .update(pvReception)
     .set({ signeLe: new Date(), signeNom: nom, contenuSigne: contenu, empreinte: empreinte(texteCanonique(contenu)) })

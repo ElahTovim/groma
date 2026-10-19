@@ -418,3 +418,20 @@ export const trajets = pgTable(
   },
   (t) => [unique("un_trajet").on(t.origine, t.destination)],
 );
+
+// ——— L'entreprise qui utilise groma ———
+
+// Le profil de l'entreprise : une seule ligne (id = 1), modifiée par le gérant dans Réglages.
+// Une donnée que le gérant peut vouloir changer vit en base, jamais dans une variable de Vercel.
+export const profilEntreprise = pgTable("profil_entreprise", {
+  id: integer("id").primaryKey().default(1),
+  nom: text("nom").notNull(),
+  // Le dépôt : point de départ des trajets de l'équipe et du calcul des zones de déplacement.
+  depotAdresse: text("depot_adresse"),
+  depotCodePostal: text("depot_code_postal"),
+  depotVille: text("depot_ville"),
+  depotLatitude: doublePrecision("depot_latitude"),
+  depotLongitude: doublePrecision("depot_longitude"),
+  modifiePar: uuid("modifie_par").references(() => comptes.id, { onDelete: "set null" }),
+  modifieLe: timestamp("modifie_le", { withTimezone: true }).notNull().defaultNow(),
+});
