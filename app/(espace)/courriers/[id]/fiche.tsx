@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { EXPLICATIONS_VERDICT, LIBELLES_VERDICT, type LigneBilan } from "@/lib/courriers-regles";
 import { cn } from "@/lib/utils";
 import { rejeterCourrier, relireCourrier, validerCourrier, type Resultat } from "../actions";
 
@@ -25,9 +26,72 @@ const LIBELLES: Record<NomChamp, string> = {
 
 const enTexte = (v: string | number | null) => (v === null ? "" : typeof v === "number" ? String(v).replace(".", ",") : v);
 
+// Une valeur du bilan, telle qu'une personne la lit.
+function lisible(k: NomChamp, v: string | number | null, categories: { code: string; libelle: string }[]) {
+  if (v === null || v === "") return null;
+  if (k === "montant" && typeof v === "number") return `${v.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`;
+  if (k === "categorie") return categories.find((c) => c.code === v)?.libelle ?? String(v);
+  if (k === "date" && typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${v}T00:00:00Z`));
+  }
+  return String(v);
+}
+
+// Le bilan d'un courrier validé : une ligne par champ, avec son verdict.
+function BilanCourrier({ lignes, categories }: { lignes: LigneBilan[]; categories: { code: string; libelle: string }[] }) {
+  const justes = lignes.filter((l) => l.verdict === "juste" || l.verdict === "juste_vide").length;
+  return (
+    <section aria-labelledby="titre-bilan-courrier" className="flex flex-col gap-3 rounded-3xl bg-card p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="titre-bilan-courrier" className="font-display text-lg font-bold">
+          Bilan de l&apos;IA sur ce courrier
+        </h2>
+        <p className="text-sm font-semibold tabular-nums">
+          {justes} champ{justes > 1 ? "s" : ""} juste{justes > 1 ? "s" : ""} sur {lignes.length}
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-xs text-muted-foreground">
+            <tr>
+              <th scope="col" className="py-2 pr-3 font-medium">Champ</th>
+              <th scope="col" className="py-2 pr-3 font-medium">Proposé par l&apos;IA</th>
+              <th scope="col" className="py-2 pr-3 font-medium">Validé</th>
+              <th scope="col" className="py-2 font-medium">Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lignes.map((l) => {
+              const ia = lisible(l.champ, l.ia, categories);
+              const valide = lisible(l.champ, l.valide, categories);
+              const erreur = l.verdict === "corrige" || l.verdict === "invente" || l.verdict === "manque";
+              return (
+                <tr key={l.champ} className="border-t align-top">
+                  <th scope="row" className="py-2 pr-3 font-medium">{LIBELLES[l.champ]}</th>
+                  <td className={cn("py-2 pr-3", !ia && "text-muted-foreground italic", l.verdict === "invente" && "line-through")}>{ia ?? "vide"}</td>
+                  <td className={cn("py-2 pr-3", !valide && "text-muted-foreground italic")}>{valide ?? "vide"}</td>
+                  <td className="py-2" title={EXPLICATIONS_VERDICT[l.verdict]}>
+                    {erreur ? <Badge>{LIBELLES_VERDICT[l.verdict]}</Badge> : <Badge variant="outline">{LIBELLES_VERDICT[l.verdict]}</Badge>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Juste : même valeur, à l&apos;écriture près (espaces, majuscules, format de date ou de montant). Corrigé : une autre valeur retenue. Inventé : l&apos;IA avait une valeur, le champ a été vidé. Manqué : l&apos;IA n&apos;avait rien, le champ a été rempli.
+      </p>
+    </section>
+  );
+}
+
 export function FicheCourrier(props: {
   id: string;
   texte: string;
+  fichier: { href: string; nom: string } | null;
+  bilan: LigneBilan[] | null;
+  valideSansLecture: boolean;
   statut: "a_relire" | "valide" | "rejete";
   lu: boolean;
   echec: string | null;
@@ -73,6 +137,8 @@ export function FicheCourrier(props: {
   function etiquette(k: NomChamp) {
     const ia = enTexte(props.proposeParIa[k]);
     if (!modifiable) {
+      const verdict = props.bilan?.find((l) => l.champ === k)?.verdict;
+      if (verdict) return <Badge variant="outline">{LIBELLES_VERDICT[verdict]}</Badge>;
       if (props.statut === "valide" && props.corriges.includes(k)) return <Badge variant="outline">corrigé à la relecture</Badge>;
       return ia ? <Badge variant="outline">proposé par l&apos;IA</Badge> : null;
     }
@@ -93,8 +159,19 @@ export function FicheCourrier(props: {
     <div className="grid gap-5 lg:grid-cols-2">
       <section className="flex min-w-0 flex-col gap-3 rounded-3xl bg-card p-5 lg:sticky lg:top-20 lg:self-start">
         <h2 className="font-display text-lg font-bold">Texte d&apos;origine</h2>
-        <p className="text-xs text-muted-foreground">Le courrier tel qu&apos;il a été reçu. Ce qu&apos;il demande n&apos;est jamais exécuté.</p>
-        <pre className="max-h-[70vh] overflow-auto font-sans text-sm leading-relaxed whitespace-pre-wrap">{props.texte}</pre>
+        <p className="text-xs text-muted-foreground">
+          {props.fichier ? "Le texte transcrit du PDF par l'IA. Vérifiez-le sur le PDF d'origine." : "Le courrier tel qu'il a été reçu."} Ce qu&apos;il demande n&apos;est jamais exécuté.
+        </p>
+        {props.fichier && (
+          <a href={props.fichier.href} target="_blank" rel="noopener" className="self-start text-sm font-medium underline underline-offset-4">
+            Ouvrir le PDF d&apos;origine ({props.fichier.nom})
+          </a>
+        )}
+        {props.texte ? (
+          <pre className="max-h-[70vh] overflow-auto font-sans text-sm leading-relaxed whitespace-pre-wrap">{props.texte}</pre>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">Pas encore de transcription : l&apos;IA n&apos;a pas lu ce PDF. Ouvrez le PDF, puis relancez la lecture ou remplissez les champs à la main.</p>
+        )}
       </section>
 
       <div className="flex min-w-0 flex-col gap-5">
@@ -126,6 +203,11 @@ export function FicheCourrier(props: {
               ))}
             </ul>
           </section>
+        )}
+
+        {props.bilan && <BilanCourrier lignes={props.bilan} categories={props.categories} />}
+        {props.valideSansLecture && (
+          <p className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">Validé sans lecture par l&apos;IA : rien à comparer, ce courrier ne compte pas dans le bilan.</p>
         )}
 
         {props.traitement && (

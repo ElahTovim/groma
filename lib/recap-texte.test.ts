@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composerRecap, type ContenuRecap } from "./recap-texte";
+import { composerRecap, LIGNE_ANALYSE_ABSENTE, type ContenuRecap } from "./recap-texte";
 
 const base: ContenuRecap = {
   prenom: "Karim",
@@ -40,5 +40,27 @@ describe("le récapitulatif du matin", () => {
   it("n'affiche que dix lignes et dit combien il en reste", () => {
     const lignes = Array.from({ length: 13 }, (_, i) => ({ reference: `CH-${i}`, nom: "x", ville: "y", lien: "z", detail: "1 en retard" }));
     expect(composerRecap({ ...base, aTraiter: lignes }).texte).toContain("… et 3 autres.");
+  });
+
+  it("affiche « Ce que la nuit dit » avec le texte et les points de l'analyse", () => {
+    const r = composerRecap({
+      ...base,
+      portee: "tous",
+      analyse: { etat: "faite", texte: "Nuit calme, sauf un chantier.", points: [{ titre: "Réclamations répétées", detail: "Trois relances sur les radiateurs.", references: ["CH-2026-0007"] }] },
+    });
+    expect(r.texte).toContain("CE QUE LA NUIT DIT\nNuit calme, sauf un chantier.\n- Réclamations répétées : Trois relances sur les radiateurs. (CH-2026-0007)");
+    expect(r.texte).toContain("rien n'a été modifié à partir d'elle");
+  });
+
+  it("dit en une ligne que l'analyse manque quand l'IA est en panne ou au plafond", () => {
+    const r = composerRecap({ ...base, analyse: { etat: "absente" } });
+    expect(r.texte).toContain(`CE QUE LA NUIT DIT\n${LIGNE_ANALYSE_ABSENTE}`);
+    expect(r.texte).toContain("3 nouveaux chantiers");
+  });
+
+  it("n'affiche pas la section quand il n'y a rien pour ce destinataire", () => {
+    expect(composerRecap({ ...base, analyse: null }).texte).not.toContain("CE QUE LA NUIT DIT");
+    expect(composerRecap({ ...base, analyse: { etat: "faite", texte: null, points: [] } }).texte).not.toContain("CE QUE LA NUIT DIT");
+    expect(composerRecap(base).texte).not.toContain("\n\n\n");
   });
 });

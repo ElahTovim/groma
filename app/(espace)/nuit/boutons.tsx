@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { envoyerRecapMaintenant, rattraperMaintenant, relancerNuit } from "./actions";
+import { envoyerRecapMaintenant, etapesDuMatinMaintenant, rattraperMaintenant, relancerNuit } from "./actions";
 
 export function BoutonsNuit({ derniereNuit }: { derniereNuit: string }) {
   const [enCours, demarrer] = useTransition();
@@ -20,6 +20,9 @@ export function BoutonsNuit({ derniereNuit }: { derniereNuit: string }) {
     <div className="flex flex-wrap items-end gap-3">
       <Button size="lg" disabled={enCours} onClick={() => lancer(rattraperMaintenant)}>
         {enCours ? "Import en cours…" : "Importer les nuits manquantes"}
+      </Button>
+      <Button variant="outline" size="lg" disabled={enCours} onClick={() => lancer(etapesDuMatinMaintenant)}>
+        Courriers, documents et analyse
       </Button>
       <Button variant="outline" size="lg" disabled={enCours} onClick={() => lancer(envoyerRecapMaintenant)}>
         Envoyer le récapitulatif du jour

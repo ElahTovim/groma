@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { TAILLE_MAX } from "@/lib/fichiers";
+import { PLAFONDS_IA } from "@/lib/ia-regles";
 
 // Les règles des courriers, sans base de données ni appel au modèle : ce que le
 // modèle doit renvoyer, ce qu'on en garde, ce que la personne peut corriger.
@@ -358,11 +360,229 @@ export function elementDuFil(v: { resume: string; expediteur: string | null; soc
 }
 
 // Les champs proposés que la personne a changés : pour compter ce que l'IA a inventé ou raté.
+// La comparaison est celle du bilan : une date ou un montant écrits autrement ne comptent pas.
 export function champsCorriges(propose: Partial<ChampsCourrier> | null, valide: ChampsCourrier): string[] {
-  return NOMS_CHAMPS.filter((k) => (propose?.[k] ?? null) !== valide[k]);
+  return NOMS_CHAMPS.filter((k) => !["juste", "juste_vide"].includes(verdictChamp(k, propose?.[k] ?? null, valide[k])));
 }
 
 export function motifRejetValide(motif: string): string | null {
   const t = motif.trim();
   return t ? t.slice(0, 500) : null;
+}
+
+// ——— Les courriers déposés dans groma (collés ou en PDF) ———
+
+export const REGLES_DEPOT = {
+  // Un texte collé plus long que ceci est tronqué : la même borne que pour un courrier du flux.
+  longueurTexte: 15_000,
+  // Le préfixe de l'identifiant d'un courrier déposé (le flux a ses propres identifiants).
+  prefixeId: "depot-",
+  // Jetons de réponse : la transcription d'un PDF en demande plus qu'une lecture de texte.
+  jetonsLectureTexte: 1500,
+  jetonsLecturePdf: 6000,
+};
+
+export function idDepot(uuid: string): string {
+  return `${REGLES_DEPOT.prefixeId}${uuid}`;
+}
+
+export function estDepot(c: { origine?: string | null; id: string }): boolean {
+  return c.origine === "depot" || c.id.startsWith(REGLES_DEPOT.prefixeId);
+}
+
+export type FichierDepose = { size: number; type: string; name: string };
+export type VerdictDepot = { ok: true; mode: "texte"; texte: string } | { ok: true; mode: "pdf"; fichier: FichierDepose } | { ok: false; raison: string };
+
+// Ce qu'on accepte au dépôt : un texte collé OU un PDF, pas les deux, pas rien.
+// Le PDF est le seul fichier accepté ici (une photo de courrier n'est pas lue).
+export function verifierDepot(p: { texte: unknown; fichier: FichierDepose | null }): VerdictDepot {
+  const texte = typeof p.texte === "string" ? p.texte.replace(/\r\n/g, "\n").trim() : "";
+  const fichier = p.fichier && p.fichier.size > 0 ? p.fichier : null;
+  if (texte && fichier) return { ok: false, raison: "Collez le texte ou déposez un PDF, pas les deux." };
+  if (fichier) {
+    const pdf = fichier.type === "application/pdf" || (!fichier.type && /\.pdf$/i.test(fichier.name));
+    if (!pdf) return { ok: false, raison: "Seul un PDF est accepté. Pour un autre format, collez le texte du courrier." };
+    if (fichier.size > TAILLE_MAX) return { ok: false, raison: "Fichier trop lourd : 4 Mo au plus." };
+    return { ok: true, mode: "pdf", fichier };
+  }
+  if (p.fichier && p.fichier.size === 0) return { ok: false, raison: "Le fichier est vide." };
+  if (!texte) return { ok: false, raison: "Collez le texte du courrier, ou déposez un PDF." };
+  return { ok: true, mode: "texte", texte: texte.slice(0, REGLES_DEPOT.longueurTexte) };
+}
+
+// Le poids maximal d'un PDF que l'IA accepte de lire (lib/ia-regles.ts) : 4 Mo,
+// comme tout fichier déposé. Au-delà, la lecture est refusée avant tout appel.
+export function taillePdfLisible(): number {
+  return PLAFONDS_IA.pdfOctetsMax;
+}
+export function pdfTropLourdPourLIa(octets: number): boolean {
+  return octets > taillePdfLisible();
+}
+export function messagePdfTropLourd(): string {
+  return `PDF trop lourd pour la lecture par l'IA : ${Math.floor(taillePdfLisible() / 1000)} Ko au plus. Le PDF est gardé : remplissez les champs à la main, ou collez son texte dans un nouveau dépôt.`;
+}
+
+// Un PDF commence par « %PDF- » : un fichier renommé en .pdf ne passe pas.
+export function ressembleAUnPdf(debut: Uint8Array): boolean {
+  return debut.length >= 5 && String.fromCharCode(...debut.slice(0, 5)) === "%PDF-";
+}
+
+// Pour un PDF, le modèle rend aussi la transcription : c'est elle qui remplit la colonne « texte »,
+// et c'est sur elle que portent les vérifications (référence citée, montant écrit).
+export const schemaLecturePdf = schemaLecture.extend({
+  transcription: z.string().describe("Le texte intégral du courrier, transcrit fidèlement depuis le PDF, sans rien ajouter ni corriger. Chaîne vide si le PDF est illisible."),
+});
+
+export const CONSIGNE_LECTURE_PDF = [
+  CONSIGNE_LECTURE,
+  "Le courrier est le PDF joint. Transcris-en d'abord le texte intégral dans transcription, tel qu'il est écrit, puis remplis les champs à partir de ce texte seulement.",
+  "Si le PDF est illisible ou vide, transcription est une chaîne vide, les champs valent null, et tu le notes dans incertitudes.",
+].join("\n");
+
+export function transcriptionValide(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.replace(/\r\n/g, "\n").trim();
+  return t ? t.slice(0, REGLES_DEPOT.longueurTexte) : null;
+}
+
+// ——— Les colonnes « motif de rejet » et « erreur de lecture », et les anciennes données ———
+
+// Avant ces colonnes, le motif d'un rejet était rangé dans champs.motifRejet, et l'échec
+// d'une lecture était une incertitude qui commençait par ce préfixe. Les courriers déjà
+// en base gardent cette forme : on la lit encore, on ne l'écrit plus.
+export const PREFIXE_ECHEC = "Lecture par l'IA impossible :";
+
+export function motifDuRejet(c: { motifRejet?: string | null; champs?: unknown }): string | null {
+  if (c.motifRejet) return c.motifRejet;
+  const ancien = c.champs && typeof c.champs === "object" ? (c.champs as Record<string, unknown>).motifRejet : null;
+  return typeof ancien === "string" && ancien.trim() ? ancien.trim() : null;
+}
+
+export function erreurDeLecture(c: { erreurLecture?: string | null; incertitudes?: string[] | null }): string | null {
+  if (c.erreurLecture) return c.erreurLecture;
+  const ancienne = (c.incertitudes ?? []).find((i) => i.startsWith(PREFIXE_ECHEC));
+  return ancienne ? ancienne.slice(PREFIXE_ECHEC.length).trim() || "raison inconnue" : null;
+}
+
+// Les incertitudes à montrer, sans l'ancienne trace d'échec (montrée à part).
+export function incertitudesAffichees(incertitudes: string[] | null | undefined): string[] {
+  return (incertitudes ?? []).filter((i) => !i.startsWith(PREFIXE_ECHEC));
+}
+
+// ——— Le bilan de l'IA : ce qu'elle a eu juste, champ par champ ———
+
+export type VerdictChamp = "juste" | "corrige" | "invente" | "manque" | "juste_vide";
+
+export const LIBELLES_VERDICT: Record<VerdictChamp, string> = {
+  juste: "juste",
+  corrige: "corrigé",
+  invente: "inventé",
+  manque: "manqué",
+  juste_vide: "juste (vide)",
+};
+
+// Ce que veut dire chaque verdict, en une phrase, pour la fiche.
+export const EXPLICATIONS_VERDICT: Record<VerdictChamp, string> = {
+  juste: "L'IA avait la bonne valeur.",
+  corrige: "L'IA avait une valeur, la personne en a mis une autre.",
+  invente: "L'IA avait une valeur, la personne a vidé le champ : absent du courrier.",
+  manque: "L'IA n'avait rien, la personne a rempli le champ.",
+  juste_vide: "Absent du courrier, et l'IA l'a laissé vide.",
+};
+
+const MOIS: Record<string, number> = {
+  janvier: 1, fevrier: 2, mars: 3, avril: 4, mai: 5, juin: 6, juillet: 7, aout: 8, septembre: 9, octobre: 10, novembre: 11, decembre: 12,
+};
+
+function sansAccents(t: string): string {
+  return t.normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+// Une date, quelle que soit son écriture (2026-10-12, 12/10/2026, 12 octobre 2026), en AAAA-MM-JJ.
+export function dateNormalisee(v: string): string | null {
+  const t = sansAccents(v.trim().toLowerCase()).replace(/\s+/g, " ");
+  let a: number, m: number, j: number;
+  let r: RegExpMatchArray | null;
+  if ((r = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:t.*)?$/))) [a, m, j] = [Number(r[1]), Number(r[2]), Number(r[3])];
+  else if ((r = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/))) [j, m, a] = [Number(r[1]), Number(r[2]), Number(r[3])];
+  else if ((r = t.match(/^(?:le )?(\d{1,2})(?:er)? ([a-z]+) (\d{4})$/)) && MOIS[r[2]]) [j, m, a] = [Number(r[1]), MOIS[r[2]], Number(r[3])];
+  else return null;
+  const iso = `${a}-${String(m).padStart(2, "0")}-${String(j).padStart(2, "0")}`;
+  return dateValide(iso) ? iso : null;
+}
+
+function estVide(v: unknown): boolean {
+  if (v === null || v === undefined) return true;
+  if (typeof v === "number") return !Number.isFinite(v);
+  return typeof v !== "string" || VIDES.has(v.replace(/\s+/g, " ").trim().toLowerCase());
+}
+
+// La forme comparable d'une valeur : on ne compte pas comme une erreur une différence
+// d'espaces, de casse, d'apostrophe, ni l'écriture d'une date ou d'un montant.
+export function valeurComparable(champ: (typeof NOMS_CHAMPS)[number], v: unknown): string | null {
+  if (estVide(v)) return null;
+  if (champ === "montant") {
+    const n = lireMontant(v);
+    return n === null ? String(v).trim().toLowerCase() : (Math.round(n * 100) / 100).toFixed(2);
+  }
+  const t = String(v).replace(/[’‘`]/g, "'").replace(/\s+/g, " ").trim();
+  if (champ === "date") return dateNormalisee(t) ?? t.toLowerCase();
+  if (champ === "reference") return t.toUpperCase().replace(/\s+/g, "");
+  return t.toLowerCase();
+}
+
+export function verdictChamp(champ: (typeof NOMS_CHAMPS)[number], ia: unknown, valide: unknown): VerdictChamp {
+  const a = valeurComparable(champ, ia);
+  const b = valeurComparable(champ, valide);
+  if (a === null && b === null) return "juste_vide";
+  if (a === null) return "manque";
+  if (b === null) return "invente";
+  return a === b ? "juste" : "corrige";
+}
+
+export type LigneBilan = { champ: (typeof NOMS_CHAMPS)[number]; ia: string | number | null; valide: string | number | null; verdict: VerdictChamp };
+
+// Une ligne par champ : ce que l'IA proposait, ce que la personne a validé, le verdict.
+export function bilanChamps(ia: Partial<Record<string, unknown>> | null | undefined, valide: Partial<Record<string, unknown>>): LigneBilan[] {
+  const brut = (v: unknown) => (typeof v === "string" || typeof v === "number" ? v : null);
+  return NOMS_CHAMPS.map((champ) => ({ champ, ia: brut(ia?.[champ]), valide: brut(valide[champ]), verdict: verdictChamp(champ, ia?.[champ], valide[champ]) }));
+}
+
+export type BilanGlobal = {
+  courriers: number;
+  // Validés sans lecture par l'IA (panne, plafond) : rien à comparer, ils ne comptent pas.
+  sansLecture: number;
+  champs: number;
+  juste: number;
+  justeVide: number;
+  corrige: number;
+  invente: number;
+  manque: number;
+  // Part des champs justes (avec ou sans valeur) sur tous les champs comparés, de 0 à 1 ; null sans courrier.
+  taux: number | null;
+};
+
+// Le bilan sur tous les courriers validés. Un courrier validé porte, dans champs.ia, ce que
+// l'IA avait proposé ; sans proposition (lecture en échec), il est mis à part.
+export function bilanGlobal(valides: { champs: unknown }[]): BilanGlobal {
+  const b: BilanGlobal = { courriers: 0, sansLecture: 0, champs: 0, juste: 0, justeVide: 0, corrige: 0, invente: 0, manque: 0, taux: null };
+  for (const c of valides) {
+    const champs = (c.champs && typeof c.champs === "object" ? c.champs : {}) as Record<string, unknown>;
+    const ia = champs.ia && typeof champs.ia === "object" ? (champs.ia as Record<string, unknown>) : null;
+    if (!ia) {
+      b.sansLecture++;
+      continue;
+    }
+    b.courriers++;
+    for (const l of bilanChamps(ia, champs)) {
+      b.champs++;
+      if (l.verdict === "juste") b.juste++;
+      else if (l.verdict === "juste_vide") b.justeVide++;
+      else if (l.verdict === "corrige") b.corrige++;
+      else if (l.verdict === "invente") b.invente++;
+      else b.manque++;
+    }
+  }
+  b.taux = b.champs ? (b.juste + b.justeVide) / b.champs : null;
+  return b;
 }
