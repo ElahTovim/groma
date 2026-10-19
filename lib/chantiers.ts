@@ -136,3 +136,18 @@ export async function prochaineReference(annee = new Date().getFullYear()): Prom
     .where(ilike(chantiers.reference, `CH-${annee}-%`));
   return `CH-${annee}-${String(n + 1).padStart(4, "0")}`;
 }
+
+// L'avancement de chaque chantier : lots finis sur lots prévus. Les lots sont
+// internes : on ne le calcule que pour l'équipe.
+export async function avancementDes(qui: Appelant, ids: string[]): Promise<Map<string, { finis: number; total: number }>> {
+  const avancement = new Map<string, { finis: number; total: number }>();
+  if (!voitLInterne(qui.role) || ids.length === 0) return avancement;
+  const lignes = await db.select({ chantierId: lots.chantierId, statut: lots.statut }).from(lots).where(inArray(lots.chantierId, ids));
+  for (const l of lignes) {
+    const a = avancement.get(l.chantierId) ?? { finis: 0, total: 0 };
+    a.total++;
+    if (l.statut === "fini") a.finis++;
+    avancement.set(l.chantierId, a);
+  }
+  return avancement;
+}

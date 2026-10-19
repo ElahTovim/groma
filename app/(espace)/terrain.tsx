@@ -22,20 +22,21 @@ export type ChantierTerrain = {
 type Vue = "cartes" | "liste";
 const CLE_VUE = "groma-vue-terrain";
 
-// Le choix est retenu dans le navigateur ; s'il ne peut pas l'être, il vaut pour la visite.
-let vueEnMemoire: Vue = "cartes";
+// Le choix est retenu dans le navigateur, une clé par page ; s'il ne peut pas l'être,
+// il vaut pour la visite.
+const vuesEnMemoire = new Map<string, Vue>();
 const abonnes = new Set<() => void>();
-function lireVue(): Vue {
+function lireVue(cle: string): Vue {
   try {
-    const v = localStorage.getItem(CLE_VUE);
+    const v = localStorage.getItem(cle);
     if (v === "liste" || v === "cartes") return v;
   } catch {}
-  return vueEnMemoire;
+  return vuesEnMemoire.get(cle) ?? "cartes";
 }
-function ecrireVue(v: Vue) {
-  vueEnMemoire = v;
+function ecrireVue(cle: string, v: Vue) {
+  vuesEnMemoire.set(cle, v);
   try {
-    localStorage.setItem(CLE_VUE, v);
+    localStorage.setItem(cle, v);
   } catch {}
   abonnes.forEach((f) => f());
 }
@@ -47,22 +48,31 @@ function abonner(f: () => void) {
 }
 
 // Les chantiers en cartes (par défaut) ou en liste. Le choix est retenu sur cet
-// appareil. Sur téléphone, les cartes défilent sur le côté ; sur ordinateur, une grille.
-export function Terrain({ titre, chantiers }: { titre: string; chantiers: ChantierTerrain[] }) {
+// appareil. Sur téléphone, les cartes défilent sur le côté (accueil) ou s'empilent
+// (page Chantiers, `carrousel={false}`) ; sur ordinateur, une grille.
+export function Terrain({ titre, chantiers, carrousel = true, cle = CLE_VUE }: { titre?: string; chantiers: ChantierTerrain[]; carrousel?: boolean; cle?: string }) {
   // Cartes par défaut, y compris au premier affichage par le serveur.
-  const vue = useSyncExternalStore(abonner, lireVue, () => "cartes" as Vue);
-  const choisir = ecrireVue;
+  const vue = useSyncExternalStore(abonner, () => lireVue(cle), () => "cartes" as Vue);
+  const choisir = (v: Vue) => ecrireVue(cle, v);
 
   return (
-    <section className="flex flex-col gap-4" aria-label={titre}>
-      <div className="flex items-center justify-between gap-4 border-b border-foreground pb-2.5">
-        <h2 className="annotation font-semibold">
-          {titre} · {chantiers.length}
-        </h2>
+    <section className="flex flex-col gap-4" aria-label={titre ?? "Chantiers"}>
+      <div className={cn("flex items-end justify-between gap-4", titre && "border-b border-foreground pb-2.5")}>
+        {titre ? (
+          <h2 className="annotation font-semibold">
+            {titre} · {chantiers.length}
+          </h2>
+        ) : (
+          <p className="annotation text-muted-foreground">
+            {chantiers.length} chantier{chantiers.length > 1 ? "s" : ""}
+          </p>
+        )}
         <div className="flex items-center gap-4">
-          <Link href="/chantiers" className="annotation hidden underline underline-offset-4 md:inline">
-            Tous les chantiers
-          </Link>
+          {titre && (
+            <Link href="/chantiers" className="annotation hidden underline underline-offset-4 md:inline">
+              Tous les chantiers
+            </Link>
+          )}
           <div role="group" aria-label="Affichage des chantiers" className="relative grid grid-cols-2 rounded-full bg-foreground/[0.07] p-[3px]">
             <span aria-hidden className={cn("glisse absolute inset-y-[3px] left-[3px] w-[calc(50%-3px)] rounded-full bg-card shadow-sm", vue === "liste" && "translate-x-full")} />
             {(
@@ -76,16 +86,16 @@ export function Terrain({ titre, chantiers }: { titre: string; chantiers: Chanti
                 type="button"
                 aria-pressed={vue === v}
                 onClick={() => choisir(v)}
-                className={cn("relative flex h-9 items-center justify-center gap-1.5 px-3.5 text-sm transition-colors", vue === v ? "font-semibold" : "text-muted-foreground")}
+                className={cn("relative flex h-7 items-center justify-center gap-1.5 px-3 text-[13px] transition-colors", vue === v ? "font-semibold" : "text-muted-foreground")}
               >
-                <Icone className="size-4" aria-hidden />
+                <Icone className="size-3.5" aria-hidden />
                 {libelle}
               </button>
             ))}
           </div>
         </div>
       </div>
-      {vue === "cartes" ? <Cartes chantiers={chantiers} /> : <Liste chantiers={chantiers} />}
+      {vue === "cartes" ? <Cartes chantiers={chantiers} carrousel={carrousel} /> : <Liste chantiers={chantiers} />}
     </section>
   );
 }
@@ -125,7 +135,7 @@ function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string;
   );
 }
 
-function Cartes({ chantiers }: { chantiers: ChantierTerrain[] }) {
+function Cartes({ chantiers, carrousel }: { chantiers: ChantierTerrain[]; carrousel: boolean }) {
   const piste = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
 
@@ -135,6 +145,17 @@ function Cartes({ chantiers }: { chantiers: ChantierTerrain[] }) {
     if (!el || !premiere) return;
     const pas = premiere.offsetWidth + 12;
     setIndex(Math.min(chantiers.length - 1, Math.max(0, Math.round(el.scrollLeft / pas))));
+  }
+
+  // Sans carrousel : une grille, une colonne sur téléphone.
+  if (!carrousel) {
+    return (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] md:gap-4">
+        {chantiers.map((c, i) => (
+          <Carte key={c.id} c={c} rang={i} className="apparait h-[22rem] md:h-[21rem]" />
+        ))}
+      </div>
+    );
   }
 
   return (

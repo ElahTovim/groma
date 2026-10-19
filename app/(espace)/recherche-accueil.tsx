@@ -40,7 +40,7 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
       {/* La bande du haut, sur papier quadrillé : le bonjour, puis le champ. */}
       <div className="papier -mx-4 -mt-6 flex flex-col gap-4 border-b border-foreground/10 px-4 pt-7 pb-6 md:mx-0 md:mt-0 md:rounded-3xl md:border md:px-8 md:pt-10 md:pb-8">
         {props.entete}
-        <label className="flex h-14 max-w-3xl items-center gap-3 rounded-2xl border border-foreground/20 bg-card px-4 transition-[border-color,box-shadow] duration-300 focus-within:border-foreground focus-within:shadow-[0_18px_40px_-22px_rgb(0_0_0/0.45)] md:h-16 md:px-5">
+        <label className="flex h-14 items-center gap-3 rounded-2xl border border-foreground/20 bg-card px-4 transition-[border-color,box-shadow] duration-300 focus-within:border-foreground focus-within:shadow-[0_18px_40px_-22px_rgb(0_0_0/0.45)] md:h-16 md:px-5">
           <Reticule className="size-6 shrink-0" />
           <span className="sr-only">{props.questions ? "Chercher un chantier ou poser une question" : "Chercher un chantier"}</span>
           <input
@@ -72,7 +72,7 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
       </div>
 
       {q.trim() ? (
-        <div className="apparait flex max-w-3xl flex-col gap-5">
+        <div className="apparait flex flex-col gap-5">
           {props.questions && (
             <Link href={`/questions?q=${encodeURIComponent(q.trim())}`} className="flex items-start gap-3.5 rounded-2xl bg-foreground p-4 text-background active:scale-[0.99] md:p-5">
               <HelpCircle className="mt-0.5 size-5 shrink-0" aria-hidden />

@@ -32,7 +32,7 @@ export function Cote({ c, clair = false, rang = 0 }: { c: DonneesCote; clair?: b
       </span>
       <span className={cn("annotation flex justify-between text-[10px]", clair ? "text-white/80" : "text-muted-foreground")}>
         <span>{c.debut}</span>
-        <span className={clair ? "text-white" : "text-foreground"}>{c.total ? `Lots ${c.finis}/${c.total}` : "Aucun lot"}</span>
+        <span className={clair ? "text-white" : "text-foreground"}>{c.total ? `Lots ${c.finis}/${c.total}` : ""}</span>
         <span>{c.fin}</span>
       </span>
     </div>

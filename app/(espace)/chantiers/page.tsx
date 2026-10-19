@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { ResumeATraiter } from "@/components/a-traiter";
-import { BadgeStatut } from "@/components/badge-statut";
+import { texteATraiter } from "@/components/a-traiter";
 import { buttonVariants } from "@/components/ui/button";
-import { Vignette } from "@/components/vignette";
 import { peutCreerChantier, voitLInterne } from "@/lib/acces";
-import { compterParStatut, listerChantiers } from "@/lib/chantiers";
-import { dateCourte, euros } from "@/lib/format";
-import { poidsATraiter } from "@/lib/regles";
+import { LIBELLE_STATUT } from "@/lib/chantier-forme";
+import { avancementDes, compterParStatut, listerChantiers } from "@/lib/chantiers";
+import { donneesCote } from "@/lib/cote";
+import { aujourdhuiParis, poidsATraiter } from "@/lib/regles";
 import { appelantObligatoire } from "@/lib/session";
+import { Terrain } from "../terrain";
 import { FiltresChantiers } from "./filtres";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,19 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
     compterParStatut(qui),
     interne ? listerChantiers(qui, {}) : Promise.resolve(null),
   ]);
+  const avancement = await avancementDes(qui, liste.map((c) => c.id));
+  const aujourdhui = aujourdhuiParis();
+  const terrain = liste.map((c) => ({
+    id: c.id,
+    nom: c.nom,
+    ville: c.ville,
+    client: c.client,
+    etape: LIBELLE_STATUT[c.statut],
+    enChantier: c.statut === "en_cours" || c.statut === "reception",
+    aPhoto: c.aPhoto,
+    aViser: texteATraiter(c.aTraiter),
+    cote: donneesCote(c.debutPrevu, c.finPrevue, aujourdhui, avancement.get(c.id)),
+  }));
   const total = Object.values(compteurs).reduce((s, n) => s + (n ?? 0), 0);
   const nbATraiter = tous ? tous.filter((c) => poidsATraiter(c.aTraiter) > 0).length : null;
   const filtre = Boolean(statut || q);
@@ -60,54 +73,8 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
           )}
         </div>
       ) : (
-        // Une carte par chantier : la photo (la couleur viendra des images), le nom en
-        // grand, ce qui est à traiter en aplat noir. Une colonne sur téléphone, trois sur ordinateur.
-        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {liste.map((c, i) => {
-            const urgent = poidsATraiter(c.aTraiter) > 0;
-            return (
-              <li key={c.id} className="apparait" style={{ "--rang": i } as React.CSSProperties}>
-                <Link
-                  href={`/chantiers/${c.id}`}
-                  className="flex h-full flex-col gap-4 rounded-3xl bg-card p-3 pb-5 transition-shadow hover:shadow-lg active:scale-[0.99] md:p-3 md:pb-5"
-                >
-                  <div className="relative">
-                    <Vignette chantierId={c.id} aPhoto={c.aPhoto} alt="" className="aspect-[16/10] w-full rounded-2xl" />
-                    <div className="absolute top-3 left-3">
-                      <BadgeStatut statut={c.statut} />
-                    </div>
-                  </div>
-                  <div className="flex flex-1 flex-col gap-3 px-2">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-display font-extrabold line-clamp-2 text-2xl leading-tight tracking-tight">{c.nom}</span>
-                      <span className="truncate text-muted-foreground">
-                        {c.ville} · {c.client}
-                      </span>
-                    </div>
-                    {interne && (
-                      <div className="mt-auto flex items-end justify-between gap-3">
-                        <div className="flex flex-col">
-                          <span className="text-xs text-muted-foreground">Montant HT</span>
-                          <span className="text-xl font-bold tracking-tight tabular-nums">{euros(c.montantHt)}</span>
-                        </div>
-                        <span className="text-right text-sm text-muted-foreground tabular-nums">
-                          Début
-                          <br />
-                          {dateCourte(c.debutPrevu)}
-                        </span>
-                      </div>
-                    )}
-                    {urgent && (
-                      <div className="rounded-2xl bg-foreground px-3 py-2 text-background">
-                        <ResumeATraiter a={c.aTraiter} compact />
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        // En cartes (par défaut, avec la photo) ou en liste, au choix ; le choix est retenu sur l'appareil.
+        <Terrain chantiers={terrain} carrousel={false} cle="groma-vue-chantiers" />
       )}
     </div>
   );
