@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { CielAnime } from "@/components/ciel-anime";
+import { PauseCiel } from "@/components/pause-ciel";
 import { Section } from "@/components/section";
 import type { ChantierVu } from "@/lib/chantiers";
 import { db } from "@/lib/db";
@@ -51,19 +52,26 @@ export async function Meteo({ chantier }: { chantier: ChantierVu }) {
       aria-label="Météo sur place"
     >
       <CielAnime particules={a.particules} sombre={a.texteSombre} />
-      <h2 className="relative text-lg font-bold tracking-tight">Météo sur place</h2>
+      <div className="relative flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold tracking-tight">Météo sur place</h2>
+        <PauseCiel sombre={a.texteSombre} />
+      </div>
       <ul className="relative grid grid-cols-3 gap-2">
         {resultat.jours.map((j) => {
           const alerte = j.alertes.length > 0;
           return (
             <li
               key={j.date}
-              className={cn("flex min-w-0 flex-col gap-1 rounded-2xl p-3 backdrop-blur-md", alerte ? "bg-black/75 text-white" : a.texteSombre ? "bg-black/5" : "bg-white/15")}
+              className={cn("flex min-w-0 flex-col gap-1 rounded-2xl p-3 backdrop-blur-md", alerte ? "bg-black/75 text-white" : a.texteSombre ? "bg-white/35" : "bg-black/20")}
             >
               <span className="text-sm font-semibold capitalize">{jourCourt(j.date)}</span>
-              <span className="text-2xl font-bold tracking-tight tabular-nums">{j.max}°</span>
+              <span className="text-2xl font-bold tracking-tight tabular-nums">
+                <span className="sr-only">max </span>
+                {j.max}°
+              </span>
               <span className="truncate text-sm font-medium first-letter:uppercase">{j.ciel}</span>
-              <span className="text-[0.8125rem] tabular-nums opacity-75">
+              <span className="text-[0.8125rem] font-medium tabular-nums">
+                <span className="sr-only">min </span>
                 {j.min}° · {j.pluieMm} mm · {j.ventKmh} km/h
               </span>
               {alerte && <span className="text-sm font-bold">{j.alertes.join(", ")}</span>}

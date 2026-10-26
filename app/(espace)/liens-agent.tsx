@@ -10,9 +10,12 @@ import { cn } from "@/lib/utils";
 function Pastille({ n }: { n: number }) {
   if (n <= 0) return null;
   return (
-    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[11px] font-semibold text-background tabular-nums" aria-label={`${n} en attente`}>
-      {n > 99 ? "99+" : n}
-    </span>
+    <>
+      <span aria-hidden className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground px-1.5 text-[11px] font-semibold text-background tabular-nums">
+        {n > 99 ? "99+" : n}
+      </span>
+      <span className="sr-only">, {n} en attente</span>
+    </>
   );
 }
 

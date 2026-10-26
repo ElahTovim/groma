@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,13 +37,27 @@ export function Carte({ p }: { p: CarteProposition }) {
   const [refus, setRefus] = useState(false);
   const [motif, setMotif] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
+  // Le champ en cause, pour relier le message au bon champ.
+  const [champ, setChamp] = useState<"texte" | "motif" | null>(null);
   const [enCours, demarrer] = useTransition();
+  const carte = useRef<HTMLElement>(null);
+  const base = useId();
+  const idErreur = `${base}-erreur`;
+
+  // La carte va disparaître de la file : le focus passe à la suivante, ou au titre de la page.
+  const focusApres = () => {
+    const suivante = carte.current?.closest("li")?.nextElementSibling?.querySelector<HTMLElement>("article");
+    const cible = suivante ?? document.getElementById("titre-a-valider");
+    cible?.focus();
+  };
 
   const valider = () =>
     demarrer(async () => {
       setErreur(null);
+      setChamp(null);
       if (modifiable && !texte.trim()) {
         setErreur("Le texte est vide.");
+        setChamp("texte");
         return;
       }
       // Seuls les champs changés partent : la proposition garde la trace d'une modification.
@@ -52,8 +66,10 @@ export function Carte({ p }: { p: CarteProposition }) {
       if (modifiable && texte !== (p.texte ?? "")) modifications.texte = texte;
       try {
         const r = await validerProposition(p.id, modifications);
-        if (r.ok) toast.success(r.message, { duration: 8000 });
-        else {
+        if (r.ok) {
+          focusApres();
+          toast.success(r.message, { duration: 8000 });
+        } else {
           setErreur(r.erreur);
           toast.error(r.erreur, { duration: 10000 });
         }
@@ -65,14 +81,18 @@ export function Carte({ p }: { p: CarteProposition }) {
   const confirmerRefus = () =>
     demarrer(async () => {
       setErreur(null);
+      setChamp(null);
       if (!motif.trim()) {
         setErreur("Dites en quelques mots pourquoi : c'est gardé au journal de l'assistant.");
+        setChamp("motif");
         return;
       }
       try {
         const r = await refuserProposition(p.id, motif);
-        if (r.ok) toast.success(r.message, { duration: 6000 });
-        else {
+        if (r.ok) {
+          focusApres();
+          toast.success(r.message, { duration: 6000 });
+        } else {
           setErreur(r.erreur);
           toast.error(r.erreur, { duration: 10000 });
         }
@@ -82,7 +102,7 @@ export function Carte({ p }: { p: CarteProposition }) {
     });
 
   return (
-    <article aria-label={`${p.libelleType} pour ${p.destinataire}`} className="flex flex-col gap-4 rounded-3xl bg-card p-5 md:p-6">
+    <article ref={carte} tabIndex={-1} aria-label={`${p.libelleType} pour ${p.destinataire}`} className="flex flex-col gap-4 rounded-3xl bg-card p-5 md:p-6">
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="flex flex-wrap items-center gap-2">
@@ -126,7 +146,15 @@ export function Carte({ p }: { p: CarteProposition }) {
           )}
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted-foreground">Texte exact, modifiable avant de valider</span>
-            <Textarea value={texte} onChange={(e) => setTexte(e.target.value)} maxLength={p.type === "courriel" ? 5000 : 2000} disabled={enCours} className="min-h-32 bg-background" />
+            <Textarea
+              value={texte}
+              onChange={(e) => setTexte(e.target.value)}
+              maxLength={p.type === "courriel" ? 5000 : 2000}
+              disabled={enCours}
+              aria-invalid={champ === "texte" || undefined}
+              aria-describedby={champ === "texte" ? idErreur : undefined}
+              className="min-h-32 bg-background"
+            />
           </label>
         </div>
       ) : (
@@ -137,10 +165,21 @@ export function Carte({ p }: { p: CarteProposition }) {
         <div className="flex flex-col gap-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Pourquoi refuser ?</span>
-            <Input value={motif} onChange={(e) => setMotif(e.target.value)} maxLength={300} disabled={enCours} required autoFocus placeholder="Par exemple : mauvais destinataire" className="bg-background" />
+            <Input
+              value={motif}
+              onChange={(e) => setMotif(e.target.value)}
+              maxLength={300}
+              disabled={enCours}
+              required
+              autoFocus
+              placeholder="Par exemple : mauvais destinataire"
+              aria-invalid={champ === "motif" || undefined}
+              aria-describedby={champ === "motif" ? idErreur : undefined}
+              className="bg-background"
+            />
           </label>
           <div className="flex flex-wrap gap-2">
-            <Button variant="default" disabled={enCours} onClick={confirmerRefus}>
+            <Button variant="default" disabled={enCours} focusableWhenDisabled className="aria-disabled:opacity-50" onClick={confirmerRefus}>
               {enCours ? "Refus…" : "Confirmer le refus"}
             </Button>
             <Button
@@ -149,6 +188,7 @@ export function Carte({ p }: { p: CarteProposition }) {
               onClick={() => {
                 setRefus(false);
                 setErreur(null);
+                setChamp(null);
               }}
             >
               Annuler
@@ -157,7 +197,7 @@ export function Carte({ p }: { p: CarteProposition }) {
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
-          <Button disabled={enCours} onClick={valider}>
+          <Button disabled={enCours} focusableWhenDisabled className="aria-disabled:opacity-50" onClick={valider}>
             {enCours ? "Envoi…" : "Valider"}
           </Button>
           <Button variant="outline" disabled={enCours} onClick={() => setRefus(true)}>
@@ -167,7 +207,7 @@ export function Carte({ p }: { p: CarteProposition }) {
       )}
 
       {erreur && (
-        <p role="alert" className="rounded-2xl border border-foreground p-3 text-sm">
+        <p id={idErreur} role="alert" className="rounded-2xl border border-foreground p-3 text-sm">
           {erreur}
         </p>
       )}

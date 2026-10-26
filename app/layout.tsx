@@ -23,7 +23,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "groma",
+  // Chaque page donne son titre : « Chantiers · groma ».
+  title: { default: "groma", template: "%s · groma" },
   description: "Suivi de chantiers de rénovation",
 };
 

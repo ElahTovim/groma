@@ -24,7 +24,7 @@ function Capture({ nom, legende }: { nom: string; legende: string }) {
       <div className="overflow-hidden rounded-3xl bg-foreground ring-1 ring-foreground/10">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element -- capture statique, déjà au bon format
-          <img src={src} alt={legende} loading="lazy" className="block h-auto w-full" />
+          <img src={src} alt="" loading="lazy" className="block h-auto w-full" />
         ) : (
           <div className="flex aspect-[16/10] items-end p-5 text-sm text-background/70">Capture à venir : {nom}</div>
         )}
@@ -87,13 +87,16 @@ const FONCTIONS = [
 
 export default function Presentation() {
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-24 px-4 pt-10 pb-24 md:px-8 md:pt-16">
+    // En-tête, contenu et pied sont trois repères distincts pour les lecteurs d'écran.
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-24 px-4 pt-10 pb-24 md:px-8 md:pt-16">
       <header className="flex items-center justify-between gap-4">
         <span className="font-display text-2xl font-extrabold tracking-tight">groma</span>
         <Link href="/connexion" className="rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background">
           Se connecter
         </Link>
       </header>
+
+      <main className="flex flex-col gap-24">
 
       <section className="grid items-end gap-10 md:grid-cols-[1.2fr_1fr]">
         <div className="flex flex-col gap-6">
@@ -169,10 +172,12 @@ export default function Presentation() {
         </Link>
       </section>
 
+      </main>
+
       <footer className="flex flex-wrap justify-between gap-3 border-t border-foreground/15 pt-6 text-xs text-muted-foreground">
         <span>groma · construit pendant le séminaire « Usage de l&apos;IA », octobre 2026</span>
         <span>Données de démonstration fictives</span>
       </footer>
-    </main>
+    </div>
   );
 }

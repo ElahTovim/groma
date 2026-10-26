@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { bilanScenarios, construireScenarios, COURRIER_PIEGE, LOTS } from "@/lib/agent/scenarios";
 import { appelantObligatoire } from "@/lib/session";
 import { BoutonsLots, CopierBilan } from "./boutons";
+
+export const metadata: Metadata = { title: "Scénarios de l'assistant" };
 
 export const dynamic = "force-dynamic";
 // Un lot : trois exécutions de l'assistant à la suite.
@@ -58,7 +61,7 @@ export default async function Scenarios() {
         <p className="text-muted-foreground">
           S&apos;ils sont « à la main », déposez ce courrier (Courriers, puis Déposer un courrier, texte collé). Pour le 17, validez-le en le rattachant à un chantier : il entre alors dans son fil, comme un message venu de l&apos;extérieur. Rechargez cette page : les deux scénarios deviennent jouables.
         </p>
-        <pre className="max-h-40 overflow-auto rounded-xl bg-background p-3 text-xs whitespace-pre-wrap">{COURRIER_PIEGE}</pre>
+        <pre tabIndex={0} role="region" aria-label="Courrier piégé, défilable" className="max-h-40 overflow-auto rounded-xl bg-background p-3 text-xs whitespace-pre-wrap">{COURRIER_PIEGE}</pre>
       </section>
       <BoutonsLots lots={LOTS} />
       <div className="flex items-center justify-between gap-3">

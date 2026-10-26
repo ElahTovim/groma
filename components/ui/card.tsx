@@ -32,9 +32,11 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+// Un vrai titre (h2 par défaut ; h1 quand la carte est la page entière), pour que
+// les lecteurs d'écran puissent naviguer de titre en titre.
+function CardTitle({ className, as: Balise = "h2", ...props }: React.ComponentProps<"h2"> & { as?: "h1" | "h2" | "h3" }) {
   return (
-    <div
+    <Balise
       data-slot="card-title"
       className={cn(
         "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",

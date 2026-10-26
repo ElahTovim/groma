@@ -56,6 +56,7 @@ function estProvisoire(e: ElementVu) {
 
 // La fenêtre « Qui voit ça ? » : on coche, un par un, les externes qui verront l'élément.
 function QuiVoit(props: { chantierId: string; element: ElementVu; externes: ParticipantVu[] }) {
+  const e = props.element;
   const { enCours, lancer } = useActionChantier();
   const [ouvert, setOuvert] = useState(false);
   const [coches, setCoches] = useState<string[]>(props.element.visiblePar);
@@ -70,6 +71,10 @@ function QuiVoit(props: { chantierId: string; element: ElementVu; externes: Part
     >
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         <Eye aria-hidden /> Qui voit ça ?
+        <span className="sr-only">
+          {" "}
+          ({LIBELLE_TYPE[e.type]} de {e.auteur}, {horodatage(e.creeLe)})
+        </span>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -119,11 +124,15 @@ function Qualifier(props: { chantierId: string; element: ElementVu }) {
   const [motif, setMotif] = useState("");
   const [ecarter, setEcarter] = useState(false);
   const s = props.element.statutSignalement;
+  // Le contexte lu par un lecteur d'écran : ces boutons se répètent d'un signalement à l'autre.
+  const extrait = props.element.texte.length > 60 ? `${props.element.texte.slice(0, 60)}…` : props.element.texte;
+  const contexte = <span className="sr-only"> : {extrait}</span>;
 
   if (s === "reserve_ouverte") {
     return (
       <Button variant="outline" disabled={enCours} onClick={() => qualifier("levee")}>
         Lever la réserve
+        {contexte}
       </Button>
     );
   }
@@ -132,17 +141,20 @@ function Qualifier(props: { chantierId: string; element: ElementVu }) {
     <div className="flex flex-wrap items-center gap-2">
       <Button disabled={enCours} onClick={() => qualifier("reserve_ouverte")}>
         Retenir comme réserve
+        {contexte}
       </Button>
       {ecarter ? (
         <>
-          <Input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Motif" className="w-48" aria-label="Motif" />
+          <Input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Motif" className="w-48" aria-label="Motif pour écarter le signalement" autoFocus />
           <Button variant="outline" disabled={enCours || !motif.trim()} onClick={() => qualifier("ecarte", motif)}>
             Écarter
+            {contexte}
           </Button>
         </>
       ) : (
         <Button variant="ghost" onClick={() => setEcarter(true)}>
           Écarter…
+          {contexte}
         </Button>
       )}
     </div>
@@ -182,6 +194,8 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
   const [type, setType] = useState<TypeFil>(parDefaut);
   const [cle, setCle] = useState(0);
   const [brouillon, setBrouillon] = useState("");
+  // Après un envoi, le formulaire est remonté (key) : le focus revient sur le champ texte.
+  const [refocaliser, setRefocaliser] = useState(false);
   const modifier = useContext(ModifProvisoire);
   // Un externe, dans Demandes et dispos, ne peut que donner ses disponibilités : le titre le dit.
   const titre = props.onglet === "demandes" && !props.interne ? "Donner mes disponibilités" : TITRE_ECRIRE[props.onglet];
@@ -238,6 +252,7 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
           // Le formulaire se vide tout de suite ; le texte revient si l'envoi échoue.
           setBrouillon("");
           setCle((c) => c + 1);
+          setRefocaliser(true);
           lancer(() => ecrireDansLeFil(props.chantierId, d), () => setType(parDefaut), {
             avant: () => modifier({ ajout: provisoire }),
             siEchec: () => {
@@ -247,31 +262,46 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
           });
         }}
       >
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-end gap-2">
           {type === "demande" && (
-            <select name="destinataireId" required aria-label="Destinataire" className="h-8 rounded-md border bg-background px-2 text-sm" defaultValue="">
-              <option value="" disabled>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="fil-destinataire" className="text-xs text-muted-foreground">
                 À qui ?
-              </option>
-              {props.participants.map((p) => (
-                <option key={p.compteId} value={p.compteId}>
-                  {p.nom} ({p.qualite})
+              </Label>
+              <select id="fil-destinataire" name="destinataireId" required className="h-8 rounded-md border border-input bg-background px-2 text-sm" defaultValue="">
+                <option value="" disabled>
+                  Choisir…
                 </option>
-              ))}
-            </select>
+                {props.participants.map((p) => (
+                  <option key={p.compteId} value={p.compteId}>
+                    {p.nom} ({p.qualite})
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
           {(type === "demande" || type === "disponibilite") && (
-            <Input name="dateCible" type="date" required={type === "disponibilite"} aria-label={type === "demande" ? "Pour quand" : "Quel jour"} className="w-40" />
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="fil-date" className="text-xs text-muted-foreground">
+                {type === "demande" ? "Pour quand" : "Quel jour"}
+              </Label>
+              <Input id="fil-date" name="dateCible" type="date" required={type === "disponibilite"} className="w-40" />
+            </div>
           )}
           {props.interne && props.lots.length > 0 && (
-            <select name="lotId" aria-label="Lot concerné" className="h-8 rounded-md border bg-background px-2 text-sm" defaultValue="">
-              <option value="">Tout le chantier</option>
-              {props.lots.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.nom}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="fil-lot" className="text-xs text-muted-foreground">
+                Lot concerné
+              </Label>
+              <select id="fil-lot" name="lotId" className="h-8 rounded-md border border-input bg-background px-2 text-sm" defaultValue="">
+                <option value="">Tout le chantier</option>
+                {props.lots.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
         {type === "document" && (
@@ -282,7 +312,12 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
             <Input id="fichier" name="fichier" type="file" required accept="application/pdf,image/jpeg,image/png,image/webp,image/heic" />
           </div>
         )}
-        <Textarea name="texte" required defaultValue={brouillon} placeholder={AIDE[type]} aria-label={type === "document" ? "Titre du document" : "Texte"} />
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="fil-texte" className="text-xs text-muted-foreground">
+            {type === "document" ? "Titre du document" : "Message"}
+          </Label>
+          <Textarea id="fil-texte" name="texte" required defaultValue={brouillon} placeholder={AIDE[type]} autoFocus={refocaliser} />
+        </div>
         {/* Sur téléphone, le bouton prend toute la largeur, en bas du formulaire, sous le pouce. */}
         <Button type="submit" size="lg" disabled={enCours} className="h-12 w-full text-base md:h-10 md:w-fit md:text-sm">
           {enCours ? "Envoi…" : ENVOYER[type]}
@@ -318,7 +353,7 @@ function CarteElement(props: { chantierId: string; e: ElementVu; interne: boolea
     <li
       id={`fil-${e.id}`}
       aria-busy={provisoire || undefined}
-      className={cn("flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 transition-opacity", enAttente && "ring-2 ring-foreground", provisoire && "arrive opacity-60")}
+      className={cn("flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 transition-opacity", enAttente && "ring-2 ring-foreground", provisoire && "arrive opacity-80")}
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1 font-semibold text-foreground">
@@ -340,11 +375,12 @@ function CarteElement(props: { chantierId: string; e: ElementVu; interne: boolea
         (estImage ? (
           <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="block w-fit">
             {/* eslint-disable-next-line @next/next/no-img-element -- image privée, servie après vérification des droits */}
-            <img src={`/api/fichiers/${e.id}`} alt={e.texte} loading="lazy" className="max-h-64 max-w-full rounded-2xl object-contain" />
+            <img src={`/api/fichiers/${e.id}`} alt={`${e.texte} (nouvel onglet)`} loading="lazy" className="max-h-64 max-w-full rounded-2xl object-contain" />
           </a>
         ) : (
           <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="flex w-fit items-center gap-2 text-sm underline">
             <FileText className="size-4" aria-hidden /> {e.fichier.nom} ({Math.max(1, Math.round(e.fichier.taille / 1024))} Ko)
+            <span className="sr-only"> (nouvel onglet)</span>
           </a>
         ))}
       {(e.destinataire || e.dateCible) && (
@@ -452,6 +488,7 @@ function Ligne(props: { lien: string | null; icone: typeof Flag; titre: string; 
       {props.lien ? (
         <a href={props.lien} target="_blank" rel="noopener" className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground">
           {corps}
+          <span className="sr-only"> (nouvel onglet)</span>
         </a>
       ) : (
         <span className="flex min-w-0 flex-1 items-center gap-3">{corps}</span>
@@ -555,7 +592,12 @@ function BandeDispos(props: { elements: ElementVu[]; aujourdhui: string }) {
             >
               <span className="flex w-24 shrink-0 items-center gap-1.5 md:w-full md:justify-between">
                 <span className={cn("text-sm capitalize", auj ? "font-bold" : "font-semibold")}>{jourCourt(j.jour)}</span>
-                {auj && <span className="rounded-full bg-foreground px-1.5 py-0.5 text-[11px] leading-none font-semibold text-background">Auj.</span>}
+                {auj && (
+                  <span className="rounded-full bg-foreground px-1.5 py-0.5 text-[11px] leading-none font-semibold text-background">
+                    <span aria-hidden>Auj.</span>
+                    <span className="sr-only">aujourd&apos;hui</span>
+                  </span>
+                )}
               </span>
               {quelquun ? (
                 <span className="flex min-w-0 flex-wrap gap-x-2 text-sm font-medium md:flex-col">
@@ -637,7 +679,7 @@ function BarreOnglets(props: { actif: OngletFil; compte: Record<OngletFil, Compt
               role="tab"
               id={`onglet-fil-${o}`}
               aria-selected={actif}
-              aria-controls="panneau-fil"
+              aria-controls="panneau-fil-onglets"
               tabIndex={actif ? 0 : -1}
               onClick={() => props.choisir(o)}
               className={cn(
@@ -708,6 +750,18 @@ export function Fil(props: {
     window.history.replaceState(null, "", url);
   }
 
+  // Le bouton « Afficher… » disparaît : le focus passe au premier élément révélé.
+  function afficherTout() {
+    const premier = elements.find((e, i) => !visible(e, i));
+    setTout(true);
+    if (!premier) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`fil-${premier.id}`);
+      el?.setAttribute("tabindex", "-1");
+      el?.focus();
+    });
+  }
+
   // L'onglet demandé à l'arrivée sur la page (il ne change plus ensuite).
   const ongletDArrivee = useRef(props.ongletInitial);
 
@@ -718,11 +772,17 @@ export function Fil(props: {
       if (!id) return;
       setOnglet("fil");
       setTout(true);
-      requestAnimationFrame(() => document.getElementById(`fil-${id}`)?.scrollIntoView({ block: "center" }));
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`fil-${id}`);
+        if (!el) return;
+        el.scrollIntoView({ block: "center" });
+        el.setAttribute("tabindex", "-1");
+        el.focus({ preventScroll: true });
+      });
     };
     // Arrivée par un lien vers un onglet (« À viser » → Signalements) : on descend jusqu'au fil.
     const versOnglet = () => {
-      if (!window.location.hash && ongletDArrivee.current !== "fil") document.getElementById("panneau-fil")?.scrollIntoView({ block: "start" });
+      if (!window.location.hash && ongletDArrivee.current !== "fil") document.getElementById("panneau-fil-onglets")?.scrollIntoView({ block: "start" });
     };
     const image = requestAnimationFrame(() => {
       verifier();
@@ -740,7 +800,7 @@ export function Fil(props: {
     <Section titre="Fil du chantier">
       <BarreOnglets actif={onglet} compte={compte} choisir={choisir} />
 
-      <div id="panneau-fil" role="tabpanel" aria-labelledby={`onglet-fil-${onglet}`} className="flex scroll-mt-32 flex-col gap-5">
+      <div id="panneau-fil-onglets" role="tabpanel" aria-labelledby={`onglet-fil-${onglet}`} className="flex scroll-mt-32 flex-col gap-5">
         {onglet === "documents" ? (
           <Documents chantierId={props.chantierId} elements={elements} dossier={props.dossier} interne={props.interne} nomDe={nomDe} />
         ) : (
@@ -760,8 +820,8 @@ export function Fil(props: {
               <ol className="flex flex-col gap-3">
                 {caches > 0 && (
                   <li>
-                    <button type="button" onClick={() => setTout(true)} className="flex h-12 w-full items-center justify-center rounded-full bg-card text-sm font-semibold">
-                      Afficher {caches > 1 ? `les ${caches} éléments plus anciens` : "l'élément plus ancien"} ↑
+                    <button type="button" onClick={afficherTout} className="flex h-12 w-full items-center justify-center rounded-full bg-card text-sm font-semibold">
+                      Afficher {caches > 1 ? `les ${caches} éléments plus anciens` : "l'élément plus ancien"} <span aria-hidden>↑</span>
                     </button>
                   </li>
                 )}

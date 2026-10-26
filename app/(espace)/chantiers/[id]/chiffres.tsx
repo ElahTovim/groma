@@ -1,12 +1,18 @@
 import { Compteur } from "@/components/compteur";
 import type { LotVu } from "@/lib/fiche";
-import { euros } from "@/lib/format";
+import { dateCourte, euros } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+// « 12.03.26 » à l'écran ; un lecteur d'écran entend « 12 mars 2026 ».
 function datePoints(iso: string | null) {
   if (!iso) return "—";
   const [a, m, j] = iso.split("-");
-  return `${j}.${m}.${a.slice(2)}`;
+  return (
+    <time dateTime={iso}>
+      <span aria-hidden>{`${j}.${m}.${a.slice(2)}`}</span>
+      <span className="sr-only">{dateCourte(iso)}</span>
+    </time>
+  );
 }
 
 // L'essentiel du chantier dans un cartouche, comme le bloc-titre d'un plan :

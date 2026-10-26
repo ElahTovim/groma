@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageGlissante } from "@/components/transitions";
 import { texteATraiter } from "@/components/a-traiter";
@@ -10,6 +11,8 @@ import { aujourdhuiParis, poidsATraiter } from "@/lib/regles";
 import { appelantObligatoire } from "@/lib/session";
 import { Terrain } from "../terrain";
 import { FiltresChantiers } from "./filtres";
+
+export const metadata: Metadata = { title: "Chantiers" };
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +51,7 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display font-extrabold text-[2.5rem] leading-[0.95] tracking-tight md:text-6xl">
           Chantiers
-          <span className="block text-muted-foreground/70">{total} au total</span>
+          <span className="block text-muted-foreground">{total} au total</span>
         </h1>
         {peutCreerChantier(qui.role) && (
           <Link href="/chantiers/nouveau" className={buttonVariants({ size: "lg" })}>
@@ -58,6 +61,9 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
       </div>
 
       <FiltresChantiers compteurs={compteurs as Record<string, number>} total={total} aTraiter={nbATraiter} />
+      <p role="status" className="sr-only">
+        {liste.length} chantier{liste.length > 1 ? "s" : ""} affiché{liste.length > 1 ? "s" : ""}
+      </p>
 
       {liste.length === 0 ? (
         <div className="rounded-3xl bg-card p-10 text-center">

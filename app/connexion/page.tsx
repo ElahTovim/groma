@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { count } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -6,6 +7,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { db } from "@/lib/db";
 import { comptes } from "@/lib/db/schema";
 import { FormulaireConnexion } from "./formulaire";
+
+export const metadata: Metadata = { title: "Connexion" };
 
 export const dynamic = "force-dynamic";
 

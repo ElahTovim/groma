@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { texteATraiter } from "@/components/a-traiter";
@@ -15,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { AViser, Messages, Meteo, Semaine, Titre } from "./accueil-blocs";
 import { RechercheAccueil } from "./recherche-accueil";
 import { Terrain } from "./terrain";
+
+export const metadata: Metadata = { title: "Accueil" };
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +66,10 @@ function Chargement({ entete }: { entete: React.ReactNode }) {
         {entete}
         <Skeleton className="h-14 max-w-3xl rounded-2xl md:h-16" />
       </div>
-      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_20rem]" aria-busy="true" aria-label="Chargement du tableau de bord">
+      <p role="status" className="sr-only">
+        Chargement du tableau de bord…
+      </p>
+      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_20rem]" aria-hidden>
         <Skeleton className="h-96 rounded-3xl" />
         <Skeleton className="h-80 rounded-3xl" />
       </div>
@@ -112,8 +118,8 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
           <Terrain titre={t.actifs.length ? "Le terrain" : "Mes chantiers"} chantiers={terrain} />
         </div>
         <aside className="flex min-w-0 flex-col gap-10">
-          <section className="hidden flex-col gap-4 md:flex" aria-label="Le ciel">
-            <Titre>Le ciel</Titre>
+          <section className="hidden flex-col gap-4 md:flex">
+            <Titre decor>Le ciel</Titre>
             <Meteo t={t} className="apparait [--rang:2]" />
           </section>
           {t.chiffres && <Semaine t={t} />}

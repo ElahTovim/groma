@@ -60,6 +60,14 @@ export function Questions({ questionInitiale }: { questionInitiale?: string }) {
 
   const enCours = etape === "recherche" || etape === "redaction";
   const trop = question.trim().length > QUESTION_MAX;
+  const bloque = enCours || question.trim().length < QUESTION_MIN || trop;
+  // Ce que la région d'état annonce : l'étape seulement, jamais le texte qui arrive.
+  const annonce =
+    etape === "recherche" || etape === "redaction"
+      ? LIBELLE_ETAPE[etape]
+      : etape === "fini"
+        ? `Réponse prête, ${sources.length} source${sources.length > 1 ? "s" : ""}.`
+        : "";
 
   async function poser(e: React.FormEvent) {
     e.preventDefault();
@@ -139,20 +147,29 @@ export function Questions({ questionInitiale }: { questionInitiale?: string }) {
           }}
           placeholder="Par exemple : quel délai pour lever une réserve après la réception ?"
           aria-invalid={trop}
+          aria-describedby="question-compteur"
           rows={3}
         />
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className={cn("text-xs", trop ? "text-destructive" : "text-muted-foreground")}>
-            {question.trim().length} / {QUESTION_MAX} caractères
+          <p id="question-compteur" className={cn("text-xs", trop ? "text-destructive" : "text-muted-foreground")}>
+            {question.trim().length} / {QUESTION_MAX} caractères{trop && " : trop long, raccourcissez la question"}
           </p>
-          <Button type="submit" disabled={enCours || question.trim().length < QUESTION_MIN || trop}>
+          {/* focusableWhenDisabled : aria-disabled au lieu de disabled, le bouton garde le focus pendant la réponse. */}
+          <Button type="submit" disabled={bloque} focusableWhenDisabled className="aria-disabled:opacity-50">
             {enCours ? "Réponse en cours…" : "Poser la question"}
           </Button>
         </div>
       </form>
 
+      <p role="status" className="sr-only">
+        {annonce}
+      </p>
+
       {etape !== "repos" && (
-        <section className="flex flex-col gap-4 rounded-3xl bg-card p-5 md:p-6" aria-live="polite" aria-busy={enCours}>
+        <section className="flex flex-col gap-4 rounded-3xl bg-card p-5 md:p-6" aria-labelledby="titre-reponse" aria-busy={enCours}>
+          <h2 id="titre-reponse" className="sr-only">
+            Réponse
+          </h2>
           <p className="text-xs text-muted-foreground">Question : {posee}</p>
 
           {enCours && (
@@ -195,11 +212,11 @@ export function Questions({ questionInitiale }: { questionInitiale?: string }) {
             <p className="text-sm text-destructive">La réponse ne cite aucune source : ne vous y fiez pas sans vérifier les documents.</p>
           )}
 
-          {erreur && <p className="border border-foreground p-3 text-sm">{erreur}</p>}
+          {erreur && <p role="alert" className="border border-foreground p-3 text-sm">{erreur}</p>}
 
           {sources.length > 0 && (
             <div className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold">Sources retenues</h2>
+              <h3 className="text-sm font-semibold">Sources retenues</h3>
               <ul className="flex flex-col gap-2">
                 {sources.map((s) => {
                   const citee = citees.has(`${s.documentId}#${s.page}`);
@@ -210,7 +227,7 @@ export function Questions({ questionInitiale }: { questionInitiale?: string }) {
                           <span className="font-medium">{s.titre}</span>, p. {s.page}
                           {controle && <span className="ml-2 text-xs text-muted-foreground">{citee ? "citée" : "non citée"}</span>}
                         </summary>
-                        <p className="mt-2 max-h-72 overflow-auto text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">{s.extrait}</p>
+                        <p tabIndex={0} role="region" aria-label={`Extrait de ${s.titre}, page ${s.page}`} className="mt-2 max-h-72 overflow-auto text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">{s.extrait}</p>
                         <a href={`/questions/documents/${s.documentId}#page-${s.page}`} className="mt-2 inline-block text-xs underline underline-offset-2">
                           Ouvrir le document à la page {s.page}
                         </a>

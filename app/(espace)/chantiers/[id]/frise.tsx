@@ -28,7 +28,7 @@ export function FriseEtapes({ statut }: { statut: StatutChantier }) {
             <span className={cn("h-2.5 overflow-hidden", i === enCours ? "hachure ring-1 ring-foreground ring-inset" : i > rang && "ring-1 ring-foreground/35 ring-inset")}>
               {(i < rang || (i === rang && enCours < 0)) && <span className="remplit block h-full bg-foreground" style={{ "--rang": i } as React.CSSProperties} />}
             </span>
-            <span className={cn("annotation hidden truncate text-[10px] md:block", i === rang ? "font-semibold" : "text-muted-foreground")}>
+            <span className={cn("annotation sr-only truncate text-[10px] md:not-sr-only md:block", i === rang ? "font-semibold" : "text-muted-foreground")}>
               {LIBELLE_STATUT[s]}
             </span>
           </li>

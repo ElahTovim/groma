@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,8 @@ import { erreurDeLecture, estDepot, incertitudesAffichees, libelleCategorie, mot
 import { appelantObligatoire } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { BoutonImport } from "./bouton-import";
+
+export const metadata: Metadata = { title: "Courriers" };
 
 const pourcent = (t: number) => `${Math.round(t * 100)} %`;
 const pluriel = (n: number, un: string, plusieurs: string) => `${n.toLocaleString("fr-FR")} ${n > 1 ? plusieurs : un}`;
@@ -95,7 +98,7 @@ export default async function Courriers({ searchParams }: PageProps<"/courriers"
         <div className="flex flex-col gap-2">
           <h1 className="font-display text-[2.5rem] leading-[0.95] font-extrabold tracking-tight md:text-6xl">
             Courriers
-            <span className="block text-muted-foreground/70">{compteurs.a_relire} à relire</span>
+            <span className="block text-muted-foreground">{compteurs.a_relire} à relire</span>
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Les courriers arrivent par le flux, ou sont déposés ici. L&apos;IA lit chaque courrier et propose ses champs, un résumé et un brouillon de réponse. Rien n&apos;est appliqué tant qu&apos;une personne n&apos;a pas relu et validé. Le brouillon n&apos;est jamais envoyé.

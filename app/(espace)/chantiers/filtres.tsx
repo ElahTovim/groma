@@ -48,7 +48,7 @@ export function FiltresChantiers(props: { compteurs: Record<string, number>; tot
   return (
     <div className="flex flex-col gap-3">
       {/* Ordinateur : tous les statuts visibles, sur plusieurs lignes si besoin. */}
-      <nav aria-label="Statut" className="hidden md:block">
+      <div role="group" aria-label="Filtrer par statut" className="hidden md:block">
         <ul className="flex flex-wrap gap-2">
           {onglets.map((o) => (
             <li key={o.valeur || "tous"}>
@@ -56,7 +56,7 @@ export function FiltresChantiers(props: { compteurs: Record<string, number>; tot
             </li>
           ))}
         </ul>
-      </nav>
+      </div>
       <div className="flex items-center gap-2">
         <Input
           value={q}
@@ -68,8 +68,8 @@ export function FiltresChantiers(props: { compteurs: Record<string, number>; tot
             minuteur.current = setTimeout(() => appliquer({ q: valeur.trim() }), 300);
           }}
           placeholder="Rechercher : nom, client, ville, référence"
-          className="h-12 min-w-0 flex-1 rounded-full border-0 bg-card px-5"
-          aria-label="Rechercher"
+          className="h-12 min-w-0 flex-1 rounded-full border border-input bg-card px-5"
+          aria-label="Rechercher un chantier par nom, client, ville ou référence"
         />
         {/* Téléphone : un seul bouton montre le statut choisi ; la liste s'ouvre par le bas. */}
         <button
@@ -96,6 +96,7 @@ export function FiltresChantiers(props: { compteurs: Record<string, number>; tot
               <li key={o.valeur || "tous"}>
                 <button
                   type="button"
+                  aria-pressed={statut === o.valeur}
                   onClick={() => {
                     setChoix(false);
                     appliquer({ statut: o.valeur });
@@ -121,7 +122,7 @@ function Pastille({ o, actif, onClick }: { o: { libelle: string; n: number }; ac
   return (
     <button
       type="button"
-      aria-current={actif ? "page" : undefined}
+      aria-pressed={actif}
       onClick={onClick}
       className={cn(
         "flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium whitespace-nowrap",

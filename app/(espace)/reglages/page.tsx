@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import { FormulaireProfil } from "./profil";
 import { BoutonJeu } from "./bouton-jeu";
 import { BoutonSentry } from "./bouton-sentry";
 import { JetonsMcp } from "./jetons-mcp";
+
+export const metadata: Metadata = { title: "Réglages" };
 
 export const dynamic = "force-dynamic";
 

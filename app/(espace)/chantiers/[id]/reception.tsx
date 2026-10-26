@@ -73,7 +73,7 @@ export function Reception(props: {
   // Signé : le PV ne bouge plus.
   if (pv?.signeLe) {
     return (
-      <Section carte titre="Réception" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Ouvrir le PV</a>}>
+      <Section carte titre="Réception" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Ouvrir le PV<span className="sr-only"> (nouvel onglet)</span></a>}>
         <p className="flex flex-wrap items-center gap-2 text-sm">
           <Badge>PV signé</Badge> par {pv.signeNom}, le {heure(pv.signeLe)}
         </p>
@@ -86,7 +86,7 @@ export function Reception(props: {
   // Le maître d'ouvrage désigné : relire, puis signer.
   if (pv && pv.signataireId === props.moi) {
     return (
-      <Section carte titre="PV de réception à signer" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Lire le PV</a>}>
+      <Section carte titre="PV de réception à signer" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Lire le PV<span className="sr-only"> (nouvel onglet)</span></a>}>
         <p className="text-sm">
           Réception des travaux à la date du <strong>{dateCourte(pv.dateReception)}</strong>, {pv.reserves.length ? "avec les réserves suivantes :" : "sans réserve."}
         </p>
@@ -135,7 +135,7 @@ export function Reception(props: {
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="pv-signataire">Signataire (maître d&apos;ouvrage)</Label>
-          <select id="pv-signataire" name="signataireId" required className="h-8 rounded-lg border bg-background px-2 text-sm" defaultValue={pv?.signataireId ?? ""}>
+          <select id="pv-signataire" name="signataireId" required className="h-8 rounded-lg border border-input bg-background px-2 text-sm" defaultValue={pv?.signataireId ?? ""}>
             <option value="" disabled>
               Choisir…
             </option>
@@ -164,7 +164,7 @@ export function Reception(props: {
 
   if (pv && !modifier) {
     return (
-      <Section carte titre="Réception" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Ouvrir le PV</a>}>
+      <Section carte titre="Réception" action={<a href={lienPdf} target="_blank" rel="noopener" className={buttonVariants({ variant: "outline", size: "sm" })}>Ouvrir le PV<span className="sr-only"> (nouvel onglet)</span></a>}>
         <p className="flex flex-wrap items-center gap-2 text-sm">
           <Badge variant="outline">En attente de signature</Badge> de {pv.signataire}
         </p>

@@ -8,6 +8,7 @@ import { rejouer } from "./actions";
 export function BoutonsLots(props: { lots: number[][] }) {
   const [enCours, demarrer] = useTransition();
   const [lot, setLot] = useState<number | null>(null);
+  const [annonce, setAnnonce] = useState("");
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap gap-2">
@@ -16,10 +17,15 @@ export function BoutonsLots(props: { lots: number[][] }) {
             key={i}
             variant="outline"
             disabled={enCours}
+            focusableWhenDisabled
+            className="aria-disabled:opacity-50"
             onClick={() => {
+              if (enCours) return;
               setLot(i + 1);
+              setAnnonce(`Lot ${i + 1} lancé.`);
               demarrer(async () => {
                 const r = await rejouer(i + 1);
+                setAnnonce(`Lot ${i + 1} terminé. ${r.message}`);
                 if (r.ok) toast.success(r.message, { duration: 10000 });
                 else toast.error(r.message);
               });
@@ -29,6 +35,9 @@ export function BoutonsLots(props: { lots: number[][] }) {
           </Button>
         ))}
       </div>
+      <p role="status" className="sr-only">
+        {annonce}
+      </p>
       {enCours && <p className="text-sm text-muted-foreground">Trois exécutions de l&apos;assistant, l&apos;une après l&apos;autre : jusqu&apos;à quatre minutes. Restez sur la page.</p>}
     </div>
   );

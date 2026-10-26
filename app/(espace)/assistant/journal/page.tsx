@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,8 @@ import { aRegarder, decrireEntrees, dureeLisible, libelleOutil, raisonsARegarder
 import { appelantObligatoire } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { BadgeStatutAgent, eurosFins, heureCourte, SUSPECT } from "../bilan";
+
+export const metadata: Metadata = { title: "Journal de l'assistant" };
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +42,7 @@ export default async function JournalAssistant({ searchParams }: PageProps<"/ass
         </div>
         <h1 className="font-display text-[2.5rem] leading-[0.95] font-extrabold tracking-tight md:text-6xl">
           Journal de l&apos;assistant
-          <span className="block text-muted-foreground/70">{nbARegarder} à regarder</span>
+          <span className="block text-muted-foreground">{nbARegarder} à regarder</span>
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Chaque demande faite à l&apos;assistant, des plus récentes aux plus anciennes. Sont à regarder : les erreurs, les arrêts au budget, les outils refusés et les consignes suspectes repérées dans les données lues. Ouvrez une ligne pour lire chaque étape.
@@ -74,17 +77,18 @@ export default async function JournalAssistant({ searchParams }: PageProps<"/ass
             {toutes.length === 0 ? "Aucune demande pour l'instant. Elles apparaîtront ici dès la première." : "Rien à regarder : toutes les exécutions sont allées au bout sans refus ni consigne suspecte."}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau des exécutions, défilable">
             <table className="w-full min-w-[52rem] border-collapse text-sm">
+              <caption className="sr-only">Exécutions de l&apos;assistant, des plus récentes aux plus anciennes</caption>
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="p-2 font-medium">Lancée</th>
-                  <th className="p-2 font-medium">Qui</th>
-                  <th className="p-2 font-medium">Demande</th>
-                  <th className="p-2 font-medium">Statut</th>
-                  <th className="p-2 text-right font-medium">Outils</th>
-                  <th className="p-2 text-right font-medium">Coût</th>
-                  <th className="p-2 text-right font-medium">Durée</th>
+                  <th scope="col" className="p-2 font-medium">Lancée</th>
+                  <th scope="col" className="p-2 font-medium">Qui</th>
+                  <th scope="col" className="p-2 font-medium">Demande</th>
+                  <th scope="col" className="p-2 font-medium">Statut</th>
+                  <th scope="col" className="p-2 text-right font-medium">Outils</th>
+                  <th scope="col" className="p-2 text-right font-medium">Coût</th>
+                  <th scope="col" className="p-2 text-right font-medium">Durée</th>
                 </tr>
               </thead>
               <tbody>
@@ -92,14 +96,11 @@ export default async function JournalAssistant({ searchParams }: PageProps<"/ass
                   const raisons = raisonsARegarder(x);
                   return (
                     <tr key={x.id} className={cn("border-b align-top last:border-0", raisons.length > 0 && "bg-muted/60")}>
-                      <td className="p-2 whitespace-nowrap tabular-nums">
-                        <Link href={`/assistant/journal/${x.id}`} className="underline underline-offset-2">
-                          {heureCourte(x.debut)}
-                        </Link>
-                      </td>
+                      <td className="p-2 whitespace-nowrap tabular-nums">{heureCourte(x.debut)}</td>
                       <td className="p-2">{x.qui}</td>
                       <td className="max-w-md p-2">
-                        <Link href={`/assistant/journal/${x.id}`} className="line-clamp-2 hover:underline">
+                        {/* Un seul lien par ligne : la demande, qui ouvre le détail. */}
+                        <Link href={`/assistant/journal/${x.id}`} className="line-clamp-2 underline underline-offset-2">
                           {x.demande}
                         </Link>
                       </td>

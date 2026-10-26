@@ -9,26 +9,48 @@ import { MOT_DE_PASSE_MIN } from "@/lib/installation";
 import { installer, type EtatInstallation } from "./actions";
 
 export function FormulaireInstallation() {
-  const [etat, action, enCours] = useActionState<EtatInstallation, FormData>(installer, {});
+  const [etat, action, enCours] = useActionState<EtatInstallation, FormData>(
+    installer,
+    {},
+  );
 
   return (
     <form action={action} className="flex flex-col gap-4">
       {etat.erreur && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" id="erreur-formulaire">
           <AlertDescription>{etat.erreur}</AlertDescription>
         </Alert>
       )}
       <div className="flex flex-col gap-2">
         <Label htmlFor="nom">Votre nom</Label>
-        <Input id="nom" name="nom" autoComplete="name" required />
+        <Input
+          aria-invalid={etat.erreur ? true : undefined}
+          aria-describedby={etat.erreur ? "erreur-formulaire" : undefined}
+          id="nom"
+          name="nom"
+          autoComplete="name"
+          required
+        />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="email">Adresse courriel du gérant</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Input
+          aria-invalid={etat.erreur ? true : undefined}
+          aria-describedby={etat.erreur ? "erreur-formulaire" : undefined}
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+        />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="motDePasse">Mot de passe</Label>
         <Input
+          aria-invalid={etat.erreur ? true : undefined}
+          aria-describedby={
+            etat.erreur ? "aide-mdp erreur-formulaire" : "aide-mdp"
+          }
           id="motDePasse"
           name="motDePasse"
           type="password"
@@ -36,11 +58,21 @@ export function FormulaireInstallation() {
           minLength={MOT_DE_PASSE_MIN}
           required
         />
-        <p className="text-xs text-muted-foreground">Au moins {MOT_DE_PASSE_MIN} caractères.</p>
+        <p id="aide-mdp" className="text-xs text-muted-foreground">
+          Au moins {MOT_DE_PASSE_MIN} caractères.
+        </p>
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="confirmation">Mot de passe, une seconde fois</Label>
-        <Input id="confirmation" name="confirmation" type="password" autoComplete="new-password" required />
+        <Input
+          aria-invalid={etat.erreur ? true : undefined}
+          aria-describedby={etat.erreur ? "erreur-formulaire" : undefined}
+          id="confirmation"
+          name="confirmation"
+          type="password"
+          autoComplete="new-password"
+          required
+        />
       </div>
       <Button type="submit" disabled={enCours}>
         {enCours ? "Création…" : "Créer le compte gérant"}

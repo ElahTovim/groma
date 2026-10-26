@@ -2,6 +2,7 @@ import { ChevronRight, Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Sno
 import Link from "next/link";
 import { texteATraiter } from "@/components/a-traiter";
 import { CielAnime } from "@/components/ciel-anime";
+import { PauseCiel } from "@/components/pause-ciel";
 import { Reticule } from "@/components/cote";
 import { VERS_FICHE } from "@/components/transitions";
 import { ambiance } from "@/lib/ambiance";
@@ -21,12 +22,16 @@ function quand(iso: string) {
   return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: PARIS }).format(new Date(iso));
 }
 
-export function Titre({ children, lien }: { children: React.ReactNode; lien?: { href: string; texte: string } }) {
+export function Titre({ children, lien, decor = false }: { children: React.ReactNode; lien?: { href: string; texte: string; label?: string }; decor?: boolean }) {
+  // `decor` : simple étiquette visuelle, quand le bloc qui suit porte déjà son propre titre.
+  const Balise = decor ? "p" : "h2";
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-foreground pb-2.5">
-      <h2 className="annotation font-semibold">{children}</h2>
+      <Balise className="annotation font-semibold" aria-hidden={decor || undefined}>
+        {children}
+      </Balise>
       {lien && (
-        <Link href={lien.href} className="annotation underline underline-offset-4">
+        <Link href={lien.href} aria-label={lien.label} className="annotation underline underline-offset-4">
           {lien.texte}
         </Link>
       )}
@@ -55,7 +60,7 @@ export function AViser({ t }: { t: TableauDeBord }) {
   }
   return (
     <section className="apparait flex flex-col" aria-label="À viser">
-      <Titre lien={total > 5 ? { href: "/chantiers?statut=a_traiter", texte: `Les ${total}` } : undefined}>À viser · {total}</Titre>
+      <Titre lien={total > 5 ? { href: "/chantiers?statut=a_traiter", texte: `Les ${total}`, label: `Voir les ${total} chantiers à viser` } : undefined}>À viser · {total}</Titre>
       <ul>
         {t.aTraiter.slice(0, 5).map((c) => (
           <li key={c.id} className="border-b border-foreground/10">
@@ -111,7 +116,8 @@ export function Meteo({ t, className }: { t: TableauDeBord; className?: string }
   const [auj, ...suivants] = jours;
   const a = ambiance({ description: auj.ciel, heure: heureParis(), alertes: auj.alertes });
   const concernes = t.actifs.length;
-  const doux = a.texteSombre ? "text-black/60" : "text-white/75";
+  // Le texte secondaire garde toute sa couleur : la lisibilité est calculée pour elle (lib/ambiance.ts).
+  const doux = "font-medium";
 
   return (
     <section
@@ -124,7 +130,10 @@ export function Meteo({ t, className }: { t: TableauDeBord; className?: string }
         <h2 className={cn("text-sm font-medium", doux)}>
           {t.meteo.lieu} · <span className="capitalize">{jourCourt(auj.date)}</span>
         </h2>
-        <IconeCiel ciel={auj.ciel} className="size-14 shrink-0" trait={1.25} />
+        <div className="flex items-start gap-2">
+          <PauseCiel sombre={a.texteSombre} />
+          <IconeCiel ciel={auj.ciel} className="size-14 shrink-0" trait={1.25} />
+        </div>
       </div>
       <div className="relative flex flex-col gap-1">
         <p className="font-display text-7xl leading-none font-extrabold tracking-tight tabular-nums">{auj.max}°</p>
@@ -146,15 +155,15 @@ export function Meteo({ t, className }: { t: TableauDeBord; className?: string }
           {suivants.map((j) => {
             const alerte = j.alertes.length > 0;
             return (
-              <li key={j.date} className={cn("flex flex-col gap-2 rounded-2xl p-3 backdrop-blur-md", alerte ? "bg-black/75 text-white" : a.texteSombre ? "bg-black/5" : "bg-white/15")}>
+              <li key={j.date} className={cn("flex flex-col gap-2 rounded-2xl p-3 backdrop-blur-md", alerte ? "bg-black/75 text-white" : a.texteSombre ? "bg-white/35" : "bg-black/20")}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-semibold capitalize">{jourCourt(j.date)}</span>
                   <IconeCiel ciel={j.ciel} className="size-6" trait={1.5} />
                 </div>
                 <span className="text-2xl font-bold tracking-tight tabular-nums">
-                  {j.max}° <span className="text-base font-medium opacity-70">/ {j.min}°</span>
+                  {j.max}° <span className="text-base font-medium">/ {j.min}°</span>
                 </span>
-                <span className={cn("truncate text-sm", alerte ? "font-semibold" : "opacity-80 first-letter:uppercase")}>{alerte ? j.alertes.join(", ") : j.ciel}</span>
+                <span className={cn("truncate text-sm", alerte ? "font-semibold" : "first-letter:uppercase")}>{alerte ? j.alertes.join(", ") : j.ciel}</span>
               </li>
             );
           })}

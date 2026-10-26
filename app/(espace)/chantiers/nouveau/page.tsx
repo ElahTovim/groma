@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { peutCreerChantier } from "@/lib/acces";
 import { appelantObligatoire } from "@/lib/session";
 import { FormulaireNouveauChantier } from "./formulaire";
+
+export const metadata: Metadata = { title: "Nouveau chantier" };
 
 export default async function NouveauChantier() {
   const qui = await appelantObligatoire();

@@ -74,7 +74,7 @@ export function BilanExecution({ x, lienJournal = true }: { x: ExecutionDetail; 
       </div>
 
       {t.suspects.length > 0 && (
-        <p role="alert" className="rounded-2xl border border-foreground p-3 text-sm font-medium">
+        <p className="rounded-2xl border border-foreground p-3 text-sm font-medium">
           {SUSPECT}
         </p>
       )}

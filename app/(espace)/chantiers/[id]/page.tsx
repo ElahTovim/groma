@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageGlissante, RETOUR } from "@/components/transitions";
 import { notFound } from "next/navigation";
@@ -32,6 +33,15 @@ import { Meteo } from "./meteo";
 import { SuiteFiche } from "./onglets";
 import { PhotoChantier } from "./photo";
 import { Reception } from "./reception";
+
+// Le titre de l'onglet du navigateur : le nom du chantier (le gabarit racine ajoute « · groma »).
+// Même lecture que la page, avec les mêmes droits : un chantier non autorisé reste introuvable.
+export async function generateMetadata({ params }: PageProps<"/chantiers/[id]">): Promise<Metadata> {
+  const qui = await appelantObligatoire();
+  const { id } = await params;
+  const chantier = await lireChantier(qui, id);
+  return { title: chantier ? chantier.nom : "Chantier introuvable" };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -94,9 +104,10 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
   ];
 
   return (
-    // La marge du bas laisse la place au bouton fixé sous le pouce, sur téléphone.
+    // La marge du bas laisse la place au bouton fixé sous le pouce, sur téléphone. Sa hauteur
+    // réelle (qui grandit avec les raisons de blocage) est mesurée par EtapeChantier.
     <PageGlissante>
-    <div className="flex flex-col gap-6 pb-36 md:pb-0">
+    <div className="flex flex-col gap-6 pb-[calc(var(--barre-etape,8rem)+1rem)] md:pb-0">
       {cree && <AnnonceCreation />}
       <nav aria-label="Fil d'Ariane" className="-mt-2 flex items-center gap-2 text-sm md:mt-0">
         <Link href="/chantiers" transitionTypes={RETOUR} className="flex min-h-12 items-center gap-1.5 font-semibold underline-offset-2 hover:underline md:min-h-0 md:font-normal md:underline">
@@ -118,7 +129,7 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
           {/* Le titre sur deux tons : le chantier en noir, où et à quelle étape en gris. */}
           <h1 className="font-display font-extrabold text-[2.5rem] leading-[0.95] tracking-tight text-balance md:text-6xl">
             {chantier.nom}
-            <span className="block text-muted-foreground/70">
+            <span className="block text-muted-foreground">
               {chantier.ville} · {LIBELLE_STATUT[chantier.statut]}
             </span>
           </h1>

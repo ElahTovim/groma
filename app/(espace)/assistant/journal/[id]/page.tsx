@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TexteReponse } from "@/components/texte-reponse";
@@ -7,6 +8,8 @@ import { decrireEntrees, dureeLisible, libelleOutil, OUTILS_GENRE, raisonsARegar
 import { appelantObligatoire } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { BadgeStatutAgent, ChantierDeLEtape, eurosFins, heureCourte, SUSPECT } from "../../bilan";
+
+export const metadata: Metadata = { title: "Session de l'assistant" };
 
 export const dynamic = "force-dynamic";
 

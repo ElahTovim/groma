@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 export default function Introuvable() {
   return (
     <div className="flex flex-col items-center gap-4 rounded-3xl bg-card p-10 text-center">
-      <p className="font-medium">Page introuvable.</p>
+      <h1 className="font-medium">Page introuvable.</h1>
       <Link href="/" className={buttonVariants({ variant: "outline" })}>
         Retour à l&apos;accueil
       </Link>

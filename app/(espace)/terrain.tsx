@@ -106,6 +106,7 @@ function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string;
     <Link
       href={`/chantiers/${c.id}`}
       transitionTypes={VERS_FICHE}
+      aria-label={`${c.nom}, ${c.ville}, ${c.etape}${c.aViser ? `, à viser : ${c.aViser}` : ""}${c.cote.total ? `, lots finis ${c.cote.finis} sur ${c.cote.total}` : ""}`}
       className={cn("carte-photo relative isolate flex flex-col justify-between overflow-hidden rounded-3xl bg-foreground p-4 text-white md:p-5", className)}
     >
       {c.aPhoto ? (
@@ -116,7 +117,7 @@ function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string;
       ) : (
         <Reticule className="absolute top-1/2 left-1/2 -z-20 size-40 -translate-1/2 text-white/10" plein={false} />
       )}
-      <span aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-b from-black/30 via-black/10 to-black/85" />
+      <span aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-b from-black/40 via-black/35 to-black/90" />
       <span className="flex items-center justify-between">
         <span className="annotation rounded-full bg-white px-2.5 py-1.5 text-[10px] font-semibold text-black">{c.etape}</span>
         {c.aViser && (
@@ -127,7 +128,7 @@ function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string;
       </span>
       <span className="flex flex-col gap-3">
         <span className="flex flex-col gap-1">
-          <span className="annotation text-white/80">
+          <span className="annotation text-white">
             {c.ville} · {c.client}
           </span>
           <span className="line-clamp-3 font-display text-[2rem] leading-[0.95] font-extrabold tracking-tight md:text-[1.75rem]">{c.nom}</span>
@@ -166,7 +167,7 @@ function Cartes({ chantiers, carrousel }: { chantiers: ChantierTerrain[]; carrou
     <>
       {/* Téléphone : un carrousel, la carte suivante dépasse sur le bord. */}
       <div className="flex flex-col gap-3 md:hidden">
-        <div ref={piste} onScroll={suivre} className="carrousel -mx-4 flex gap-3 overflow-x-auto px-4 pt-1 pb-2">
+        <div ref={piste} onScroll={suivre} role="region" aria-roledescription="carrousel" aria-label="Chantiers, à faire défiler" className="carrousel -mx-4 flex gap-3 overflow-x-auto px-4 pt-1 pb-2">
           {chantiers.map((c, i) => (
             <Carte key={c.id} c={c} rang={i} className="h-[26rem] w-[80%] shrink-0" />
           ))}

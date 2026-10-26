@@ -66,13 +66,57 @@ const FONDS: Record<Ciel, Record<Moment, string>> = {
   },
 };
 
-export type Ambiance = { fond: string; texteSombre: boolean; particules: Particule[] };
+// La lisibilité, calculée plutôt que supposée : pour chaque ciel, on prend la couleur de
+// texte (noir ou blanc) la plus lisible sur toutes les couleurs du dégradé, puis le voile
+// le plus léger (blanc sous un texte noir, noir sous un texte blanc) qui garantit un
+// contraste d'au moins 4,5:1 partout (WCAG 1.4.3), sans éteindre le ciel.
+export const CONTRASTE_MIN = 4.5;
+
+function canaux(hex: string): number[] {
+  const h = hex.replace("#", "");
+  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+}
+
+function luminance(rgb: number[]): number {
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export function contraste(a: number, b: number): number {
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+export function couleursDe(fond: string): string[] {
+  return fond.match(/#[0-9a-fA-F]{6}/g) ?? [];
+}
+
+// Le pire contraste d'un texte noir ou blanc sur le dégradé, sous un voile d'opacité donnée.
+export function pireContraste(fond: string, texteSombre: boolean, voile: number): number {
+  const texte = texteSombre ? 0 : 1;
+  const teinte = texteSombre ? 255 : 0; // voile blanc sous du noir, noir sous du blanc
+  return Math.min(...couleursDe(fond).map((hex) => contraste(texte, luminance(canaux(hex).map((v) => v * (1 - voile) + teinte * voile)))));
+}
+
+export function lisibilite(fond: string): { texteSombre: boolean; voile: number } {
+  const options = [true, false].map((texteSombre) => {
+    let voile = 0;
+    while (voile < 0.9 && pireContraste(fond, texteSombre, voile) < CONTRASTE_MIN) voile = Math.round((voile + 0.05) * 100) / 100;
+    return { texteSombre, voile };
+  });
+  // Le voile le plus léger l'emporte : le ciel reste le plus visible possible.
+  return options[0].voile <= options[1].voile ? options[0] : options[1];
+}
+
+export type Ambiance = { fond: string; texteSombre: boolean; voile: number; particules: Particule[] };
 
 export function ambiance(p: { description: string; heure: number; alertes: string[] }): Ambiance {
   const moment = momentDe(p.heure);
   const ciel = cielDe(p.description);
-  // Neige et brouillard de jour sont clairs : le texte passe en noir pour rester lisible.
-  const texteSombre = (ciel === "neige" || ciel === "brouillard") && moment !== "nuit";
+  const fond = FONDS[ciel][moment];
+  const { texteSombre, voile } = lisibilite(fond);
   const particules: Particule[] = [];
   if (ciel === "pluie" || ciel === "orage") particules.push("pluie");
   if (ciel === "neige") particules.push("neige");
@@ -80,5 +124,8 @@ export function ambiance(p: { description: string; heure: number; alertes: strin
   if (ciel === "clair" && moment === "nuit") particules.push("etoiles");
   if (ciel === "clair" && moment !== "nuit") particules.push("soleil");
   if (p.alertes.includes("Vent fort")) particules.push("vent");
-  return { fond: FONDS[ciel][moment], texteSombre, particules };
+  // Le voile se pose au-dessus du dégradé, dans le même fond.
+  const teinte = texteSombre ? "255, 255, 255" : "0, 0, 0";
+  const fondLisible = voile > 0 ? `linear-gradient(rgba(${teinte}, ${voile}), rgba(${teinte}, ${voile})), ${fond}` : fond;
+  return { fond: fondLisible, texteSombre, voile, particules };
 }

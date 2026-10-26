@@ -23,7 +23,10 @@ export function BoutonImport() {
       <Button
         size="lg"
         disabled={enCours}
+        focusableWhenDisabled
+        className="aria-disabled:opacity-50"
         onClick={() => {
+          if (enCours) return;
           setEtape(0);
           demarrer(async () => {
             const r = await importerCourriers();
@@ -34,7 +37,7 @@ export function BoutonImport() {
       >
         {enCours ? "Import en cours…" : "Importer les courriers du flux"}
       </Button>
-      <p className="text-sm text-muted-foreground" aria-live="polite">
+      <p role="status" className="text-sm text-muted-foreground">
         {enCours ? `${ETAPES[etape]} Cela peut prendre jusqu'à une minute.` : ""}
       </p>
     </div>

@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { voitLInterne } from "@/lib/acces";
 import { journal } from "@/lib/journal";
 import { lireUnDocument, referencesCitees } from "@/lib/recherche";
 import { appelantObligatoire } from "@/lib/session";
+
+export const metadata: Metadata = { title: "Document indexé" };
 
 export const dynamic = "force-dynamic";
 
