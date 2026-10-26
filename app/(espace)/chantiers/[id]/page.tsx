@@ -154,6 +154,7 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
       )}
 
       <SuiteFiche
+        initial={typeof onglet === "string" ? "fil" : undefined}
         meteo={
           <Suspense fallback={<Skeleton className="h-40" />}>
             <Meteo chantier={chantier} />

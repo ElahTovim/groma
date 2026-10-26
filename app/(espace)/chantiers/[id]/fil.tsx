@@ -654,6 +654,9 @@ export function Fil(props: {
     window.history.replaceState(null, "", url);
   }
 
+  // L'onglet demandé à l'arrivée sur la page (il ne change plus ensuite).
+  const ongletDArrivee = useRef(props.ongletInitial);
+
   // Un lien vers un élément (#fil-…) ouvre le fil complet et le montre.
   useEffect(() => {
     const verifier = () => {
@@ -663,7 +666,14 @@ export function Fil(props: {
       setTout(true);
       requestAnimationFrame(() => document.getElementById(`fil-${id}`)?.scrollIntoView({ block: "center" }));
     };
-    const image = requestAnimationFrame(verifier);
+    // Arrivée par un lien vers un onglet (« À viser » → Signalements) : on descend jusqu'au fil.
+    const versOnglet = () => {
+      if (!window.location.hash && ongletDArrivee.current !== "fil") document.getElementById("panneau-fil")?.scrollIntoView({ block: "start" });
+    };
+    const image = requestAnimationFrame(() => {
+      verifier();
+      versOnglet();
+    });
     window.addEventListener("hashchange", verifier);
     return () => {
       cancelAnimationFrame(image);
@@ -675,7 +685,7 @@ export function Fil(props: {
     <Section titre="Fil du chantier">
       <BarreOnglets actif={onglet} compte={compte} choisir={choisir} />
 
-      <div id="panneau-fil" role="tabpanel" aria-labelledby={`onglet-fil-${onglet}`} className="flex flex-col gap-5">
+      <div id="panneau-fil" role="tabpanel" aria-labelledby={`onglet-fil-${onglet}`} className="flex scroll-mt-32 flex-col gap-5">
         {onglet === "documents" ? (
           <Documents chantierId={props.chantierId} elements={elements} dossier={props.dossier} interne={props.interne} nomDe={nomDe} />
         ) : (
