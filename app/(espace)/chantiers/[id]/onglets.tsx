@@ -8,9 +8,10 @@ type Onglet = { cle: string; titre: string; nombre?: number; contenu: React.Reac
 // La suite de la fiche. Sur ordinateur : deux colonnes, tout visible (lots et fil à
 // gauche, météo et infos à droite). Sur téléphone : la météo, puis des onglets
 // Lots / Fil / Infos pour ne pas faire défiler toute la fiche.
-export function SuiteFiche(props: { meteo: React.ReactNode; gauche: Onglet[]; infos: Onglet }) {
+export function SuiteFiche(props: { meteo: React.ReactNode; gauche: Onglet[]; infos: Onglet; initial?: string }) {
   const onglets = [...props.gauche, props.infos];
-  const [actif, setActif] = useState(onglets[0].cle);
+  // Un lien qui demande un onglet du fil (?onglet=…) ouvre directement le fil.
+  const [actif, setActif] = useState(props.initial && onglets.some((o) => o.cle === props.initial) ? props.initial : onglets[0].cle);
 
   // Un lien « À traiter » (#lot-…, #fil-…) ouvre le bon onglet avant de défiler.
   useEffect(() => {

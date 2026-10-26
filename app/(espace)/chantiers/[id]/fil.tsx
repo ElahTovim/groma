@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarClock, Check, ClipboardCheck, Eye, FileText, Flag, ImageIcon, Lock, Mail, MessageSquare, Plus, Send, Users } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useOptimistic, useRef, useState } from "react";
 import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { TypeFil } from "@/lib/db/schema";
+import type { StatutSignalement, TypeFil } from "@/lib/db/schema";
 import type { ElementVu, LotVu, ParticipantVu } from "@/lib/fiche";
 import { dateCourte } from "@/lib/format";
 import { bandeDesJours, compteurs, dansOnglet, GESTE_PAR_DEFAUT, gestesDe, ONGLETS_FIL, TITRE_ONGLET, type Compteur, type OngletFil } from "@/lib/fil-onglets";
@@ -43,6 +43,16 @@ const ICONE_TYPE: Record<TypeFil, typeof Flag> = {
   document: FileText,
   signalement: Flag,
 };
+
+// Les réponses immédiates : un élément ajouté ou un signalement qualifié s'affiche tout
+// de suite, avant la réponse du serveur ; React le remplace par la vraie version dès
+// qu'elle arrive, ou l'efface si le serveur refuse.
+type Modif = { ajout: ElementVu } | { id: string; statut: StatutSignalement; motif?: string };
+const ModifProvisoire = createContext<(m: Modif) => void>(() => {});
+
+function estProvisoire(e: ElementVu) {
+  return e.id.startsWith("provisoire-");
+}
 
 // La fenêtre « Qui voit ça ? » : on coche, un par un, les externes qui verront l'élément.
 function QuiVoit(props: { chantierId: string; element: ElementVu; externes: ParticipantVu[] }) {
@@ -101,13 +111,18 @@ function QuiVoit(props: { chantierId: string; element: ElementVu; externes: Part
 
 function Qualifier(props: { chantierId: string; element: ElementVu }) {
   const { enCours, lancer } = useActionChantier();
+  const modifier = useContext(ModifProvisoire);
+  const qualifier = (vers: StatutSignalement, motifSaisi = "") =>
+    lancer(() => qualifierSignalement(props.chantierId, props.element.id, vers, motifSaisi), undefined, {
+      avant: () => modifier({ id: props.element.id, statut: vers, motif: motifSaisi || undefined }),
+    });
   const [motif, setMotif] = useState("");
   const [ecarter, setEcarter] = useState(false);
   const s = props.element.statutSignalement;
 
   if (s === "reserve_ouverte") {
     return (
-      <Button variant="outline" disabled={enCours} onClick={() => lancer(() => qualifierSignalement(props.chantierId, props.element.id, "levee", ""))}>
+      <Button variant="outline" disabled={enCours} onClick={() => qualifier("levee")}>
         Lever la réserve
       </Button>
     );
@@ -115,13 +130,13 @@ function Qualifier(props: { chantierId: string; element: ElementVu }) {
   if (s !== "a_qualifier") return null;
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button disabled={enCours} onClick={() => lancer(() => qualifierSignalement(props.chantierId, props.element.id, "reserve_ouverte", ""))}>
+      <Button disabled={enCours} onClick={() => qualifier("reserve_ouverte")}>
         Retenir comme réserve
       </Button>
       {ecarter ? (
         <>
           <Input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Motif" className="w-48" aria-label="Motif" />
-          <Button variant="outline" disabled={enCours || !motif.trim()} onClick={() => lancer(() => qualifierSignalement(props.chantierId, props.element.id, "ecarte", motif))}>
+          <Button variant="outline" disabled={enCours || !motif.trim()} onClick={() => qualifier("ecarte", motif)}>
             Écarter
           </Button>
         </>
@@ -166,6 +181,8 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
   const parDefaut = gestes.some((g) => g.type === GESTE_PAR_DEFAUT[props.onglet]) ? GESTE_PAR_DEFAUT[props.onglet] : (gestes[0]?.type ?? "message");
   const [type, setType] = useState<TypeFil>(parDefaut);
   const [cle, setCle] = useState(0);
+  const [brouillon, setBrouillon] = useState("");
+  const modifier = useContext(ModifProvisoire);
   // Un externe, dans Demandes et dispos, ne peut que donner ses disponibilités : le titre le dit.
   const titre = props.onglet === "demandes" && !props.interne ? "Donner mes disponibilités" : TITRE_ECRIRE[props.onglet];
 
@@ -201,9 +218,32 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
           e.preventDefault();
           const d = new FormData(e.currentTarget);
           d.set("type", type);
-          lancer(() => ecrireDansLeFil(props.chantierId, d), () => {
-            setType(parDefaut);
-            setCle((c) => c + 1);
+          const texte = String(d.get("texte") ?? "");
+          const fichier = d.get("fichier");
+          const provisoire: ElementVu = {
+            id: `provisoire-${Date.now()}`,
+            type,
+            texte,
+            auteur: "Vous",
+            auteurId: null,
+            destinataire: null,
+            dateCible: (d.get("dateCible") as string) || null,
+            lot: null,
+            statutSignalement: type === "signalement" ? "a_qualifier" : null,
+            motif: null,
+            visiblePar: [],
+            fichier: fichier instanceof File && fichier.size ? { nom: fichier.name, type: fichier.type, taille: fichier.size } : null,
+            creeLe: new Date().toISOString(),
+          };
+          // Le formulaire se vide tout de suite ; le texte revient si l'envoi échoue.
+          setBrouillon("");
+          setCle((c) => c + 1);
+          lancer(() => ecrireDansLeFil(props.chantierId, d), () => setType(parDefaut), {
+            avant: () => modifier({ ajout: provisoire }),
+            siEchec: () => {
+              setBrouillon(texte);
+              setCle((c) => c + 1);
+            },
           });
         }}
       >
@@ -242,7 +282,7 @@ function Ecrire(props: { chantierId: string; interne: boolean; participants: Par
             <Input id="fichier" name="fichier" type="file" required accept="application/pdf,image/jpeg,image/png,image/webp,image/heic" />
           </div>
         )}
-        <Textarea name="texte" required placeholder={AIDE[type]} aria-label={type === "document" ? "Titre du document" : "Texte"} />
+        <Textarea name="texte" required defaultValue={brouillon} placeholder={AIDE[type]} aria-label={type === "document" ? "Titre du document" : "Texte"} />
         {/* Sur téléphone, le bouton prend toute la largeur, en bas du formulaire, sous le pouce. */}
         <Button type="submit" size="lg" disabled={enCours} className="h-12 w-full text-base md:h-10 md:w-fit md:text-sm">
           {enCours ? "Envoi…" : ENVOYER[type]}
@@ -272,20 +312,31 @@ function CarteElement(props: { chantierId: string; e: ElementVu; interne: boolea
   const { e } = props;
   const Icone = ICONE_TYPE[e.type];
   const enAttente = enAttenteDe(e);
-  const estImage = e.fichier?.type.startsWith("image/");
+  const provisoire = estProvisoire(e);
+  const estImage = !provisoire && e.fichier?.type.startsWith("image/");
   return (
-    <li id={`fil-${e.id}`} className={enAttente ? "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 ring-2 ring-foreground" : "flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5"}>
+    <li
+      id={`fil-${e.id}`}
+      aria-busy={provisoire || undefined}
+      className={cn("flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 transition-opacity", enAttente && "ring-2 ring-foreground", provisoire && "arrive opacity-60")}
+    >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1 font-semibold text-foreground">
           <Icone className="size-3.5" aria-hidden /> {LIBELLE_TYPE[e.type]}
         </span>
         {e.statutSignalement && <Badge variant={enAttente ? "default" : "secondary"}>{LIBELLE_SIGNALEMENT[e.statutSignalement]}</Badge>}
         <span className="text-foreground">{e.auteur}</span>
-        <span>{horodatage(e.creeLe)}</span>
+        <span>{provisoire ? "Envoi…" : horodatage(e.creeLe)}</span>
         {e.lot && <span>· {e.lot}</span>}
       </div>
       <p className="whitespace-pre-wrap">{e.texte}</p>
+      {e.fichier && provisoire && (
+        <span className="flex w-fit items-center gap-2 text-sm">
+          <FileText className="size-4" aria-hidden /> {e.fichier.nom}
+        </span>
+      )}
       {e.fichier &&
+        !provisoire &&
         (estImage ? (
           <a href={`/api/fichiers/${e.id}`} target="_blank" rel="noopener" className="block w-fit">
             {/* eslint-disable-next-line @next/next/no-img-element -- image privée, servie après vérification des droits */}
@@ -304,7 +355,7 @@ function CarteElement(props: { chantierId: string; e: ElementVu; interne: boolea
         </p>
       )}
       {e.motif && <p className="text-xs text-muted-foreground">Motif : {e.motif}</p>}
-      {props.interne && (
+      {props.interne && !provisoire && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <VuPar e={e} nomDe={props.nomDe} />
           <div className="flex flex-wrap items-center gap-2">
@@ -638,8 +689,11 @@ export function Fil(props: {
   const extras = (props.dossier.pv ? 1 : 0) + props.dossier.courriers.length + props.dossier.pieces.exigences.length;
   // Une pièce attend une action quand elle n'est pas fournie : manquante, refusée, expirée, ou à valider (équipe).
   const piecesATraiter = props.dossier.pieces.exigences.filter((x) => !estFournie(x.etat) && (props.interne || x.etat.etat !== "a_valider")).length;
-  const compte = compteurs(props.elements, props.aujourdhui, { documents: extras, documentsATraiter: piecesATraiter });
-  const elements = props.elements.filter((e) => dansOnglet(onglet, e.type));
+  const [affiches, modifier] = useOptimistic(props.elements, (etat: ElementVu[], m: Modif) =>
+    "ajout" in m ? [...etat, m.ajout] : etat.map((e) => (e.id === m.id ? { ...e, statutSignalement: m.statut, motif: m.motif ?? e.motif } : e)),
+  );
+  const compte = compteurs(affiches, props.aujourdhui, { documents: extras, documentsATraiter: piecesATraiter });
+  const elements = affiches.filter((e) => dansOnglet(onglet, e.type));
   const debut = elements.length - DERNIERS_VISIBLES;
   const visible = (e: ElementVu, i: number) => onglet !== "fil" || tout || i >= debut || enAttenteDe(e);
   const caches = elements.filter((e, i) => !visible(e, i)).length;
@@ -654,6 +708,9 @@ export function Fil(props: {
     window.history.replaceState(null, "", url);
   }
 
+  // L'onglet demandé à l'arrivée sur la page (il ne change plus ensuite).
+  const ongletDArrivee = useRef(props.ongletInitial);
+
   // Un lien vers un élément (#fil-…) ouvre le fil complet et le montre.
   useEffect(() => {
     const verifier = () => {
@@ -663,7 +720,14 @@ export function Fil(props: {
       setTout(true);
       requestAnimationFrame(() => document.getElementById(`fil-${id}`)?.scrollIntoView({ block: "center" }));
     };
-    const image = requestAnimationFrame(verifier);
+    // Arrivée par un lien vers un onglet (« À viser » → Signalements) : on descend jusqu'au fil.
+    const versOnglet = () => {
+      if (!window.location.hash && ongletDArrivee.current !== "fil") document.getElementById("panneau-fil")?.scrollIntoView({ block: "start" });
+    };
+    const image = requestAnimationFrame(() => {
+      verifier();
+      versOnglet();
+    });
     window.addEventListener("hashchange", verifier);
     return () => {
       cancelAnimationFrame(image);
@@ -672,10 +736,11 @@ export function Fil(props: {
   }, []);
 
   return (
+    <ModifProvisoire value={modifier}>
     <Section titre="Fil du chantier">
       <BarreOnglets actif={onglet} compte={compte} choisir={choisir} />
 
-      <div id="panneau-fil" role="tabpanel" aria-labelledby={`onglet-fil-${onglet}`} className="flex flex-col gap-5">
+      <div id="panneau-fil" role="tabpanel" aria-labelledby={`onglet-fil-${onglet}`} className="flex scroll-mt-32 flex-col gap-5">
         {onglet === "documents" ? (
           <Documents chantierId={props.chantierId} elements={elements} dossier={props.dossier} interne={props.interne} nomDe={nomDe} />
         ) : (
@@ -708,5 +773,6 @@ export function Fil(props: {
         <Ecrire key={onglet} chantierId={props.chantierId} interne={props.interne} participants={props.participants} lots={props.lots} onglet={onglet} />
       </div>
     </Section>
+    </ModifProvisoire>
   );
 }

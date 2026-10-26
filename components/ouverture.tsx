@@ -2,15 +2,15 @@
 
 import { useEffect, useRef } from "react";
 
-// Ce petit script tourne avant l'affichage : si l'ouverture a déjà été vue dans cette
-// session, ou si l'appareil demande moins d'animations, elle est masquée d'emblée.
-export const SCRIPT_OUVERTURE = `try{if(sessionStorage.getItem("groma-ouverture")||matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("sans-ouverture")}catch(e){document.documentElement.classList.add("sans-ouverture")}`;
+// Ce petit script tourne avant l'affichage : si l'ouverture a déjà été vue aujourd'hui
+// sur cet appareil, ou si l'appareil demande moins d'animations, elle est masquée d'emblée.
+export const SCRIPT_OUVERTURE = `try{if(sessionStorage.getItem("groma-vu"))document.documentElement.classList.add("deja-vu")}catch(e){}try{if(localStorage.getItem("groma-ouverture")===new Date().toDateString()||matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("sans-ouverture")}catch(e){document.documentElement.classList.add("sans-ouverture")}`;
 
-const DUREE_MS = 1400;
+const DUREE_MS = 950;
 
 // L'ouverture : « groma » naît au trait fin et prend du poids, lettre après lettre,
-// puis glisse jusqu'au logo de l'en-tête. Une fois par session ; un clic ou une
-// touche la passe. La page charge dessous pendant ce temps : rien n'est retardé.
+// puis glisse jusqu'au logo de l'en-tête. Elle joue à l'arrivée sur l'accueil, une fois
+// par jour ; un clic ou une touche la passe. L'accueil charge dessous : rien n'est retardé.
 export function Ouverture() {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -19,7 +19,7 @@ export function Ouverture() {
     const html = document.documentElement;
     if (!voile || html.classList.contains("sans-ouverture")) return;
     try {
-      sessionStorage.setItem("groma-ouverture", "vue");
+      localStorage.setItem("groma-ouverture", new Date().toDateString());
     } catch {}
 
     let fini = false;
@@ -62,4 +62,20 @@ export function Ouverture() {
       </span>
     </div>
   );
+}
+
+// Les apparitions en cascade (cartes, chiffres, lignes de cote) ne jouent qu'à la
+// première page de la visite : ensuite, les transitions entre pages suffisent et la
+// cascade ne ferait que ralentir la lecture.
+export function PremiereVisite() {
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      document.documentElement.classList.add("deja-vu");
+      try {
+        sessionStorage.setItem("groma-vu", "1");
+      } catch {}
+    }, 1500);
+    return () => window.clearTimeout(t);
+  }, []);
+  return null;
 }

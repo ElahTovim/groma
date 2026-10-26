@@ -1,5 +1,23 @@
 # État de reprise
 
+## 26 octobre 2026 (branche `fluidite`)
+
+**Fait**
+- Transitions entre pages (React `<ViewTransition>`, `components/transitions.tsx`) : la photo d'un chantier passe de la carte (accueil, Chantiers) au bandeau de la fiche, y compris pendant le chargement (`loading.tsx` affiche déjà la photo) ; la page glisse vers la gauche en entrant dans une fiche, vers la droite au retour (lien « Chantiers ») ; en-tête et barre du bas immobiles ; rien si l'appareil demande moins d'animations.
+- « À viser » mène droit à l'onglet Signalements quand un signalement ou une réserve attend ; un lien `?onglet=` ouvre le fil aussi sur téléphone et y descend.
+- Ouverture « groma » : jouée à l'accueil (plus sur la connexion), une fois par jour, moins d'une seconde, lettres desserrées en grand.
+- Connexion : photo du jeu de données, vrai logo, papier quadrillé.
+- Réponses immédiates (`useOptimistic`) : message, document, signalement apparaissent avant la réponse du serveur ; qualification d'un signalement immédiate ; le texte revient si l'envoi échoue.
+- Micro-retours : boutons qui s'enfoncent légèrement ; trait qui glisse dans la barre du bas ; cascades d'apparition seulement à la première page de la visite.
+- 297 tests, lint, types, construction au vert.
+
+**Reste**
+- Transitions non vues par l'IA (navigateur connecté sur une autre machine) : à essayer sur la prévisualisation, sur téléphone et ordinateur.
+- Speed Insights de Vercel : à activer si l'on veut mesurer la vitesse réelle.
+
+**Cassé**
+- Rien de connu.
+
 ## 19 octobre 2026, soir (branche `arpenteur`, et demande n° 24 `photos-nuit`)
 
 **Fait**

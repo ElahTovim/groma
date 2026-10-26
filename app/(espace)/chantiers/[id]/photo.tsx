@@ -2,6 +2,7 @@
 
 import { Camera } from "lucide-react";
 import { useRef } from "react";
+import { PhotoPartagee } from "@/components/transitions";
 import { Vignette } from "@/components/vignette";
 import { changerPhoto } from "./actions";
 import { useActionChantier } from "./use-action-chantier";
@@ -14,7 +15,9 @@ export function PhotoChantier(props: { chantierId: string; aPhoto: boolean; nom:
 
   return (
     <div className="relative">
-      <Vignette chantierId={props.chantierId} aPhoto={props.aPhoto} alt={`Photo du chantier ${props.nom}`} className="aspect-[16/9] w-full rounded-3xl md:aspect-[3/1]" />
+      <PhotoPartagee chantierId={props.chantierId}>
+        <Vignette chantierId={props.chantierId} aPhoto={props.aPhoto} alt={`Photo du chantier ${props.nom}`} className="aspect-[16/9] w-full rounded-3xl md:aspect-[3/1]" />
+      </PhotoPartagee>
       {props.modifiable && (
         <>
           <input
