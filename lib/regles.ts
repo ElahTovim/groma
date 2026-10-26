@@ -173,3 +173,19 @@ export type ATraiter = { lotsEnRetard: number; aQualifier: number; reservesOuver
 export function poidsATraiter(a: ATraiter | null): number {
   return a ? a.aQualifier * 3 + a.reservesOuvertes * 2 + a.lotsEnRetard : 0;
 }
+
+// Une liste de chantiers a un plafond. Ceux qui attendent un geste passent d'abord,
+// d'où qu'ils viennent dans la base ; les plus récents complètent la place restante.
+// Sans cela, un chantier ancien en retard sortait de la liste dès que 200 plus récents
+// existaient (constaté au test à volume, docs/volume.md).
+export function reunirListe<T extends { id: string }>(urgents: T[], recents: T[], plafond: number): T[] {
+  const vus = new Set<string>();
+  const liste: T[] = [];
+  for (const c of [...urgents, ...recents]) {
+    if (liste.length >= plafond) break;
+    if (vus.has(c.id)) continue;
+    vus.add(c.id);
+    liste.push(c);
+  }
+  return liste;
+}

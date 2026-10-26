@@ -42,7 +42,7 @@ La liste prend les 200 chantiers les plus récents, **puis** cherche parmi eux c
 - Dans la copie à 10 000 : l'onglet affiche « À traiter 31 », alors qu'environ 3 000 chantiers en ont besoin.
 - **En production, aujourd'hui** (lecture seule) : 21 chantiers demandent un geste, et **aucun** n'est parmi les 200 plus récents. Les imports de nuit, plus récents, les ont poussés hors de la liste.
 
-Ce n'est pas une question de vitesse, c'est une question de justesse. Correction à décider : chercher d'abord les chantiers qui demandent un geste, dans toute la base, puis les plus récents.
+Ce n'est pas une question de vitesse, c'est une question de justesse. **Corrigé** (branche `a-traiter-complet`) : la base cherche d'abord, dans tous les chantiers, ceux qui attendent un geste, puis les plus récents complètent la liste ; les chiffres « À traiter » et « à viser » sont comptés dans toute la base. Vérifié sur une copie de la production : 21 chantiers listés, « 21 à viser ».
 
 ## Le refaire
 

@@ -6,6 +6,7 @@ import {
   retardsLot,
   peutAnnuler,
   poidsATraiter,
+  reunirListe,
   peutEcrire,
   verifierPassage,
   verifierPassageLot,
@@ -176,5 +177,27 @@ describe("ce qui demande de l'attention", () => {
   it("rien à traiter, ou un externe, pèse zéro", () => {
     expect(poidsATraiter({ aQualifier: 0, reservesOuvertes: 0, lotsEnRetard: 0 })).toBe(0);
     expect(poidsATraiter(null)).toBe(0);
+  });
+});
+
+describe("une liste de chantiers plafonnée", () => {
+  const c = (id: string) => ({ id });
+  const recents = Array.from({ length: 200 }, (_, i) => c(`recent-${i}`));
+
+  it("un chantier ancien qui attend un geste entre, même quand 200 plus récents existent", () => {
+    const liste = reunirListe([c("ancien-en-retard")], recents, 200);
+    expect(liste).toHaveLength(200);
+    expect(liste[0].id).toBe("ancien-en-retard");
+    expect(liste.at(-1)!.id).toBe("recent-198");
+  });
+
+  it("rien n'attend : les plus récents, comme avant", () => {
+    expect(reunirListe([], recents, 200)).toEqual(recents);
+    expect(reunirListe([], [], 200)).toEqual([]);
+  });
+
+  it("un chantier récent ET urgent n'apparaît qu'une fois", () => {
+    const liste = reunirListe([c("recent-3")], recents.slice(0, 5), 200);
+    expect(liste.map((x) => x.id)).toEqual(["recent-3", "recent-0", "recent-1", "recent-2", "recent-4"]);
   });
 });

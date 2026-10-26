@@ -1,6 +1,6 @@
 import { desc, inArray } from "drizzle-orm";
 import { voitLInterne } from "@/lib/acces";
-import { listerChantiers, type ChantierListe } from "@/lib/chantiers";
+import { compterAttendantUnGeste, listerChantiers, type ChantierListe } from "@/lib/chantiers";
 import { db } from "@/lib/db";
 import { comptes, fil, lots, type StatutChantier, type StatutLot, type TypeFil } from "@/lib/db/schema";
 import { previsions, type JourMeteo } from "@/lib/meteo";
@@ -61,6 +61,8 @@ export type TableauDeBord = {
   avancement: Map<string, { finis: number; total: number }>;
   chiffres: { enCours: number; devis: number; montantDevis: number; montantEnCours: number } | null;
   aTraiter: ChantierListe[];
+  // Combien attendent un geste dans toute la base (la liste, elle, a un plafond).
+  nbATraiter: number;
   echeances: Echeance[];
   meteo: { lieu: string; jours: JourMeteo[] | null };
   messages: MessageRecent[];
@@ -69,7 +71,7 @@ export type TableauDeBord = {
 export async function lireTableauDeBord(qui: Appelant): Promise<TableauDeBord> {
   const aujourdhui = aujourdhuiParis();
   const interne = voitLInterne(qui.role);
-  const chantiers = await listerChantiers(qui, {});
+  const [chantiers, nbATraiter] = await Promise.all([listerChantiers(qui, {}), compterAttendantUnGeste(qui)]);
   const actifs = chantiers.filter((c) => ACTIFS.includes(c.statut));
   const ids = chantiers.map((c) => c.id);
   const nomDe = new Map(chantiers.map((c) => [c.id, c.nom]));
@@ -112,6 +114,7 @@ export async function lireTableauDeBord(qui: Appelant): Promise<TableauDeBord> {
     chiffres: interne ? { enCours: enCours.length, devis: devis.length, montantDevis: somme(devis), montantEnCours: somme(enCours) } : null,
     // listerChantiers trie déjà par urgence.
     aTraiter: interne ? chantiers.filter((c) => c.aTraiter && c.aTraiter.aQualifier + c.aTraiter.reservesOuvertes + c.aTraiter.lotsEnRetard > 0) : [],
+    nbATraiter: nbATraiter ?? 0,
     echeances: echeancesAVenir(
       lesLots.map((l) => ({ ...l, chantier: nomDe.get(l.chantierId) ?? "" })),
       aujourdhui,
