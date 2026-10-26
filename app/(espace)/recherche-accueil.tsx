@@ -47,9 +47,11 @@ export function RechercheAccueil(props: {
   return (
     <>
       {/* La bande du haut, sur papier quadrillé : le bonjour, puis le champ. */}
-      <div className="papier -mx-4 -mt-6 flex flex-col gap-4 border-b border-foreground/10 px-4 pt-7 pb-6 md:mx-0 md:mt-0 md:rounded-3xl md:border md:px-8 md:pt-10 md:pb-8">
+      <div className="papier -mx-4 -mt-6 flex flex-col gap-4 border-b border-foreground/10 px-4 pt-7 pb-6 md:mx-0 md:mt-0 md:gap-3 md:rounded-3xl md:border md:px-6 md:py-5">
         {props.entete}
-        <div role="search" className="flex h-14 items-center gap-3 rounded-2xl border border-input bg-card px-4 transition-[border-color,box-shadow] duration-300 focus-within:border-foreground focus-within:shadow-[0_18px_40px_-22px_rgb(0_0_0/0.45)] md:h-16 md:px-5">
+        {/* Sur ordinateur, une seule ligne : le champ, puis les accès rapides et les suggestions. */}
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <div role="search" className="flex h-14 items-center gap-3 rounded-2xl border border-input bg-card px-4 transition-[border-color,box-shadow] duration-300 focus-within:border-foreground focus-within:shadow-[0_18px_40px_-22px_rgb(0_0_0/0.45)] md:h-12 md:flex-[1_1_24rem] md:px-4">
           <Reticule className="size-6 shrink-0" />
           <input
             ref={champ}
@@ -64,7 +66,7 @@ export function RechercheAccueil(props: {
               if (e.key === "Enter" && props.questions && q.trim().length >= 3) router.push(`/assistant?q=${encodeURIComponent(q.trim())}`);
             }}
             placeholder={props.questions ? "Demandez à l'assistant, ou cherchez un chantier…" : "Chercher un chantier…"}
-            className="h-full min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-muted-foreground md:text-lg [&::-webkit-search-cancel-button]:hidden"
+            className="h-full min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-muted-foreground md:text-base [&::-webkit-search-cancel-button]:hidden"
           />
           {q ? (
             <button type="button" onClick={() => setQ("")} aria-label="Effacer la recherche" className="flex size-9 items-center justify-center rounded-full bg-foreground/[0.07] active:scale-95">
@@ -76,14 +78,19 @@ export function RechercheAccueil(props: {
         </div>
         {!q && props.acces}
         {!q && props.questions && props.exemples && (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0" role="group" aria-label="Exemples de demandes">
+          <div
+            className="-mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-[1_1_0] md:px-0 md:[mask-image:linear-gradient(to_right,black_80%,transparent)]"
+            role="group"
+            aria-label="Exemples de demandes"
+          >
             {props.exemples.map((s) => (
-              <button key={s} type="button" onClick={() => setQ(s)} className="h-9 shrink-0 rounded-full border border-input px-3.5 text-sm transition-colors hover:border-foreground active:scale-[0.97]">
+              <button key={s} type="button" onClick={() => setQ(s)} title={s} className="h-10 max-w-[17rem] shrink-0 truncate rounded-full border border-input px-3.5 text-sm transition-colors hover:border-foreground active:scale-[0.97]">
                 {s}
               </button>
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {/* Toujours présente, pour que chaque nouveau résultat soit annoncé. */}

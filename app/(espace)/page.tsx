@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CheckCheck, Plus } from "lucide-react";
+import { CheckCheck } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { texteATraiter } from "@/components/a-traiter";
@@ -16,7 +16,8 @@ import { lienAViser, Messages, Meteo, Titre } from "./accueil-blocs";
 import { EXEMPLES_DEMANDES } from "@/lib/assistant-regles";
 import { propositionsEnAttente } from "@/lib/operations/propositions";
 import { RechercheAccueil } from "./recherche-accueil";
-import { Carte, Pile, type ChantierTerrain } from "./terrain";
+import { BentoTelephone } from "./bento";
+import { Carte, type ChantierTerrain } from "./terrain";
 
 export const metadata: Metadata = { title: "Accueil" };
 
@@ -37,11 +38,10 @@ export default async function Accueil() {
   const qui = await appelantObligatoire();
   const aujourdhui = new Intl.DateTimeFormat("fr-CA", { timeZone: PARIS }).format(new Date());
   const entete = (
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div className="flex flex-col gap-2">
-        <p className="annotation text-muted-foreground first-letter:uppercase">{jourLong(aujourdhui)}</p>
-        <h1 className="font-display text-[2.4rem] leading-[0.95] font-extrabold tracking-tight md:text-6xl">Bonjour {qui.nom.split(" ")[0]}</h1>
-      </div>
+    // Sur ordinateur, le bonjour et la date tiennent sur une ligne : la bande reste compacte.
+    <div className="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
+      <h1 className="font-display text-[2.4rem] leading-[0.95] font-extrabold tracking-tight md:order-1 md:text-4xl">Bonjour {qui.nom.split(" ")[0]}</h1>
+      <p className="annotation text-muted-foreground first-letter:uppercase md:order-2">{jourLong(aujourdhui)}</p>
     </div>
   );
 
@@ -112,9 +112,10 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
   const titreTerrain = t.actifs.length ? "Le terrain" : "Mes chantiers";
   const aValider = questions ? await propositionsEnAttente(qui).then((p) => p.length, () => 0) : 0;
 
-  // Les accès rapides, sous la barre : ce qui attend, ce que l'assistant propose, créer.
+  // Les accès rapides, sur la ligne du champ (ordinateur) : ce qui attend sur le terrain
+  // (« à viser ») et ce que l'assistant a préparé (« à valider »). Le téléphone a son bento.
   const acces = (
-    <nav aria-label="Accès rapides" className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
+    <nav aria-label="Accès rapides" className="hidden shrink-0 gap-2 md:flex">
       {t.chiffres && (
         <Link href="/chantiers?statut=a_traiter" className={PUCE}>
           <Reticule className="size-4" />
@@ -127,32 +128,31 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
           {aValider} à valider
         </Link>
       )}
-      {peutCreerChantier(qui.role) && (
-        <Link href="/chantiers/nouveau" className={PUCE}>
-          <Plus className="size-4" aria-hidden />
-          Nouveau chantier
-        </Link>
-      )}
     </nav>
   );
 
   return (
     <RechercheAccueil entete={entete} chantiers={cherchables} questions={questions} exemples={EXEMPLES_DEMANDES.slice(1, 3)} acces={acces}>
-      {/* Un tableau de bord d'accès rapide. Ordinateur : le ciel (1/4), les deux premiers
-          chantiers (2/4), les derniers messages (1/4), puis les chantiers suivants sur une
-          deuxième ligne. Tablette : deux colonnes. Téléphone : le ciel, la pile, les messages. */}
-      <div className="grid gap-x-5 gap-y-8 md:grid-cols-2 lg:grid-cols-4">
-        <section className="flex min-w-0 flex-col gap-4 md:order-1">
+      <BentoTelephone t={t} terrain={terrain} aValider={aValider} equipe={questions} creer={peutCreerChantier(qui.role)} />
+
+      {/* Ordinateur : le ciel (1/4) et les derniers messages (1/4) à gauche, les chantiers en
+          cours (2/4) à droite ; la suite des chantiers sur une deuxième ligne, pleine largeur.
+          Tablette : le ciel et les messages côte à côte, puis les chantiers. */}
+      <div className="hidden gap-x-5 gap-y-8 md:grid md:grid-cols-2 lg:grid-cols-4">
+        <section className="flex min-w-0 flex-col gap-4">
           <Titre decor>Le ciel</Titre>
           <Meteo t={t} className="apparait flex-1 [--rang:1]" />
         </section>
 
-        <section aria-labelledby="titre-terrain" className="flex min-w-0 flex-col gap-4 md:order-3 md:col-span-2 lg:order-2">
+        <section className="flex min-w-0 flex-col">
+          <Messages t={t} />
+        </section>
+
+        <section aria-labelledby="titre-terrain" className="flex min-w-0 flex-col gap-4 md:col-span-2">
           <Titre id="titre-terrain" lien={{ href: "/chantiers", texte: `Tous (${terrain.length})`, label: `Voir les ${terrain.length} chantiers` }}>
             {titreTerrain}
           </Titre>
-          <Pile chantiers={terrain} />
-          <ul className="hidden flex-1 grid-cols-2 gap-5 md:grid">
+          <ul className="grid flex-1 grid-cols-2 gap-5">
             {terrain.slice(0, 2).map((c, i) => (
               <li key={c.id} className="flex">
                 <Carte c={c} rang={i} className="apparait min-h-[21rem] flex-1" />
@@ -161,12 +161,8 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
           </ul>
         </section>
 
-        <section className="flex min-w-0 flex-col md:order-2 lg:order-3">
-          <Messages t={t} />
-        </section>
-
         {terrain.length > 2 && (
-          <section aria-label={`${titreTerrain}, suite`} className="hidden md:order-4 md:col-span-2 md:block lg:col-span-4">
+          <section aria-label={`${titreTerrain}, suite`} className="md:col-span-2 lg:col-span-4">
             <ul className="grid grid-cols-2 gap-5 lg:grid-cols-4">
               {terrain.slice(2, 6).map((c, i) => (
                 <li key={c.id} className="flex">

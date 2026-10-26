@@ -163,3 +163,44 @@ export function Messages({ t }: { t: TableauDeBord }) {
     </section>
   );
 }
+
+// Le ciel en petite tuile (bento du téléphone) : le lieu, la température, le temps, et
+// l'alerte du lendemain s'il y en a une. Même lisibilité calculée que la grande carte.
+export function TuileMeteo({ t, className }: { t: TableauDeBord; className?: string }) {
+  const jours = t.meteo.jours;
+  if (!jours || jours.length === 0) {
+    return (
+      <section aria-label={`Météo à ${t.meteo.lieu}`} className={cn("flex flex-col justify-between rounded-3xl bg-card p-4", className)}>
+        <Cloud className="size-8 text-muted-foreground" strokeWidth={1.25} aria-hidden />
+        <p className="text-sm font-medium">Météo indisponible pour le moment.</p>
+      </section>
+    );
+  }
+  const [auj, demain] = jours;
+  const a = ambiance({ description: auj.ciel, heure: heureParis(), alertes: auj.alertes });
+  const alerteDemain = demain?.alertes.length ? `${demain.alertes.join(", ")} demain` : null;
+  return (
+    <section
+      aria-label={`Météo à ${t.meteo.lieu}`}
+      className={cn("relative isolate flex flex-col justify-between overflow-hidden rounded-3xl p-4", a.texteSombre ? "text-black" : "text-white", className)}
+      style={{ background: a.fond }}
+    >
+      <CielAnime particules={a.particules} sombre={a.texteSombre} />
+      <div className="relative flex items-start justify-between gap-2">
+        <h2 className="text-sm font-medium">
+          {t.meteo.lieu} · <span className="capitalize">{jourCourt(auj.date)}</span>
+        </h2>
+        <PauseCiel sombre={a.texteSombre} />
+      </div>
+      <div className="relative flex flex-col gap-0.5">
+        <IconeCiel ciel={auj.ciel} className="size-8" trait={1.4} />
+        <p className="font-display text-5xl leading-none font-extrabold tracking-tight tabular-nums">{auj.max}°</p>
+        <p className="text-sm font-semibold first-letter:uppercase">{auj.ciel}</p>
+        <p className="text-xs font-medium tabular-nums">
+          <span className="sr-only">minimum </span>Mini {auj.min}°
+        </p>
+      </div>
+      {alerteDemain && <p className="relative w-fit rounded-full bg-black/80 px-2.5 py-1 text-xs font-semibold text-white">{alerteDemain}</p>}
+    </section>
+  );
+}
