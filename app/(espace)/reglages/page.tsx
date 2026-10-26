@@ -3,12 +3,16 @@ import { notFound } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { equipeVoitTout } from "@/lib/acces";
+import { commandeClaudeCode } from "@/lib/assistant-regles";
+import { adresseDuSite } from "@/lib/courriel";
+import { mesJetons } from "@/lib/operations/jetons";
 import { appelantObligatoire } from "@/lib/session";
 import { lireProfil } from "@/lib/profil";
 import { BoutonIa } from "./bouton-ia";
 import { FormulaireProfil } from "./profil";
 import { BoutonJeu } from "./bouton-jeu";
 import { BoutonSentry } from "./bouton-sentry";
+import { JetonsMcp } from "./jetons-mcp";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +20,8 @@ export default async function Reglages() {
   const qui = await appelantObligatoire();
   if (qui.role !== "gerant") notFound();
   const profil = await lireProfil();
+  // Les jetons : si leur lecture échoue, la carte le dit et le reste des réglages s'affiche.
+  const [jetons, site] = await Promise.all([mesJetons(qui).catch(() => null), adresseDuSite()]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -74,6 +80,17 @@ export default async function Reglages() {
         </CardHeader>
         <CardContent>
           <BoutonIa />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Claude Code (serveur MCP)</CardTitle>
+          <CardDescription>
+            Donnez à Claude Code, sur votre poste, les outils de l&apos;assistant : lire les chantiers, écrire dans le fil en interne, et proposer ce qui part vers quelqu&apos;un, qui attend alors dans « À valider ». Un jeton par poste, avec vos droits.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {jetons ? <JetonsMcp jetons={jetons} commande={commandeClaudeCode(site)} /> : <p className="text-sm">Les jetons n&apos;ont pas pu être lus. Rechargez la page dans un moment.</p>}
         </CardContent>
       </Card>
       <Card>
