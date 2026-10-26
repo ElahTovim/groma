@@ -9,6 +9,7 @@ import { adresseDuSite } from "@/lib/courriel";
 import { mesJetons } from "@/lib/operations/jetons";
 import { appelantObligatoire } from "@/lib/session";
 import { lireProfil } from "@/lib/profil";
+import { EditeurPolitique } from "../mes-donnees/autorisations";
 import { BoutonIa } from "./bouton-ia";
 import { FormulaireProfil } from "./profil";
 import { BoutonJeu } from "./bouton-jeu";
@@ -38,6 +39,17 @@ export default async function Reglages() {
         </CardHeader>
         <CardContent>
           <FormulaireProfil nom={profil.nom} depot={profil.depot} geolocalise={profil.depot?.latitude != null} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Données personnelles</CardTitle>
+          <CardDescription>
+            La politique de votre entreprise : chacun la lit dans « Mes données » (menu du compte), où il exporte ses données et donne ou retire ses autorisations. Le registre des traitements de groma : docs/registre-donnees.md.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EditeurPolitique texte={profil.politique ?? ""} />
         </CardContent>
       </Card>
       <Card>

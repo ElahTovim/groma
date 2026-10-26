@@ -434,7 +434,30 @@ export const profilEntreprise = pgTable("profil_entreprise", {
   depotLongitude: doublePrecision("depot_longitude"),
   modifiePar: uuid("modifie_par").references(() => comptes.id, { onDelete: "set null" }),
   modifieLe: timestamp("modifie_le", { withTimezone: true }).notNull().defaultNow(),
+  // La politique de l'entreprise sur les données personnelles, rédigée par le gérant (Réglages).
+  politiqueDonnees: text("politique_donnees"),
+  politiqueModifieeLe: timestamp("politique_modifiee_le", { withTimezone: true }),
 });
+
+// ——— Les données personnelles (RGPD) ———
+
+// Ce qu'une personne a accepté ou retiré, et quand : une ligne par décision, rien n'est écrasé.
+// « groma » : l'éditeur du logiciel ; « entreprise » : l'entreprise qui utilise groma.
+export const consentements = pgTable(
+  "consentements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    compteId: uuid("compte_id")
+      .notNull()
+      .references(() => comptes.id, { onDelete: "cascade" }),
+    destinataire: text("destinataire").notNull(), // groma, entreprise
+    accepte: boolean("accepte").notNull(),
+    // La version de la politique acceptée : la date de sa dernière modification.
+    versionPolitique: text("version_politique"),
+    creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("consentements_compte").on(t.compteId, t.destinataire, t.creeLe)],
+);
 
 // ——— Les pièces attendues ———
 
