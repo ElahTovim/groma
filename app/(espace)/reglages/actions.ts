@@ -72,3 +72,14 @@ export async function enregistrerProfil(_: EtatJeu, formData: FormData): Promise
   const r = await modifierProfil(await appelant(), Object.fromEntries(formData) as Record<string, string>);
   return r.ok ? { message: r.message } : { erreur: r.erreur };
 }
+
+// Les jetons de Claude Code (serveur MCP) : l'opération vérifie le droit et journalise.
+export async function creerJetonMcp(nom: string) {
+  const { nouveauJeton } = await import("@/lib/operations/jetons");
+  return nouveauJeton(await appelant(), nom);
+}
+
+export async function revoquerJetonMcp(id: string) {
+  const { retirerJeton } = await import("@/lib/operations/jetons");
+  return retirerJeton(await appelant(), id);
+}

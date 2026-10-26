@@ -502,3 +502,89 @@ export const relancesPieces = pgTable(
   },
   (t) => [unique("une_relance_de_piece").on(t.compteId, t.type, t.palier, t.echeance)],
 );
+
+// ——— L'agent (semaine 4) ———
+// La mission : docs/mission-agent.md.
+
+// Une exécution de l'assistant : qui l'a lancé, ce qu'il a demandé, ce qui en est sorti.
+export const agentExecutions = pgTable(
+  "agent_executions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    compteId: uuid("compte_id")
+      .notNull()
+      .references(() => comptes.id, { onDelete: "cascade" }),
+    demande: text("demande").notNull(),
+    statut: text("statut").notNull().default("en_cours"), // en_cours, fini, budget, erreur
+    reponse: text("reponse"),
+    coutEur: numeric("cout_eur", { precision: 12, scale: 6 }).notNull().default("0"),
+    tours: integer("tours").notNull().default(0),
+    erreur: text("erreur"),
+    debut: timestamp("debut", { withTimezone: true }).notNull().defaultNow(),
+    fin: timestamp("fin", { withTimezone: true }),
+  },
+  (t) => [index("agent_executions_compte").on(t.compteId, t.debut)],
+);
+
+// Chaque appel d'outil, par l'assistant ou depuis Claude Code (serveur MCP), dans l'ordre.
+export const agentEtapes = pgTable(
+  "agent_etapes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    executionId: uuid("execution_id").references(() => agentExecutions.id, { onDelete: "cascade" }),
+    compteId: uuid("compte_id")
+      .notNull()
+      .references(() => comptes.id, { onDelete: "cascade" }),
+    origine: text("origine").notNull(), // assistant, mcp
+    outil: text("outil").notNull(),
+    entrees: jsonb("entrees").$type<Record<string, unknown>>().notNull().default({}),
+    resultat: text("resultat"), // un résumé, pas les données complètes
+    ok: boolean("ok").notNull().default(true),
+    // Le texte lu contenait une tournure de consigne adressée à un assistant.
+    suspect: text("suspect"),
+    creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("agent_etapes_execution").on(t.executionId, t.creeLe)],
+);
+
+// Les jetons du serveur MCP : personnels (créés dans Réglages, révocables), ou propres à une
+// exécution de l'assistant (valables quelques minutes). Seule l'empreinte est gardée.
+export const jetonsMcp = pgTable("jetons_mcp", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  compteId: uuid("compte_id")
+    .notNull()
+    .references(() => comptes.id, { onDelete: "cascade" }),
+  empreinte: text("empreinte").notNull().unique(),
+  nom: text("nom").notNull(),
+  executionId: uuid("execution_id").references(() => agentExecutions.id, { onDelete: "cascade" }),
+  expireLe: timestamp("expire_le", { withTimezone: true }),
+  revoqueLe: timestamp("revoque_le", { withTimezone: true }),
+  derniereUtilisation: timestamp("derniere_utilisation", { withTimezone: true }),
+  creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const statutProposition = pgEnum("statut_proposition", ["en_attente", "acceptee", "refusee"]);
+
+// Ce que l'agent propose sans le faire : tout ce qui part vers quelqu'un. Un humain valide,
+// modifie ou refuse ; la validation exécute l'opération avec les droits de celui qui valide.
+export const propositions = pgTable(
+  "propositions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    executionId: uuid("execution_id").references(() => agentExecutions.id, { onDelete: "set null" }),
+    proposePar: uuid("propose_par")
+      .notNull()
+      .references(() => comptes.id, { onDelete: "cascade" }),
+    chantierId: uuid("chantier_id")
+      .notNull()
+      .references(() => chantiers.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // courriel, demande_externe, partage
+    contenu: jsonb("contenu").$type<Record<string, unknown>>().notNull(),
+    statut: statutProposition("statut").notNull().default("en_attente"),
+    motif: text("motif"),
+    decidePar: uuid("decide_par").references(() => comptes.id, { onDelete: "set null" }),
+    decideLe: timestamp("decide_le", { withTimezone: true }),
+    creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("propositions_statut").on(t.statut, t.creeLe)],
+);

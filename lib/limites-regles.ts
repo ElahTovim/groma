@@ -10,6 +10,10 @@ export const LIMITES = {
   fichiersParJour: { max: 60, fenetreMs: 24 * 3600 * 1000 },
   // Le registre des entreprises est gratuit mais limité : on ne le laisse pas marteler.
   recherchesEntrepriseParJour: { max: 200, fenetreMs: 24 * 3600 * 1000 },
+  // Le serveur MCP : appels d'outils par jeton et par heure. Une exécution de l'agent a en plus son budget.
+  appelsMcpParHeure: { max: 200, fenetreMs: 60 * 60 * 1000 },
+  // L'assistant : exécutions par compte et par jour (chacune a son propre budget).
+  executionsAgentParJour: { max: 40, fenetreMs: 24 * 3600 * 1000 },
 } as const;
 
 export type Sujet = keyof typeof LIMITES;
