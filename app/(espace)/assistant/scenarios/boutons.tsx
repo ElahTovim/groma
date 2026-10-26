@@ -34,19 +34,19 @@ export function BoutonsLots(props: { lots: number[][] }) {
   );
 }
 
-export function CopierBilan({ texte }: { texte: string }) {
+export function CopierBilan({ texte, libelle = "Copier le bilan", message = "Bilan copié : collez-le à Claude." }: { texte: string; libelle?: string; message?: string }) {
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={() =>
         navigator.clipboard.writeText(texte).then(
-          () => toast.success("Bilan copié : collez-le à Claude."),
+          () => toast.success(message),
           () => toast.error("Copie impossible."),
         )
       }
     >
-      Copier le bilan
+      {libelle}
     </Button>
   );
 }

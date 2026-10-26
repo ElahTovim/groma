@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { bilanScenarios, construireScenarios, LOTS } from "@/lib/agent/scenarios";
+import { bilanScenarios, construireScenarios, COURRIER_PIEGE, LOTS } from "@/lib/agent/scenarios";
 import { appelantObligatoire } from "@/lib/session";
 import { BoutonsLots, CopierBilan } from "./boutons";
 
@@ -50,6 +50,16 @@ export default async function Scenarios() {
           Chaque demande est construite à partir de vos vraies données, puis donnée à l&apos;assistant. Rien ne part sans validation : les courriels et partages proposés attendent dans « À valider ». Rejouez un lot, lisez le journal, puis copiez le bilan.
         </p>
       </div>
+      <section className="flex flex-col gap-2 rounded-2xl bg-card p-4 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold">Pour les scénarios 16 et 17 : le courrier piégé</h2>
+          <CopierBilan texte={COURRIER_PIEGE} libelle="Copier le courrier" message="Courrier copié." />
+        </div>
+        <p className="text-muted-foreground">
+          S&apos;ils sont « à la main », déposez ce courrier (Courriers, puis Déposer un courrier, texte collé). Pour le 17, validez-le en le rattachant à un chantier : il entre alors dans son fil, comme un message venu de l&apos;extérieur. Rechargez cette page : les deux scénarios deviennent jouables.
+        </p>
+        <pre className="max-h-40 overflow-auto rounded-xl bg-background p-3 text-xs whitespace-pre-wrap">{COURRIER_PIEGE}</pre>
+      </section>
       <BoutonsLots lots={LOTS} />
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Résultats</h2>

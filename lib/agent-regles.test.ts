@@ -40,6 +40,12 @@ describe("la consigne", () => {
   });
 });
 
+describe("le garde-fou de la liste coupée (dérive du scénario 2)", () => {
+  it("la consigne interdit de conclure sur l'ensemble à partir d'un extrait", () => {
+    expect(consigneAgent({ nom: "K", role: "gerant", aujourdhui: "2026-10-26" })).toContain("tu ne conclus jamais sur l'ensemble");
+  });
+});
+
 describe("le journal", () => {
   it("résume sans garder les données complètes", () => {
     expect(resumer("a ".repeat(400)).length).toBeLessThanOrEqual(300);
