@@ -52,3 +52,10 @@ describe("le journal", () => {
     expect(resumer("  court  ")).toBe("court");
   });
 });
+
+describe("questions sur les documents", () => {
+  it("la consigne envoie l'assistant chercher dans les documents pour une règle ou une procédure", () => {
+    expect(consigneAgent({ nom: "K", role: "gerant", aujourdhui: "2026-10-26" })).toContain("chercher_dans_les_documents");
+    expect(OUTILS_AGENT.chercher_dans_les_documents.genre).toBe("lecture");
+  });
+});

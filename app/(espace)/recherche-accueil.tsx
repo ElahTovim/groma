@@ -1,6 +1,6 @@
 "use client";
 
-import { HelpCircle, Sparkles, X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -16,7 +16,8 @@ function aplatir(s: string) {
 
 // La barre d'assistant, en tête de l'accueil. Pour l'équipe, une phrase validée par
 // Entrée part à l'assistant (pré-remplie, lancée seulement par un clic là-bas) ; pendant
-// la frappe, on peut aussi la poser aux documents ou ouvrir un chantier qui correspond.
+// la frappe, on peut aussi ouvrir un chantier qui correspond. L'assistant cherche lui-même
+// dans les documents : pas d'entrée à part pour eux.
 // Tant que le champ est vide, le tableau de bord s'affiche, avec ses accès rapides.
 export function RechercheAccueil(props: {
   entete: React.ReactNode;
@@ -92,17 +93,7 @@ export function RechercheAccueil(props: {
               <span className="flex min-w-0 flex-col gap-1">
                 <span className="font-semibold">Confier à l&apos;assistant</span>
                 <span className="text-background/85">« {q.trim()} »</span>
-                <span className="annotation mt-1 text-background/70">Entrée · Il lit vos chantiers et prépare le travail ; ce qui part vers quelqu&apos;un attend votre validation</span>
-              </span>
-            </Link>
-          )}
-          {props.questions && (
-            <Link href={`/questions?q=${encodeURIComponent(q.trim())}`} className="flex items-start gap-3.5 rounded-2xl border border-foreground bg-card p-4 active:scale-[0.99] md:p-5">
-              <HelpCircle className="mt-0.5 size-5 shrink-0" aria-hidden />
-              <span className="flex min-w-0 flex-col gap-1">
-                <span className="font-semibold">Chercher dans les documents</span>
-                <span className="text-muted-foreground">« {q.trim()} »</span>
-                <span className="annotation mt-1 text-muted-foreground">Réponse tirée des documents, avec ses sources</span>
+                <span className="annotation mt-1 text-background/70">Entrée · Il lit vos chantiers et vos documents et prépare le travail ; ce qui part vers quelqu&apos;un attend votre validation</span>
               </span>
             </Link>
           )}
@@ -111,7 +102,7 @@ export function RechercheAccueil(props: {
               Chantiers · {trouves.length}
             </p>
             {trouves.length === 0 ? (
-              <p className="py-4 text-muted-foreground">Aucun chantier ne porte ce nom.{props.questions ? " Posez plutôt la question à groma, ou confiez-la à l'assistant, juste au-dessus." : ""}</p>
+              <p className="py-4 text-muted-foreground">Aucun chantier ne porte ce nom.{props.questions ? " Confiez plutôt la question à l'assistant, juste au-dessus." : ""}</p>
             ) : (
               <ul>
                 {trouves.slice(0, 8).map((c) => (
