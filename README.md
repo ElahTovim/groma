@@ -18,15 +18,7 @@ Le modèle complet : `docs/cycle-de-vie.md`. L'architecture : `docs/schema-produ
 
 ## Lancer le projet en dix minutes
 
-Il faut Node.js 24, un compte Vercel et la CLI Vercel (`npm i -g vercel`).
-
-1. `git clone https://github.com/ElahTovim/groma && cd groma && npm install`
-2. Relier le projet à Vercel : `vercel link` (équipe `elah-s-projects`, projet `groma`).
-3. Récupérer les variables : `vercel env pull .env.local`. **Attention** : ce fichier pointe vers la base de production. Pour travailler sans risque, créez une branche Neon depuis le tableau de bord et mettez son adresse dans `DATABASE_URL` et `DATABASE_URL_UNPOOLED`.
-4. `npm run dev`, puis ouvrir http://localhost:3000.
-5. Base vide : la page « Première installation » crée le compte du gérant (adresse `ADMIN_EMAIL`). Ensuite, Réglages, « Rejouer le jeu de données » : 50 chantiers et 10 personnes fictives.
-
-Les migrations se jouent toutes seules à chaque construction sur Vercel. En local, `npx drizzle-kit migrate` les joue sur la base de `.env.local` : à ne jamais lancer sur la production.
+**Voir `docs/passation.md`** : avec vos propres comptes (Vercel, Neon) et votre propre base, deux variables suffisent pour démarrer, et l'inventaire complet des clés y est. Ne récupérez jamais les variables de production d'un autre projet : elles pointent vers sa vraie base.
 
 ## Les commandes
 
@@ -37,26 +29,11 @@ Les migrations se jouent toutes seules à chaque construction sur Vercel. En loc
 | `npm run lint` | relit le code |
 | `npm run db:generate` | écrit une migration après un changement de `lib/db/schema.ts` |
 
-GitHub rejoue lecture, types et tests à chaque envoi (`.github/workflows/verifications.yml`).
+GitHub rejoue lecture, types, tests, cohérence des migrations et construction à chaque envoi (`.github/workflows/verifications.yml`).
 
 ## Les variables d'environnement
 
-Toutes vivent dans Vercel (Settings, Environment Variables). Aucune dans le dépôt. Les noms sont dans `.env.example`.
-
-| Variable | Service | Si elle manque |
-| --- | --- | --- |
-| `DATABASE_URL`, `DATABASE_URL_UNPOOLED` | Neon, posées par l'intégration | rien ne marche |
-| `AUTH_SECRET` | signe les sessions | personne ne se connecte |
-| `ADMIN_EMAIL` | l'adresse du premier gérant | l'installation est refusée |
-| `RESEND_GROMAA` | Resend, courriels | les courriels ne partent pas, les liens d'invitation s'affichent quand même |
-| `OPENWEATHER_GROMAA` | OpenWeatherMap, météo | « météo indisponible », le reste fonctionne |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob, pièces jointes | dépôt de document impossible |
-| `SENTRY_API_KEY` (ou `SENTRY_DSN`) | Sentry, suivi des erreurs ; doit contenir le DSN du projet | Sentry reste éteint |
-| `EQUIPE_VOIT_TOUT` | `false` pour que l'équipe ne voie que ses chantiers | l'équipe voit tout |
-
-`/api/sante` dit, sans rien révéler, si la base répond et quels services sont branchés.
-
-**Remplacer une clé** (par exemple après une fuite) : la révoquer chez le service, en créer une nouvelle, la coller dans Vercel à la place de l'ancienne, puis redéployer (`vercel --prod` ou un envoi sur `main`).
+L'inventaire complet (service, obligatoire ou non, où l'obtenir, ce qui se passe si elle manque) est dans `docs/passation.md`, section 3. `/api/sante` dit, sans rien révéler, si la base répond et quels services sont branchés.
 
 ## Où modifier quoi
 
