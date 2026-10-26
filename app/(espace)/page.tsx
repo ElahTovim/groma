@@ -1,25 +1,28 @@
 import type { Metadata } from "next";
+import { CheckCheck, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { texteATraiter } from "@/components/a-traiter";
 import { Reticule } from "@/components/cote";
 import { Ouverture } from "@/components/ouverture";
 import { PageGlissante } from "@/components/transitions";
-import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { peutCreerChantier, voitLInterne } from "@/lib/acces";
 import { LIBELLE_STATUT } from "@/lib/chantier-forme";
 import { donneesCote } from "@/lib/cote";
 import { appelantObligatoire, type Appelant } from "@/lib/session";
 import { lireTableauDeBord } from "@/lib/tableau-de-bord";
-import { cn } from "@/lib/utils";
-import { AViser, Messages, Meteo, Semaine, Titre } from "./accueil-blocs";
+import { lienAViser, Messages, Meteo, Titre } from "./accueil-blocs";
+import { EXEMPLES_DEMANDES } from "@/lib/assistant-regles";
+import { propositionsEnAttente } from "@/lib/operations/propositions";
 import { RechercheAccueil } from "./recherche-accueil";
-import { Terrain } from "./terrain";
+import { Carte, Pile, type ChantierTerrain } from "./terrain";
 
 export const metadata: Metadata = { title: "Accueil" };
 
 export const dynamic = "force-dynamic";
+
+const PUCE = "flex h-10 shrink-0 items-center gap-2 rounded-full border border-input bg-card px-4 text-sm font-medium transition-colors hover:border-foreground active:scale-[0.97]";
 
 const PARIS = "Europe/Paris";
 
@@ -39,11 +42,6 @@ export default async function Accueil() {
         <p className="annotation text-muted-foreground first-letter:uppercase">{jourLong(aujourdhui)}</p>
         <h1 className="font-display text-[2.4rem] leading-[0.95] font-extrabold tracking-tight md:text-6xl">Bonjour {qui.nom.split(" ")[0]}</h1>
       </div>
-      {peutCreerChantier(qui.role) && (
-        <Link href="/chantiers/nouveau" className={cn(buttonVariants({ size: "lg" }), "hidden md:inline-flex")}>
-          + Nouveau chantier
-        </Link>
-      )}
     </div>
   );
 
@@ -96,35 +94,88 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
     );
   }
 
-  const terrain = (t.actifs.length ? t.actifs : t.chantiers).map((c) => ({
-    id: c.id,
-    nom: c.nom,
-    ville: c.ville,
-    client: c.client,
-    etape: LIBELLE_STATUT[c.statut],
-    enChantier: c.statut === "en_cours" || c.statut === "reception",
-    aPhoto: c.aPhoto,
-    aViser: texteATraiter(c.aTraiter),
-    cote: donneesCote(c.debutPrevu, c.finPrevue, t.aujourdhui, t.avancement.get(c.id)),
-  }));
+  // Les chantiers qui attendent un geste d'abord : ce sont eux qu'on veut atteindre vite.
+  const terrain: ChantierTerrain[] = (t.actifs.length ? t.actifs : t.chantiers)
+    .map((c) => ({
+      id: c.id,
+      nom: c.nom,
+      ville: c.ville,
+      client: c.client,
+      etape: LIBELLE_STATUT[c.statut],
+      enChantier: c.statut === "en_cours" || c.statut === "reception",
+      aPhoto: c.aPhoto,
+      aViser: texteATraiter(c.aTraiter),
+      lien: lienAViser(c.id, c.aTraiter),
+      cote: donneesCote(c.debutPrevu, c.finPrevue, t.aujourdhui, t.avancement.get(c.id)),
+    }))
+    .sort((a, b) => Number(Boolean(b.aViser)) - Number(Boolean(a.aViser)));
+  const titreTerrain = t.actifs.length ? "Le terrain" : "Mes chantiers";
+  const aValider = questions ? await propositionsEnAttente(qui).then((p) => p.length, () => 0) : 0;
+
+  // Les accès rapides, sous la barre : ce qui attend, ce que l'assistant propose, créer.
+  const acces = (
+    <nav aria-label="Accès rapides" className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
+      {t.chiffres && (
+        <Link href="/chantiers?statut=a_traiter" className={PUCE}>
+          <Reticule className="size-4" />
+          {t.aTraiter.length} à viser
+        </Link>
+      )}
+      {questions && (
+        <Link href="/a-valider" className={PUCE}>
+          <CheckCheck className="size-4" aria-hidden />
+          {aValider} à valider
+        </Link>
+      )}
+      {peutCreerChantier(qui.role) && (
+        <Link href="/chantiers/nouveau" className={PUCE}>
+          <Plus className="size-4" aria-hidden />
+          Nouveau chantier
+        </Link>
+      )}
+    </nav>
+  );
 
   return (
-    <RechercheAccueil entete={entete} chantiers={cherchables} questions={questions}>
-      <div className="grid gap-10 md:grid-cols-[minmax(0,1fr)_20rem] md:gap-x-12">
-        <div className="flex min-w-0 flex-col gap-10">
-          {t.chiffres && <AViser t={t} />}
-          {/* Sur téléphone, le ciel vient entre « À viser » et le terrain. */}
-          <Meteo t={t} className="apparait [--rang:2] md:hidden" />
-          <Terrain titre={t.actifs.length ? "Le terrain" : "Mes chantiers"} chantiers={terrain} />
-        </div>
-        <aside className="flex min-w-0 flex-col gap-10">
-          <section className="hidden flex-col gap-4 md:flex">
-            <Titre decor>Le ciel</Titre>
-            <Meteo t={t} className="apparait [--rang:2]" />
-          </section>
-          {t.chiffres && <Semaine t={t} />}
+    <RechercheAccueil entete={entete} chantiers={cherchables} questions={questions} exemples={EXEMPLES_DEMANDES.slice(1, 3)} acces={acces}>
+      {/* Un tableau de bord d'accès rapide. Ordinateur : le ciel (1/4), les deux premiers
+          chantiers (2/4), les derniers messages (1/4), puis les chantiers suivants sur une
+          deuxième ligne. Tablette : deux colonnes. Téléphone : le ciel, la pile, les messages. */}
+      <div className="grid gap-x-5 gap-y-8 md:grid-cols-2 lg:grid-cols-4">
+        <section className="flex min-w-0 flex-col gap-4 md:order-1">
+          <Titre decor>Le ciel</Titre>
+          <Meteo t={t} className="apparait flex-1 [--rang:1]" />
+        </section>
+
+        <section aria-labelledby="titre-terrain" className="flex min-w-0 flex-col gap-4 md:order-3 md:col-span-2 lg:order-2">
+          <Titre id="titre-terrain" lien={{ href: "/chantiers", texte: `Tous (${terrain.length})`, label: `Voir les ${terrain.length} chantiers` }}>
+            {titreTerrain}
+          </Titre>
+          <Pile chantiers={terrain} />
+          <ul className="hidden flex-1 grid-cols-2 gap-5 md:grid">
+            {terrain.slice(0, 2).map((c, i) => (
+              <li key={c.id} className="flex">
+                <Carte c={c} rang={i} className="apparait min-h-[21rem] flex-1" />
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="flex min-w-0 flex-col md:order-2 lg:order-3">
           <Messages t={t} />
-        </aside>
+        </section>
+
+        {terrain.length > 2 && (
+          <section aria-label={`${titreTerrain}, suite`} className="hidden md:order-4 md:col-span-2 md:block lg:col-span-4">
+            <ul className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+              {terrain.slice(2, 6).map((c, i) => (
+                <li key={c.id} className="flex">
+                  <Carte c={c} rang={i + 2} className="apparait h-[17rem] flex-1" />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </RechercheAccueil>
   );

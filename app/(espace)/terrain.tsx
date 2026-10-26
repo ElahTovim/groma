@@ -18,6 +18,7 @@ export type ChantierTerrain = {
   aPhoto: boolean;
   aViser: string | null; // ce qui attend un geste, en clair
   cote: DonneesCote;
+  lien?: string; // où mène la carte (par défaut la fiche ; « À viser » ouvre l'onglet qui attend)
 };
 
 type Vue = "cartes" | "liste";
@@ -101,14 +102,14 @@ export function Terrain({ titre, chantiers, cle = CLE_VUE }: { titre?: string; c
 }
 
 // Ce qu'un lecteur d'écran dit d'une carte : le nom d'abord, puis l'essentiel.
-function nomCarte(c: ChantierTerrain) {
+export function nomCarte(c: ChantierTerrain) {
   return `${c.nom}, ${c.ville}, ${c.etape}${c.aViser ? `, à viser : ${c.aViser}` : ""}${c.cote.total ? `, lots finis ${c.cote.finis} sur ${c.cote.total}` : ""}`;
 }
 
-function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string; rang: number }) {
+export function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string; rang: number }) {
   return (
     <Link
-      href={`/chantiers/${c.id}`}
+      href={c.lien ?? `/chantiers/${c.id}`}
       transitionTypes={VERS_FICHE}
       aria-label={nomCarte(c)}
       className={cn("carte-photo relative isolate flex flex-col justify-between overflow-hidden rounded-3xl bg-foreground p-4 text-white md:p-5", className)}
@@ -148,7 +149,7 @@ function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string;
 // laisse voir son bandeau (le titre en entier sur deux lignes, la ville, l'étape) ; la
 // dernière se voit en entier. On fait défiler la page pour parcourir la pile, dans
 // l'ordre de lecture ; la carte qui reçoit le focus clavier sort de la pile.
-function Pile({ chantiers }: { chantiers: ChantierTerrain[] }) {
+export function Pile({ chantiers }: { chantiers: ChantierTerrain[] }) {
   return (
     <ul className="flex flex-col pt-1 pb-2 md:hidden">
       {chantiers.map((c, i) => (
@@ -167,10 +168,10 @@ function Pile({ chantiers }: { chantiers: ChantierTerrain[] }) {
 function CartePile({ c, rang }: { c: ChantierTerrain; rang: number }) {
   return (
     <Link
-      href={`/chantiers/${c.id}`}
+      href={c.lien ?? `/chantiers/${c.id}`}
       transitionTypes={VERS_FICHE}
       aria-label={nomCarte(c)}
-      className="carte-photo relative isolate flex h-[20rem] flex-col justify-between overflow-hidden rounded-3xl bg-foreground p-4 text-white shadow-[0_-10px_28px_-14px_rgb(0_0_0/0.55)] ring-1 ring-white/20 ring-inset active:scale-[0.99]"
+      className="carte-photo relative isolate flex h-[20rem] flex-col justify-between overflow-hidden rounded-3xl bg-foreground p-4 text-white shadow-[0_-10px_28px_-14px_rgb(0_0_0/0.55)] border-[0.5px] border-white active:scale-[0.99]"
     >
       {c.aPhoto ? (
         <PhotoPartagee chantierId={c.id}>
