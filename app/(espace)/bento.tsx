@@ -10,7 +10,7 @@ import { nomCarte } from "@/lib/nom-carte";
 import { Carte, type ChantierTerrain } from "./terrain";
 
 // L'accueil du téléphone en « bento » : des tuiles de tailles variées sur deux colonnes,
-// qui tiennent l'essentiel sur un écran et demi. Le ciel, ce qui attend (à viser, à
+// qui tiennent l'essentiel sur un écran et demi. Le ciel sur une ligne, ce qui attend (à viser, à
 // valider), le chantier le plus urgent en grand, deux autres en petit, les raccourcis,
 // le dernier message. La pile complète reste sur la page Chantiers.
 export function BentoTelephone(props: { t: TableauDeBord; terrain: ChantierTerrain[]; aValider: number; equipe: boolean; creer: boolean }) {
@@ -18,8 +18,8 @@ export function BentoTelephone(props: { t: TableauDeBord; terrain: ChantierTerra
   const [vedette, ...autres] = terrain;
   const message = t.messages[0];
   return (
-    <section aria-label="Tableau de bord" className="grid auto-rows-[minmax(6.5rem,auto)] grid-cols-2 gap-3 md:hidden">
-      <TuileMeteo t={t} className="apparait row-span-2 [--rang:1]" />
+    <section aria-label="Tableau de bord" className="grid grid-cols-2 gap-3 md:hidden">
+      <TuileMeteo t={t} className="apparait col-span-2 [--rang:1]" />
       {t.chiffres ? (
         <TuileNombre href="/chantiers?statut=a_traiter" n={t.aTraiter.length} libelle="à viser" icone={<Reticule className="size-5" />} rang={2} />
       ) : (
@@ -62,7 +62,7 @@ function TuileNombre(props: { href: string; n: number; libelle: string; icone?: 
   return (
     <Link
       href={props.href}
-      className={cn("apparait flex flex-col justify-between rounded-3xl p-4 active:scale-[0.98]", attend ? "bg-foreground text-background" : "bg-card")}
+      className={cn("apparait flex min-h-[6.5rem] flex-col justify-between rounded-3xl p-4 active:scale-[0.98]", attend ? "bg-foreground text-background" : "bg-card")}
       style={{ "--rang": props.rang } as React.CSSProperties}
     >
       <span className="flex items-center justify-between">
@@ -100,7 +100,7 @@ function TuileChantier({ c, rang }: { c: ChantierTerrain; rang: number }) {
       href={c.lien ?? `/chantiers/${c.id}`}
       transitionTypes={VERS_FICHE}
       aria-label={nomCarte(c)}
-      className="carte-photo apparait relative isolate row-span-2 flex flex-col justify-between overflow-hidden rounded-3xl border-[0.5px] border-white bg-foreground p-3.5 text-white active:scale-[0.98]"
+      className="carte-photo apparait relative isolate flex h-[13.5rem] flex-col justify-between overflow-hidden rounded-3xl border-[0.5px] border-white bg-foreground p-3.5 text-white active:scale-[0.98]"
       style={{ "--rang": rang } as React.CSSProperties}
     >
       {c.aPhoto ? (

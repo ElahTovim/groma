@@ -164,15 +164,16 @@ export function Messages({ t }: { t: TableauDeBord }) {
   );
 }
 
-// Le ciel en petite tuile (bento du téléphone) : le lieu, la température, le temps, et
-// l'alerte du lendemain s'il y en a une. Même lisibilité calculée que la grande carte.
+// Le ciel en une ligne (bento du téléphone), de la hauteur de la barre de recherche :
+// l'icône, la température, le temps, le minimum, et l'alerte du lendemain s'il y en a une.
+// Le fond garde la couleur du ciel et sa lisibilité calculée ; pas d'animation à cette taille.
 export function TuileMeteo({ t, className }: { t: TableauDeBord; className?: string }) {
   const jours = t.meteo.jours;
   if (!jours || jours.length === 0) {
     return (
-      <section aria-label={`Météo à ${t.meteo.lieu}`} className={cn("flex flex-col justify-between rounded-3xl bg-card p-4", className)}>
-        <Cloud className="size-8 text-muted-foreground" strokeWidth={1.25} aria-hidden />
-        <p className="text-sm font-medium">Météo indisponible pour le moment.</p>
+      <section aria-label={`Météo à ${t.meteo.lieu}`} className={cn("flex h-14 items-center gap-3 rounded-2xl bg-card px-4 text-sm", className)}>
+        <Cloud className="size-5 shrink-0 text-muted-foreground" strokeWidth={1.4} aria-hidden />
+        Météo indisponible pour le moment.
       </section>
     );
   }
@@ -182,25 +183,16 @@ export function TuileMeteo({ t, className }: { t: TableauDeBord; className?: str
   return (
     <section
       aria-label={`Météo à ${t.meteo.lieu}`}
-      className={cn("relative isolate flex flex-col justify-between overflow-hidden rounded-3xl p-4", a.texteSombre ? "text-black" : "text-white", className)}
+      className={cn("flex h-14 min-w-0 items-center gap-3 rounded-2xl px-4", a.texteSombre ? "text-black" : "text-white", className)}
       style={{ background: a.fond }}
     >
-      <CielAnime particules={a.particules} sombre={a.texteSombre} />
-      <div className="relative flex items-start justify-between gap-2">
-        <h2 className="text-sm font-medium">
-          {t.meteo.lieu} · <span className="capitalize">{jourCourt(auj.date)}</span>
-        </h2>
-        <PauseCiel sombre={a.texteSombre} />
-      </div>
-      <div className="relative flex flex-col gap-0.5">
-        <IconeCiel ciel={auj.ciel} className="size-8" trait={1.4} />
-        <p className="font-display text-5xl leading-none font-extrabold tracking-tight tabular-nums">{auj.max}°</p>
-        <p className="text-sm font-semibold first-letter:uppercase">{auj.ciel}</p>
-        <p className="text-xs font-medium tabular-nums">
-          <span className="sr-only">minimum </span>Mini {auj.min}°
-        </p>
-      </div>
-      {alerteDemain && <p className="relative w-fit rounded-full bg-black/80 px-2.5 py-1 text-xs font-semibold text-white">{alerteDemain}</p>}
+      <IconeCiel ciel={auj.ciel} className="size-6 shrink-0" trait={1.5} />
+      <p className="font-display text-2xl leading-none font-extrabold tabular-nums">{auj.max}°</p>
+      <p className="min-w-0 flex-1 truncate text-sm font-medium">
+        <span className="first-letter:uppercase">{auj.ciel}</span>
+        <span className="tabular-nums"> · mini {auj.min}°</span>
+      </p>
+      {alerteDemain && <p className="shrink-0 rounded-full bg-black/80 px-2.5 py-1 text-xs font-semibold text-white">{alerteDemain}</p>}
     </section>
   );
 }
