@@ -19,28 +19,44 @@ function capture(nom: string): string | null {
   return existsSync(path.join(process.cwd(), "public", "presentation", nom)) ? `/presentation/${nom}` : null;
 }
 
-// Une capture encadrée comme une vue sur un plan : repères de coupe aux quatre coins, légende en annotation.
+// Une capture encadrée comme une vue sur un plan : repères de coupe aux quatre coins.
+function Ecran({ src, alt, attente, telephone }: { src: string | null; alt: string; attente: string; telephone?: boolean }) {
+  const cadre = telephone ? "aspect-[9/19.5] rounded-[1.25rem] border-[5px] border-foreground ring-4 ring-background" : "ring-1 ring-foreground";
+  return (
+    <div className={`overflow-hidden bg-foreground ${cadre}`}>
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element -- capture statique, déjà au bon format
+        <img src={src} alt={alt} loading="lazy" className={`block w-full ${telephone ? "h-full object-cover object-top" : "h-auto"}`} />
+      ) : (
+        <div className={`flex flex-col justify-between text-background/60 ${telephone ? "h-full p-3" : "aspect-[16/10] p-5"}`}>
+          <Reticule className={telephone ? "size-5" : "size-8"} plein={false} />
+          <span className={`annotation ${telephone ? "text-[9px] leading-tight" : ""}`}>{attente}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Chaque planche montre la même fonction à deux échelles : l'ordinateur au bureau, le téléphone
+// sur le chantier, posé en détail sur le coin de la vue principale.
 function Vue({ nom, legende, numero }: { nom: string; legende: string; numero: string }) {
-  const src = capture(nom);
+  const mobile = nom.replace(".png", "-mobile.png");
   return (
     <figure className="flex flex-col gap-3">
-      <div className="coupe">
-        <div className="overflow-hidden bg-foreground ring-1 ring-foreground">
-          {src ? (
-            // eslint-disable-next-line @next/next/no-img-element -- capture statique, déjà au bon format
-            <img src={src} alt={legende} loading="lazy" className="block h-auto w-full" />
-          ) : (
-            <div className="flex aspect-[16/10] flex-col justify-between p-5 text-background/60">
-              <Reticule className="size-8" plein={false} />
-              <span className="annotation">Vue à venir · {nom}</span>
-            </div>
-          )}
+      <div className="relative pr-[16%] pb-[14%]">
+        <div className="coupe">
+          <Ecran src={capture(nom)} alt={`${legende} Sur ordinateur.`} attente={`Vue à venir · ${nom}`} />
+          <span className="coupe-bas" aria-hidden />
         </div>
-        <span className="coupe-bas" aria-hidden />
+        <div className="absolute right-0 bottom-0 w-[27%] drop-shadow-[0_10px_18px_rgb(0_0_0/0.28)]">
+          <Ecran src={capture(mobile)} alt={`${legende} Sur téléphone.`} attente="Téléphone à venir" telephone />
+        </div>
       </div>
       <figcaption className="annotation flex gap-3 text-muted-foreground">
-        <span className="text-foreground">Vue {numero}</span>
-        <span className="normal-case tracking-normal font-sans text-[13px]">{legende}</span>
+        <span className="shrink-0 text-foreground">Vue {numero}</span>
+        <span className="normal-case tracking-normal font-sans text-[13px]">
+          {legende} <span className="text-foreground/70">Ordinateur et téléphone.</span>
+        </span>
       </figcaption>
     </figure>
   );
@@ -294,11 +310,7 @@ export default function Presentation() {
 
         {/* Les tampons de contrôle : les badges du séminaire. */}
         <section className="flex flex-col gap-10">
-          <div className="flex flex-col gap-2">
-            <p className="annotation text-muted-foreground">Contrôles · bon pour exécution</p>
-            <h2 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">Cinq tampons, cinq preuves.</h2>
-            <p className="max-w-xl text-pretty text-muted-foreground">Au-delà du programme du séminaire, chaque brique a été faite, vérifiée et documentée.</p>
-          </div>
+          <p className="annotation text-muted-foreground">Contrôles · bon pour exécution</p>
           <ul className="grid grid-cols-2 justify-items-center gap-x-4 gap-y-12 sm:grid-cols-3 lg:grid-cols-5">
             {TAMPONS.map((t, i) => (
               <li key={t.titre}>
