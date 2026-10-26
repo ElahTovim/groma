@@ -12,7 +12,7 @@ import { LIBELLE_STATUT } from "@/lib/chantier-forme";
 import { donneesCote } from "@/lib/cote";
 import { appelantObligatoire, type Appelant } from "@/lib/session";
 import { lireTableauDeBord } from "@/lib/tableau-de-bord";
-import { lienAViser, Messages, Meteo, Titre } from "./accueil-blocs";
+import { lienAViser, Messages, Titre, TuileMeteo } from "./accueil-blocs";
 import { LIBELLE_PROPOSITION } from "@/lib/assistant-regles";
 import { propositionsEnAttente } from "@/lib/operations/propositions";
 import { RechercheAccueil } from "./recherche-accueil";
@@ -144,17 +144,12 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
       {/* Ordinateur. Première ligne, l'accès rapide : le ciel (1/4), les derniers messages (1/4),
           ce qui attend (2/4 : à viser, à valider). Deuxième ligne : les chantiers en cours.
           Tablette : deux colonnes. */}
-      <div className="hidden gap-x-5 gap-y-8 md:grid md:grid-cols-2 lg:grid-cols-4">
-        <section className="flex min-w-0 flex-col gap-4">
-          <Titre decor>Le ciel</Titre>
-          <Meteo t={t} className="apparait flex-1 [--rang:1]" />
-        </section>
+      {/* Ordinateur : la météo sur une ligne, comme sur téléphone ; puis deux colonnes, ce qui
+          attend (à viser, à valider) et les derniers messages ; puis les chantiers en cours. */}
+      <div className="hidden gap-x-5 gap-y-8 md:grid md:grid-cols-2">
+        <TuileMeteo t={t} className="apparait md:col-span-2" />
 
-        <section className="flex min-w-0 flex-col">
-          <Messages t={t} />
-        </section>
-
-        <section aria-labelledby="titre-attente" className="flex min-w-0 flex-col gap-4 md:col-span-2">
+        <section aria-labelledby="titre-attente" className="flex min-w-0 flex-col gap-4">
           <Titre id="titre-attente">Ce qui attend</Titre>
           <div className="grid flex-1 grid-cols-2 gap-5">
             <TuileAttente
@@ -178,7 +173,11 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
           </div>
         </section>
 
-        <section aria-labelledby="titre-terrain" className="flex min-w-0 flex-col gap-4 md:col-span-2 lg:col-span-4">
+        <section className="flex min-w-0 flex-col">
+          <Messages t={t} />
+        </section>
+
+        <section aria-labelledby="titre-terrain" className="flex min-w-0 flex-col gap-4 md:col-span-2">
           <Titre id="titre-terrain" lien={{ href: "/chantiers", texte: `Tous (${terrain.length})`, label: `Voir les ${terrain.length} chantiers` }}>
             {titreTerrain}
           </Titre>
