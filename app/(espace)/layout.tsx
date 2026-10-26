@@ -5,7 +5,7 @@ import { voitLInterne } from "@/lib/acces";
 import { propositionsEnAttente } from "@/lib/operations/propositions";
 import { appelantObligatoire } from "@/lib/session";
 import { PremiereVisite } from "@/components/ouverture";
-import { LiensAgent, LiensAgentMenu, PastilleMobile } from "./liens-agent";
+import { LiensAgentMenu, PastilleCompte } from "./liens-agent";
 import { MenuCompte } from "./menu-compte";
 import { BarreBas, LiensHaut, MargeBarreBas } from "./navigation";
 
@@ -33,20 +33,20 @@ export default async function Espace({ children }: LayoutProps<"/">) {
               groma
             </Link>
             <LiensHaut interne={voitLInterne(qui.role)} />
-            {voitLInterne(qui.role) && <LiensAgent enAttente={enAttente} />}
           </nav>
           <MenuCompte>
             <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm [&::-webkit-details-marker]:hidden">
               <span className="max-w-40 truncate">{qui.nom}</span>
               <span className="sr-only">, menu du compte</span>
-              <PastilleMobile enAttente={enAttente} />
+              <PastilleCompte enAttente={enAttente} />
               <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
             </summary>
             <div className="absolute right-0 z-40 mt-1 flex w-56 flex-col border bg-background py-1 shadow-sm">
               <p className="px-3 py-2 text-xs text-muted-foreground">Connecté en tant que {LIBELLE_ROLE[qui.role]}</p>
-              {voitLInterne(qui.role) && <LiensAgentMenu enAttente={enAttente} />}
+              {voitLInterne(qui.role) && <LiensAgentMenu enAttente={enAttente} gerant={qui.role === "gerant"} />}
               {qui.role === "gerant" && (
                 <>
+                  <hr className="my-1 border-border" />
                   <Link href="/nuit" className="flex min-h-11 items-center px-3 text-sm hover:bg-muted">
                     Machine de nuit
                   </Link>
@@ -58,6 +58,7 @@ export default async function Espace({ children }: LayoutProps<"/">) {
               <Link href="/mes-donnees" className="flex min-h-11 items-center px-3 text-sm hover:bg-muted">
                 Mes données
               </Link>
+              <hr className="my-1 border-border" />
               <form
                 action={async () => {
                   "use server";

@@ -1,6 +1,6 @@
 "use client";
 
-import { HelpCircle, Layers, Mail } from "lucide-react";
+import { Layers, Mail } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Reticule } from "@/components/cote";
@@ -12,7 +12,6 @@ const LIENS: Lien[] = [
   { href: "/", libelle: "Accueil", icone: ({ className }) => <Reticule className={className} plein={false} /> },
   { href: "/chantiers", libelle: "Chantiers", icone: ({ className }) => <Layers className={className} strokeWidth={1.6} aria-hidden /> },
   { href: "/courriers", libelle: "Courriers", icone: ({ className }) => <Mail className={className} strokeWidth={1.6} aria-hidden /> },
-  { href: "/questions", libelle: "Questions", icone: ({ className }) => <HelpCircle className={className} strokeWidth={1.6} aria-hidden /> },
 ];
 
 function actif(chemin: string, href: string) {
@@ -20,7 +19,9 @@ function actif(chemin: string, href: string) {
 }
 
 function liensPour(interne: boolean) {
-  // Courriers et Questions sont internes : un externe ne voit que l'accueil et ses chantiers.
+  // L'en-tête est celui du travail de tous les jours. Courriers est interne : un externe ne
+  // voit que l'accueil et ses chantiers. Assistant, À valider et Questions vivent dans le
+  // menu du compte (et l'accueil y mène par sa barre d'assistant).
   return interne ? LIENS : LIENS.slice(0, 2);
 }
 

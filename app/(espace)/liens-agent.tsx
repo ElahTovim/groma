@@ -21,51 +21,34 @@ function Pastille({ n }: { n: number }) {
 
 const actif = (chemin: string, href: string) => chemin === href || chemin.startsWith(`${href}/`);
 
-export function LiensAgent({ enAttente }: { enAttente: number }) {
+// Les outils de l'assistant vivent dans le menu du compte. Ce qui attend une validation ne
+// se perd pas pour autant : la pastille noire reste visible sur le nom, dans l'en-tête,
+// tant qu'une proposition attend (et la puce « à valider » de l'accueil le dit aussi).
+export function PastilleCompte({ enAttente }: { enAttente: number }) {
+  return <Pastille n={enAttente} />;
+}
+
+const LIGNE = "flex min-h-11 items-center justify-between gap-2 px-3 text-sm hover:bg-muted";
+
+export function LiensAgentMenu({ enAttente, gerant }: { enAttente: number; gerant: boolean }) {
   const chemin = usePathname();
-  const liens = [
-    { href: "/assistant", libelle: "Assistant", n: 0 },
-    { href: "/a-valider", libelle: "À valider", n: enAttente },
-  ];
+  const ici = (href: string) => (actif(chemin, href) ? "page" : undefined);
   return (
     <>
-      {liens.map((l) => (
-        <Link
-          key={l.href}
-          href={l.href}
-          aria-current={actif(chemin, l.href) ? "page" : undefined}
-          className={cn(
-            "hidden h-14 items-center gap-1.5 text-sm transition-colors md:flex",
-            actif(chemin, l.href) ? "font-semibold shadow-[inset_0_-2px_0_var(--foreground)]" : "font-medium text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {l.libelle}
-          <Pastille n={l.n} />
-        </Link>
-      ))}
-    </>
-  );
-}
-
-// Sur téléphone, l'en-tête n'a pas la place : les deux liens vivent dans le menu du compte,
-// et la pastille reste visible à côté du nom.
-export function PastilleMobile({ enAttente }: { enAttente: number }) {
-  return (
-    <span className="md:hidden">
-      <Pastille n={enAttente} />
-    </span>
-  );
-}
-
-export function LiensAgentMenu({ enAttente }: { enAttente: number }) {
-  return (
-    <>
-      <Link href="/assistant" className="flex min-h-11 items-center px-3 text-sm hover:bg-muted md:hidden">
-        Assistant
-      </Link>
-      <Link href="/a-valider" className="flex min-h-11 items-center justify-between gap-2 px-3 text-sm hover:bg-muted md:hidden">
+      <Link href="/a-valider" aria-current={ici("/a-valider")} className={cn(LIGNE, enAttente > 0 && "font-semibold")}>
         À valider
         <Pastille n={enAttente} />
+      </Link>
+      <Link href="/assistant" aria-current={ici("/assistant")} className={LIGNE}>
+        Assistant
+      </Link>
+      {gerant && (
+        <Link href="/assistant/journal" aria-current={ici("/assistant/journal")} className={LIGNE}>
+          Journal de l&apos;assistant
+        </Link>
+      )}
+      <Link href="/questions" aria-current={ici("/questions")} className={LIGNE}>
+        Questions sur les documents
       </Link>
     </>
   );
