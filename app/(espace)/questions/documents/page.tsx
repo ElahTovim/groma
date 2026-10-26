@@ -6,7 +6,7 @@ import { documentsIndexes } from "@/lib/recherche";
 import { appelantObligatoire } from "@/lib/session";
 import { BoutonIndexer } from "../bouton-indexer";
 
-export const metadata: Metadata = { title: "Documents indexés" };
+export const metadata: Metadata = { title: "Documents de référence" };
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -23,13 +23,13 @@ export default async function DocumentsIndexes() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/questions" className="text-sm text-muted-foreground hover:text-foreground">
-        ← Questions
+      <Link href="/assistant" className="text-sm text-muted-foreground hover:text-foreground">
+        ← Assistant
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Documents indexés</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">Les documents de référence fournis par le flux : procédures, contrats types, comptes rendus, notes de service. Ils ne sont rattachés à aucun chantier ; ils servent de base aux réponses. Cliquez sur un titre pour le lire.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Documents de référence</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">Les documents de référence fournis par le flux : procédures, contrats types, comptes rendus, notes de service. Ils ne sont rattachés à aucun chantier ; l&apos;assistant y cherche quand une question le demande, et cite le document et la page. Cliquez sur un titre pour le lire.</p>
         </div>
         {qui.role === "gerant" && <BoutonIndexer libelle={docs.length ? "Mettre à jour l'index" : "Indexer les documents du flux"} variant={docs.length ? "outline" : "default"} />}
       </div>

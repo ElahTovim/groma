@@ -47,8 +47,8 @@ export function LiensAgentMenu({ enAttente, gerant }: { enAttente: number; geran
           Journal de l&apos;assistant
         </Link>
       )}
-      <Link href="/questions" aria-current={ici("/questions")} className={LIGNE}>
-        Questions sur les documents
+      <Link href="/questions/documents" aria-current={ici("/questions/documents")} className={LIGNE}>
+        Documents de référence
       </Link>
     </>
   );
