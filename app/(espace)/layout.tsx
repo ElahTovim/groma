@@ -16,7 +16,7 @@ export default async function Espace({ children }: LayoutProps<"/">) {
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="sticky top-0 z-30 border-b bg-background">
+      <header className="sticky top-0 z-30 border-b bg-background" style={{ viewTransitionName: "en-tete" }}>
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
           <nav className="flex items-center gap-5 text-sm">
             <Link href="/" id="logo-groma" className="logo-groma text-2xl">

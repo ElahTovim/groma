@@ -324,3 +324,62 @@
 .hachure {
   background: repeating-linear-gradient(-45deg, var(--foreground) 0 2px, transparent 2px 6px);
 }
+
+/* Les transitions entre pages. La photo d'un chantier passe de la carte à la fiche
+   (« morph ») ; le reste de la page glisse de 60 px dans le sens de la navigation.
+   L'en-tête et la barre du bas ne bougent pas : ce sont les repères. */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(.morph) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+::view-transition-image-pair(.morph) {
+  animation-name: passe-flou;
+}
+@keyframes passe-flou {
+  30% { filter: blur(2px); }
+}
+::view-transition-old(.nav-forward) {
+  --decalage: -60px;
+  animation: 150ms ease-in both vt-fondu reverse, 380ms cubic-bezier(0.23, 1, 0.32, 1) both vt-glisse reverse;
+}
+::view-transition-new(.nav-forward) {
+  --decalage: 60px;
+  animation: 210ms ease-out 120ms both vt-fondu, 380ms cubic-bezier(0.23, 1, 0.32, 1) both vt-glisse;
+}
+::view-transition-old(.nav-back) {
+  --decalage: 60px;
+  animation: 150ms ease-in both vt-fondu reverse, 380ms cubic-bezier(0.23, 1, 0.32, 1) both vt-glisse reverse;
+}
+::view-transition-new(.nav-back) {
+  --decalage: -60px;
+  animation: 210ms ease-out 120ms both vt-fondu, 380ms cubic-bezier(0.23, 1, 0.32, 1) both vt-glisse;
+}
+@keyframes vt-fondu {
+  from { opacity: 0; }
+}
+@keyframes vt-glisse {
+  from { translate: var(--decalage); }
+}
+::view-transition-group(en-tete),
+::view-transition-group(barre-bas) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(en-tete) {
+  display: none;
+}
+::view-transition-new(en-tete) {
+  animation: none;
+}
+/* Moins d'animations demandées : les pages changent d'un coup, la photo aussi. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

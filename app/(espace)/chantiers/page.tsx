@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageGlissante } from "@/components/transitions";
 import { texteATraiter } from "@/components/a-traiter";
 import { buttonVariants } from "@/components/ui/button";
 import { peutCreerChantier, voitLInterne } from "@/lib/acces";
@@ -42,6 +43,7 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
   const filtre = Boolean(statut || q);
 
   return (
+    <PageGlissante>
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display font-extrabold text-[2.5rem] leading-[0.95] tracking-tight md:text-6xl">
@@ -77,5 +79,6 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
         <Terrain chantiers={terrain} carrousel={false} cle="groma-vue-chantiers" />
       )}
     </div>
+    </PageGlissante>
   );
 }

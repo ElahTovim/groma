@@ -56,7 +56,7 @@ export function BarreBas({ interne }: { interne: boolean }) {
     <nav
       aria-label="Navigation principale"
       className="fixed inset-x-0 bottom-0 z-30 grid border-t bg-background/90 px-2 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg md:hidden"
-      style={{ gridTemplateColumns: `repeat(${liens.length}, minmax(0, 1fr))` }}
+      style={{ gridTemplateColumns: `repeat(${liens.length}, minmax(0, 1fr))`, viewTransitionName: "barre-bas" }}
     >
       {liens.map(({ href, libelle, icone: Icone }) => {
         const ici = actif(chemin, href);

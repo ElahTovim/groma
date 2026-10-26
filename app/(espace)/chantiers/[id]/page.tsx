@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageGlissante, RETOUR } from "@/components/transitions";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { BadgeStatut } from "@/components/badge-statut";
@@ -94,10 +95,11 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
 
   return (
     // La marge du bas laisse la place au bouton fixé sous le pouce, sur téléphone.
+    <PageGlissante>
     <div className="flex flex-col gap-6 pb-36 md:pb-0">
       {cree && <AnnonceCreation />}
       <nav aria-label="Fil d'Ariane" className="-mt-2 flex items-center gap-2 text-sm md:mt-0">
-        <Link href="/chantiers" className="flex min-h-12 items-center gap-1.5 font-semibold underline-offset-2 hover:underline md:min-h-0 md:font-normal md:underline">
+        <Link href="/chantiers" transitionTypes={RETOUR} className="flex min-h-12 items-center gap-1.5 font-semibold underline-offset-2 hover:underline md:min-h-0 md:font-normal md:underline">
           <span aria-hidden className="md:hidden">←</span> Chantiers
         </Link>
         <span aria-hidden className="hidden text-muted-foreground md:inline">/</span>
@@ -215,5 +217,6 @@ export default async function FicheChantier({ params, searchParams }: PageProps<
         }}
       />
     </div>
+    </PageGlissante>
   );
 }

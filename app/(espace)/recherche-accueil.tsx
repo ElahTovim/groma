@@ -4,6 +4,7 @@ import { HelpCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Reticule } from "@/components/cote";
+import { VERS_FICHE } from "@/components/transitions";
 import { Vignette } from "@/components/vignette";
 
 export type ChantierCherche = { id: string; nom: string; ville: string; client: string; reference: string; etape: string; aPhoto: boolean };
@@ -91,7 +92,7 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
               <ul>
                 {trouves.slice(0, 8).map((c) => (
                   <li key={c.id} className="border-b border-foreground/10">
-                    <Link href={`/chantiers/${c.id}`} className="flex min-h-16 items-center gap-3 py-2 hover:bg-foreground/[0.03]">
+                    <Link href={`/chantiers/${c.id}`} transitionTypes={VERS_FICHE} className="flex min-h-16 items-center gap-3 py-2 hover:bg-foreground/[0.03]">
                       <Vignette chantierId={c.id} aPhoto={c.aPhoto} alt="" className="size-11 rounded-lg" />
                       <span className="flex min-w-0 flex-col">
                         <span className="truncate font-display text-lg font-bold tracking-tight">{c.nom}</span>
