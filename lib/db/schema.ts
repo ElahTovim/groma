@@ -102,7 +102,7 @@ export const participants = pgTable(
     vigilance: boolean("vigilance").notNull().default(false),
     inviteLe: timestamp("invite_le", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [unique("participant_unique").on(t.chantierId, t.compteId)],
+  (t) => [unique("participant_unique").on(t.chantierId, t.compteId), index("participants_compte").on(t.compteId)],
 );
 
 export const statutLot = pgEnum("statut_lot", ["a_commander", "commande", "livre", "pose", "fini"]);
@@ -113,7 +113,9 @@ export const statutSignalement = pgEnum("statut_signalement", ["a_qualifier", "r
 
 // Un chantier se découpe en lots (carrelage, électricité…). Interne : un externe
 // ne voit jamais les lots ni leurs retards.
-export const lots = pgTable("lots", {
+export const lots = pgTable(
+  "lots",
+  {
   id: uuid("id").primaryKey().defaultRandom(),
   chantierId: uuid("chantier_id")
     .notNull()
@@ -126,11 +128,15 @@ export const lots = pgTable("lots", {
   // Le délai annoncé par le fournisseur entre la commande et l'enlèvement, en jours ouvrés.
   delaiFournisseurJours: integer("delai_fournisseur_jours"),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
-});
+},
+  (t) => [index("lots_chantier").on(t.chantierId)],
+);
 
 // Le fil du chantier. Tout élément est interne par défaut ; « visible_par » liste
 // les comptes externes qui ont été cochés dans « Qui voit ça ? ».
-export const fil = pgTable("fil", {
+export const fil = pgTable(
+  "fil",
+  {
   id: uuid("id").primaryKey().defaultRandom(),
   chantierId: uuid("chantier_id")
     .notNull()
@@ -154,7 +160,10 @@ export const fil = pgTable("fil", {
   fichierType: text("fichier_type"),
   fichierTaille: integer("fichier_taille"),
   creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
-});
+},
+  // Test à 10 000 chantiers (docs/test-volume.md) : le fil d'un chantier se lit par cet index.
+  (t) => [index("fil_chantier").on(t.chantierId, t.creeLe)],
+);
 
 export const typeJeton = pgEnum("type_jeton", ["invitation", "reinitialisation"]);
 

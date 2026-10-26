@@ -89,6 +89,7 @@ const FONCTIONS = [
 const BADGES = [
   { titre: "Une sauvegarde restaurée sur une copie", detail: "La base de production sauvegardée, restaurée ailleurs, les 29 tables comptées : identiques. Procédure dans docs/sauvegarde.md.", obtenu: true },
   { titre: "Les données personnelles", detail: "Un registre des traitements, « Exporter mes données » pour chacun, des autorisations données ou retirées et gardées avec leur date, et la politique de l'entreprise rédigée par le gérant.", obtenu: true },
+  { titre: "Un test à 10 000 chantiers", detail: "10 000 chantiers, 30 000 lots et 50 000 éléments de fil sur une copie de la base : aucune page au-delà d'un quart de seconde ; trois index ajoutés.", obtenu: true },
   { titre: "L'accessibilité vérifiée", detail: "Audit WCAG 2.2 AA : contrastes calculés et testés, un titre par page, navigation et onglets au clavier, libellés reliés aux champs, annonces pour les lecteurs d'écran.", obtenu: true },
   { titre: "Un test à volume réaliste", detail: "Une copie de la base remplie à 10 000 chantiers : les pages restent sous les deux secondes, aucune lecture en base au-delà de 7 ms. Mesures dans docs/volume.md.", obtenu: true },
   { titre: "Le serveur MCP dans Claude Desktop", detail: "groma piloté depuis Claude Desktop (et Claude Code), avec un jeton personnel révocable : lectures et trois actions, chaque appel au journal.", obtenu: true },
