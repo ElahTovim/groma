@@ -4,6 +4,7 @@ import { LayoutGrid, List } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState, useSyncExternalStore } from "react";
 import { Cote, Reticule } from "@/components/cote";
+import { PhotoPartagee, VERS_FICHE } from "@/components/transitions";
 import type { DonneesCote } from "@/lib/cote";
 import { cn } from "@/lib/utils";
 
@@ -104,11 +105,14 @@ function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string;
   return (
     <Link
       href={`/chantiers/${c.id}`}
+      transitionTypes={VERS_FICHE}
       className={cn("carte-photo relative isolate flex flex-col justify-between overflow-hidden rounded-3xl bg-foreground p-4 text-white md:p-5", className)}
     >
       {c.aPhoto ? (
-        // eslint-disable-next-line @next/next/no-img-element -- image privée, servie après vérification des droits
-        <img src={`/api/photos/${c.id}`} alt="" loading="lazy" className="absolute inset-0 -z-20 size-full object-cover" />
+        <PhotoPartagee chantierId={c.id}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- image privée, servie après vérification des droits */}
+          <img src={`/api/photos/${c.id}`} alt="" loading="lazy" className="absolute inset-0 -z-20 size-full object-cover" />
+        </PhotoPartagee>
       ) : (
         <Reticule className="absolute top-1/2 left-1/2 -z-20 size-40 -translate-1/2 text-white/10" plein={false} />
       )}
@@ -195,7 +199,7 @@ function Liste({ chantiers }: { chantiers: ChantierTerrain[] }) {
     <ul className="flex flex-col">
       {chantiers.map((c, i) => (
         <li key={c.id} className="apparait border-b border-foreground/10" style={{ "--rang": i } as React.CSSProperties}>
-          <Link href={`/chantiers/${c.id}`} className="grid gap-3 py-4 transition-colors hover:bg-foreground/[0.03] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_auto] md:items-center md:gap-7 md:px-2">
+          <Link href={`/chantiers/${c.id}`} transitionTypes={VERS_FICHE} className="grid gap-3 py-4 transition-colors hover:bg-foreground/[0.03] md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.4fr)_auto] md:items-center md:gap-7 md:px-2">
             <span className="flex items-start justify-between gap-3 md:block">
               <span className="flex min-w-0 flex-col gap-1">
                 <span className="font-display text-[1.45rem] leading-[1.05] font-bold tracking-tight">{c.nom}</span>

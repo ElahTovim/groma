@@ -19,6 +19,8 @@ export default async function Assistant({ searchParams }: PageProps<"/assistant"
   if (!voitLInterne(qui.role)) notFound();
   const params = await searchParams;
   const e = typeof params.e === "string" ? params.e : null;
+  // Depuis la barre de l'accueil : la phrase est pré-remplie, jamais lancée sans un clic.
+  const q = typeof params.q === "string" ? params.q.slice(0, 2000) : "";
   // L'historique et le résultat se lisent à part : si l'un échoue, le champ reste utilisable.
   const [historique, resultat] = await Promise.allSettled([dernieresDemandes(qui, 10), e ? lireExecution(qui, e) : Promise.resolve(null)]);
 
@@ -38,7 +40,7 @@ export default async function Assistant({ searchParams }: PageProps<"/assistant"
         )}
       </div>
 
-      <FormulaireAssistant />
+      <FormulaireAssistant demandeInitiale={q} />
 
       {e &&
         (resultat.status === "rejected" ? (

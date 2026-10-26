@@ -51,20 +51,24 @@ export function LiensHaut({ interne }: { interne: boolean }) {
 export function BarreBas({ interne }: { interne: boolean }) {
   const chemin = usePathname();
   const liens = liensPour(interne);
+  const ici = liens.findIndex((l) => actif(chemin, l.href));
   if (!liens.some((l) => l.href === chemin)) return null;
   return (
     <nav
       aria-label="Navigation principale"
       className="fixed inset-x-0 bottom-0 z-30 grid border-t bg-background/90 px-2 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg md:hidden"
-      style={{ gridTemplateColumns: `repeat(${liens.length}, minmax(0, 1fr))` }}
+      style={{ gridTemplateColumns: `repeat(${liens.length}, minmax(0, 1fr))`, viewTransitionName: "barre-bas" }}
     >
-      {liens.map(({ href, libelle, icone: Icone }) => {
-        const ici = actif(chemin, href);
+      {/* Un seul trait, qui glisse jusqu'à l'onglet ouvert. */}
+      <span aria-hidden className="glisse pointer-events-none absolute top-0 left-2 flex justify-center" style={{ width: `calc((100% - 1rem) / ${liens.length})`, transform: `translateX(${ici * 100}%)` }}>
+        <span className="h-0.5 w-6 rounded-full bg-foreground" />
+      </span>
+      {liens.map(({ href, libelle, icone: Icone }, i) => {
+        const estIci = i === ici;
         return (
-          <Link key={href} href={href} aria-current={ici ? "page" : undefined} className={cn("relative flex min-h-13 flex-col items-center justify-center gap-1 active:scale-95", !ici && "text-muted-foreground")}>
-            {ici && <span aria-hidden className="absolute -top-1.5 h-0.5 w-6 rounded-full bg-foreground" />}
+          <Link key={href} href={href} aria-current={estIci ? "page" : undefined} className={cn("relative flex min-h-13 flex-col items-center justify-center gap-1 transition-[color,transform] duration-150 active:scale-95", !estIci && "text-muted-foreground")}>
             <Icone className="size-[22px]" />
-            <span className={cn("text-[11px]", ici ? "font-semibold" : "font-medium")}>{libelle}</span>
+            <span className={cn("text-[11px]", estIci ? "font-semibold" : "font-medium")}>{libelle}</span>
           </Link>
         );
       })}

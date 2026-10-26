@@ -6,15 +6,18 @@ import { toast } from "sonner";
 import type { Resultat } from "./actions";
 
 // Lance une action serveur, montre le retour (message ou refus motivé) et
-// recharge la page si le chantier a changé entre-temps.
+// recharge la page si le chantier a changé entre-temps. `avant` affiche tout de suite
+// le résultat attendu (il s'efface de lui-même si le serveur refuse) ; `siEchec` rend
+// à l'utilisateur ce qu'il avait saisi.
 export function useActionChantier() {
   const router = useRouter();
   const [enCours, demarrer] = useTransition();
   const [raisons, setRaisons] = useState<string[]>([]);
 
-  function lancer(action: () => Promise<Resultat>, apres?: () => void) {
+  function lancer(action: () => Promise<Resultat>, apres?: () => void, options: { avant?: () => void; siEchec?: () => void } = {}) {
     setRaisons([]);
     demarrer(async () => {
+      options.avant?.();
       const r = await action();
       if (r.ok) {
         toast.success(r.message);
@@ -24,6 +27,7 @@ export function useActionChantier() {
         if (r.raisons?.length) setRaisons(r.raisons);
         else toast.error(r.erreur);
         if (r.erreur.includes("entre-temps")) router.refresh();
+        options.siEchec?.();
       }
     });
   }

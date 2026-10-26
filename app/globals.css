@@ -254,7 +254,7 @@
 }
 .ouverture-lettre {
   font-weight: 200;
-  animation: ouverture-graisse 0.9s cubic-bezier(0.5, 0, 0.2, 1) calc(var(--i) * 90ms) forwards;
+  animation: ouverture-graisse 0.6s cubic-bezier(0.5, 0, 0.2, 1) calc(var(--i) * 70ms) forwards;
 }
 .ouverture-part {
   background-color: transparent;
@@ -323,4 +323,81 @@
 /* L'étape en cours d'un jalon : hachurée, comme une zone en travaux sur un plan. */
 .hachure {
   background: repeating-linear-gradient(-45deg, var(--foreground) 0 2px, transparent 2px 6px);
+}
+
+/* Les transitions entre pages. La photo d'un chantier passe de la carte à la fiche
+   (« morph ») ; le reste de la page glisse de 60 px dans le sens de la navigation.
+   L'en-tête et la barre du bas ne bougent pas : ce sont les repères. */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(.morph) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+::view-transition-image-pair(.morph) {
+  animation-name: passe-flou;
+}
+@keyframes passe-flou {
+  30% { filter: blur(2px); }
+}
+::view-transition-old(.nav-forward) {
+  --decalage: -60px;
+  animation: 150ms ease-in both vt-fondu reverse, 380ms cubic-bezier(0.23, 1, 0.32, 1) both vt-glisse reverse;
+}
+::view-transition-new(.nav-forward) {
+  --decalage: 60px;
+  animation: 210ms ease-out 120ms both vt-fondu, 380ms cubic-bezier(0.23, 1, 0.32, 1) both vt-glisse;
+}
+::view-transition-old(.nav-back) {
+  --decalage: 60px;
+  animation: 150ms ease-in both vt-fondu reverse, 380ms cubic-bezier(0.23, 1, 0.32, 1) both vt-glisse reverse;
+}
+::view-transition-new(.nav-back) {
+  --decalage: -60px;
+  animation: 210ms ease-out 120ms both vt-fondu, 380ms cubic-bezier(0.23, 1, 0.32, 1) both vt-glisse;
+}
+@keyframes vt-fondu {
+  from { opacity: 0; }
+}
+@keyframes vt-glisse {
+  from { translate: var(--decalage); }
+}
+::view-transition-group(en-tete),
+::view-transition-group(barre-bas) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(en-tete) {
+  display: none;
+}
+::view-transition-new(en-tete) {
+  animation: none;
+}
+/* Moins d'animations demandées : les pages changent d'un coup, la photo aussi. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* En très grand, le logo se desserre un peu : les lettres ne se chevauchent pas. */
+.ouverture .logo-groma {
+  letter-spacing: -0.03em;
+}
+
+/* Après la première page de la visite, plus de cascade (voir PremiereVisite). */
+.deja-vu .apparait,
+.deja-vu .remplit {
+  animation: none;
+}
+/* Un élément qui vient d'être ajouté au fil arrive en douceur, à chaque fois. */
+.arrive {
+  animation: apparait 0.3s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrive { animation: none; }
 }

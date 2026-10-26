@@ -3,6 +3,7 @@ import Link from "next/link";
 import { texteATraiter } from "@/components/a-traiter";
 import { CielAnime } from "@/components/ciel-anime";
 import { Reticule } from "@/components/cote";
+import { VERS_FICHE } from "@/components/transitions";
 import { ambiance } from "@/lib/ambiance";
 import { LIBELLE_TYPE } from "@/lib/libelles";
 import { REGLAGES_TABLEAU, type TableauDeBord } from "@/lib/tableau-de-bord";
@@ -33,6 +34,12 @@ export function Titre({ children, lien }: { children: React.ReactNode; lien?: { 
   );
 }
 
+// Une ligne « À viser » mène droit à ce qui attend : un signalement à qualifier ou une
+// réserve ouverte ouvre la fiche sur l'onglet Signalements ; sinon la fiche, sur ses lots.
+export function lienAViser(id: string, a: { aQualifier: number; reservesOuvertes: number } | null) {
+  return a && a.aQualifier + a.reservesOuvertes > 0 ? `/chantiers/${id}?onglet=signalements` : `/chantiers/${id}`;
+}
+
 // « À viser » : chaque chantier qui attend un geste, marqué du réticule de la groma.
 // Une ligne calme quand tout est à jour.
 export function AViser({ t }: { t: TableauDeBord }) {
@@ -52,7 +59,7 @@ export function AViser({ t }: { t: TableauDeBord }) {
       <ul>
         {t.aTraiter.slice(0, 5).map((c) => (
           <li key={c.id} className="border-b border-foreground/10">
-            <Link href={`/chantiers/${c.id}`} className="flex min-h-[4.25rem] items-center gap-3.5 transition-colors hover:bg-foreground/[0.03] active:scale-[0.99] md:px-2">
+            <Link href={lienAViser(c.id, c.aTraiter)} transitionTypes={VERS_FICHE} className="flex min-h-[4.25rem] items-center gap-3.5 transition-colors hover:bg-foreground/[0.03] active:scale-[0.99]">
               <Reticule className="size-7 shrink-0" />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-baseline md:gap-6">
                 <span className="truncate font-semibold md:w-64 md:shrink-0">{c.nom}</span>
@@ -177,7 +184,7 @@ export function Semaine({ t }: { t: TableauDeBord }) {
                 <ul className="flex flex-col gap-2">
                   {es.map((e) => (
                     <li key={`${e.chantierId}-${e.lot}-${e.quoi}`}>
-                      <Link href={`/chantiers/${e.chantierId}`} className="flex flex-col hover:underline">
+                      <Link href={`/chantiers/${e.chantierId}`} transitionTypes={VERS_FICHE} className="flex flex-col hover:underline">
                         <span className="font-semibold">
                           {e.lot} : {e.quoi === "livraison" ? "livraison" : "fin prévue"}
                         </span>
@@ -205,7 +212,7 @@ export function Messages({ t }: { t: TableauDeBord }) {
         <ul>
           {t.messages.map((m) => (
             <li key={m.id} className="border-b border-foreground/10">
-              <Link href={`/chantiers/${m.chantierId}#fil-${m.id}`} className="flex flex-col gap-1 py-3.5 transition-colors hover:bg-foreground/[0.03]">
+              <Link href={`/chantiers/${m.chantierId}#fil-${m.id}`} transitionTypes={VERS_FICHE} className="flex flex-col gap-1 py-3.5 transition-colors hover:bg-foreground/[0.03]">
                 <span className="annotation truncate text-muted-foreground">
                   {LIBELLE_TYPE[m.type]} · {m.auteur} · {quand(m.creeLe)}
                 </span>

@@ -16,22 +16,26 @@ export default async function PageConnexion({ searchParams }: PageProps<"/connex
   const annonce = installe ? "Compte gérant créé. Connectez-vous." : invite ? "Compte créé. Connectez-vous pour voir votre chantier." : reinitialise ? "Mot de passe changé. Connectez-vous." : null;
 
   return (
-    // Deux panneaux : à gauche l'image d'accueil (public/images/accueil.jpg, sur fond
-    // noir tant qu'elle n'existe pas), à droite le formulaire. Sur téléphone, un bandeau.
+    // Deux panneaux : à gauche une photo (public/images/accueil.jpg si elle est déposée,
+    // sinon une photo du jeu de données), à droite le formulaire sur papier quadrillé.
+    // Sur téléphone, un bandeau.
     <main className="grid flex-1 md:grid-cols-[1.1fr_1fr]">
       <div
         className="relative flex min-h-48 flex-col justify-end bg-foreground bg-cover bg-center p-6 text-background md:min-h-full md:p-10"
-        style={{ backgroundImage: "url(/images/accueil.jpg)" }}
+        style={{ backgroundImage: "url(/images/accueil.jpg), url(/jeu-de-donnees/interieur-1.jpg)" }}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/0" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/0" aria-hidden />
         <div className="relative flex flex-col gap-2">
-          <p className="text-4xl font-bold tracking-tight md:text-6xl">groma</p>
-          <p className="max-w-sm text-base md:text-lg">Le suivi des chantiers de rénovation, du devis à la levée des réserves.</p>
+          <p className="logo-groma text-5xl leading-none md:text-7xl">groma</p>
+          <p className="max-w-sm text-base text-white/90 md:text-lg">Le suivi des chantiers de rénovation, du devis à la levée des réserves.</p>
         </div>
       </div>
-      <div className="flex items-center justify-center p-6 md:p-10">
+      <div className="papier flex items-center justify-center p-6 md:p-10">
         <div className="flex w-full max-w-sm flex-col gap-5">
-          <h1 className="text-2xl font-semibold tracking-tight">Connexion</h1>
+          <div className="flex flex-col gap-1.5">
+            <p className="annotation text-muted-foreground">Suivi de chantiers</p>
+            <h1 className="font-display text-4xl font-extrabold tracking-tight">Connexion</h1>
+          </div>
           {annonce && (
             <Alert>
               <AlertDescription>{annonce}</AlertDescription>

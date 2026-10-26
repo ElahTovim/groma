@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
-import { Ouverture, SCRIPT_OUVERTURE } from "@/components/ouverture";
+import { SCRIPT_OUVERTURE } from "@/components/ouverture";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -39,7 +39,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_OUVERTURE }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <Ouverture />
         {children}
         <Toaster position="top-center" richColors />
       </body>
