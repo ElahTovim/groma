@@ -60,4 +60,10 @@ async function traiter(requete: Request): Promise<Response> {
   return transport.handleRequest(requete);
 }
 
-export { traiter as GET, traiter as POST, traiter as DELETE };
+// Le serveur est sans état : il n'ouvre pas de flux d'écoute (GET). Le protocole MCP prévoit
+// alors une réponse 405 ; sinon le client laisse la connexion pendre jusqu'à la limite de 60 s.
+function sansEcoute(): Response {
+  return new Response("Ce serveur MCP ne propose pas de flux d'écoute : utilisez POST.", { status: 405, headers: { Allow: "POST" } });
+}
+
+export { traiter as POST, sansEcoute as GET, sansEcoute as DELETE };

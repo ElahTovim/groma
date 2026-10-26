@@ -89,7 +89,7 @@ const FONCTIONS = [
 const BADGES = [
   { titre: "Une sauvegarde restaurée sur une copie", detail: "La base de production sauvegardée, restaurée ailleurs, les 29 tables comptées : identiques. Procédure dans docs/sauvegarde.md.", obtenu: true },
   { titre: "L'accessibilité vérifiée", detail: "Audit WCAG 2.2 AA : contrastes calculés et testés, un titre par page, navigation et onglets au clavier, libellés reliés aux champs, annonces pour les lecteurs d'écran.", obtenu: true },
-  { titre: "Le serveur MCP dans Claude Desktop", detail: "groma piloté depuis Claude Desktop, avec un jeton personnel : lectures et trois actions.", obtenu: false },
+  { titre: "Le serveur MCP dans Claude Desktop", detail: "groma piloté depuis Claude Desktop (et Claude Code), avec un jeton personnel révocable : lectures et trois actions, chaque appel au journal.", obtenu: true },
 ];
 
 export default function Presentation() {
