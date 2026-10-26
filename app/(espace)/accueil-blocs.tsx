@@ -163,3 +163,61 @@ export function Messages({ t }: { t: TableauDeBord }) {
     </section>
   );
 }
+
+// Le ciel en une ligne (bento du téléphone), de la hauteur de la barre de recherche :
+// l'icône, la température, le temps, le minimum, et l'alerte du lendemain s'il y en a une ;
+// sur ordinateur, en plus : le vent, la pluie, le temps de demain, les chantiers concernés.
+// Le fond garde la couleur du ciel et sa lisibilité calculée ; pas d'animation à cette taille.
+export function TuileMeteo({ t, className }: { t: TableauDeBord; className?: string }) {
+  const jours = t.meteo.jours;
+  if (!jours || jours.length === 0) {
+    return (
+      <section aria-label={`Météo à ${t.meteo.lieu}`} className={cn("flex h-14 items-center gap-3 rounded-2xl bg-card px-4 text-sm", className)}>
+        <Cloud className="size-5 shrink-0 text-muted-foreground" strokeWidth={1.4} aria-hidden />
+        Météo indisponible pour le moment.
+      </section>
+    );
+  }
+  const [auj, demain] = jours;
+  const a = ambiance({ description: auj.ciel, heure: heureParis(), alertes: auj.alertes });
+  const alerteDemain = demain?.alertes.length ? `${demain.alertes.join(", ")} demain` : null;
+  return (
+    <section
+      aria-label={`Météo à ${t.meteo.lieu}`}
+      className={cn("flex h-14 min-w-0 items-center gap-3 rounded-2xl px-4", a.texteSombre ? "text-black" : "text-white", className)}
+      style={{ background: a.fond }}
+    >
+      <IconeCiel ciel={auj.ciel} className="size-6 shrink-0" trait={1.5} />
+      <p className="font-display text-2xl leading-none font-extrabold tabular-nums">{auj.max}°</p>
+      <p className="min-w-0 flex-1 truncate text-sm font-medium">
+        <span className="first-letter:uppercase">{auj.ciel}</span>
+        <span className="tabular-nums"> · mini {auj.min}°</span>
+        {/* Sur ordinateur, la ligne a la place de dire le reste. */}
+        <span className="hidden tabular-nums md:inline">
+          {" "}
+          · vent {auj.ventKmh} km/h · pluie {auj.pluieMm} mm
+        </span>
+      </p>
+      {demain && (
+        <p className="hidden shrink-0 items-center gap-2 text-sm font-medium md:flex">
+          <span className="opacity-90">Demain</span>
+          <IconeCiel ciel={demain.ciel} className="size-5" trait={1.5} />
+          <span className="tabular-nums">
+            {demain.max}° / {demain.min}°
+          </span>
+        </p>
+      )}
+      {alerteDemain && (
+        <p className="shrink-0 rounded-full bg-black/80 px-2.5 py-1 text-xs font-semibold text-white">
+          {alerteDemain}
+          {t.actifs.length > 0 && (
+            <span className="hidden md:inline">
+              {" "}
+              · {t.actifs.length} chantier{t.actifs.length > 1 ? "s" : ""} concerné{t.actifs.length > 1 ? "s" : ""}
+            </span>
+          )}
+        </p>
+      )}
+    </section>
+  );
+}

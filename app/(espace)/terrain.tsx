@@ -6,6 +6,7 @@ import { useSyncExternalStore } from "react";
 import { Cote, Reticule } from "@/components/cote";
 import { PhotoPartagee, VERS_FICHE } from "@/components/transitions";
 import type { DonneesCote } from "@/lib/cote";
+import { nomCarte } from "@/lib/nom-carte";
 import { cn } from "@/lib/utils";
 
 export type ChantierTerrain = {
@@ -99,11 +100,6 @@ export function Terrain({ titre, chantiers, cle = CLE_VUE }: { titre?: string; c
       {vue === "cartes" ? <Cartes chantiers={chantiers} /> : <Liste chantiers={chantiers} />}
     </section>
   );
-}
-
-// Ce qu'un lecteur d'écran dit d'une carte : le nom d'abord, puis l'essentiel.
-export function nomCarte(c: ChantierTerrain) {
-  return `${c.nom}, ${c.ville}, ${c.etape}${c.aViser ? `, à viser : ${c.aViser}` : ""}${c.cote.total ? `, lots finis ${c.cote.finis} sur ${c.cote.total}` : ""}`;
 }
 
 export function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string; rang: number }) {
