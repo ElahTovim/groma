@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DOMAINE_FICTIF, estPhotoFictive, genererChantiers, PERSONNES, photoAffichee, PHOTOS_FICTIVES } from "./jeu-de-donnees";
+import { DOMAINE_FICTIF, estPhotoFictive, genererChantiers, PERSONNES, photoAffichee, PHOTOS_FICTIVES, propositionsFictives } from "./jeu-de-donnees";
 
 describe("le jeu de données fictif", () => {
   it("contient dix personnes et cinquante chantiers", () => {
@@ -62,5 +62,23 @@ describe("photoAffichee", () => {
     const p = photoAffichee(null, "CHA-20261010-06");
     expect(PHOTOS_FICTIVES).toContain(p);
     expect(photoAffichee(null, "CHA-20261010-06")).toBe(p);
+  });
+});
+
+describe("propositionsFictives", () => {
+  const chantiersFictifs = genererChantiers();
+  const props = propositionsFictives(chantiersFictifs);
+
+  it("donne trois propositions, une de chaque type, sur trois chantiers différents", () => {
+    expect(props.map((p) => p.type).sort()).toEqual(["courriel", "demande_externe", "partage"]);
+    expect(new Set(props.map((p) => p.chantier)).size).toBe(3);
+  });
+
+  it("adresse chacune à un externe qui participe au chantier ; le partage vise un élément encore interne", () => {
+    for (const p of props) {
+      expect(chantiersFictifs[p.chantier].participants).toContain(p.externe);
+      expect(PERSONNES[p.externe].role).toBe("externe");
+      if (p.type === "partage") expect(chantiersFictifs[p.chantier].fil[p.element].visiblePar).toEqual([]);
+    }
   });
 });

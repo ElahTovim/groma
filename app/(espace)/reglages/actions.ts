@@ -28,7 +28,7 @@ export async function rejouerJeu(_: EtatJeu, formData: FormData): Promise<EtatJe
     const n = await rejouerJeuDeDonnees(motDePasse);
     journal("jeu_rejoue", { compte: qui.id, ...n });
     revalidatePath("/chantiers");
-    return { message: `Jeu de données rejoué : ${n.chantiers} chantiers, ${n.comptes} personnes fictives.` };
+    return { message: `Jeu de données rejoué : ${n.chantiers} chantiers, ${n.comptes} personnes fictives, ${n.propositions} propositions à valider.` };
   } catch (e) {
     journal("jeu_echec", { compte: qui.id, erreur: String(e) });
     return { erreur: "Le jeu de données n'a pas pu être rejoué. Rien n'a été modifié." };
