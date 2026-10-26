@@ -3,6 +3,7 @@ import Link from "next/link";
 import { signOut } from "@/auth";
 import { voitLInterne } from "@/lib/acces";
 import { appelantObligatoire } from "@/lib/session";
+import { PremiereVisite } from "@/components/ouverture";
 import { BarreBas, LiensHaut, MargeBarreBas } from "./navigation";
 
 const LIBELLE_ROLE = { gerant: "gérant", equipe: "équipe", externe: "externe" } as const;
@@ -60,6 +61,7 @@ export default async function Espace({ children }: LayoutProps<"/">) {
         <MargeBarreBas interne={voitLInterne(qui.role)} />
       </main>
       <BarreBas interne={voitLInterne(qui.role)} />
+      <PremiereVisite />
     </div>
   );
 }

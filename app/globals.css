@@ -388,3 +388,16 @@
 .ouverture .logo-groma {
   letter-spacing: -0.03em;
 }
+
+/* Après la première page de la visite, plus de cascade (voir PremiereVisite). */
+.deja-vu .apparait,
+.deja-vu .remplit {
+  animation: none;
+}
+/* Un élément qui vient d'être ajouté au fil arrive en douceur, à chaque fois. */
+.arrive {
+  animation: apparait 0.3s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrive { animation: none; }
+}

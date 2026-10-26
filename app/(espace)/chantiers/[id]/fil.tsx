@@ -318,7 +318,7 @@ function CarteElement(props: { chantierId: string; e: ElementVu; interne: boolea
     <li
       id={`fil-${e.id}`}
       aria-busy={provisoire || undefined}
-      className={cn("flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 transition-opacity", enAttente && "ring-2 ring-foreground", provisoire && "apparait opacity-60")}
+      className={cn("flex scroll-mt-24 flex-col gap-2 rounded-3xl bg-card p-5 transition-opacity", enAttente && "ring-2 ring-foreground", provisoire && "arrive opacity-60")}
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1 font-semibold text-foreground">

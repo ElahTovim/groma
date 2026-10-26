@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 // Ce petit script tourne avant l'affichage : si l'ouverture a déjà été vue aujourd'hui
 // sur cet appareil, ou si l'appareil demande moins d'animations, elle est masquée d'emblée.
-export const SCRIPT_OUVERTURE = `try{if(localStorage.getItem("groma-ouverture")===new Date().toDateString()||matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("sans-ouverture")}catch(e){document.documentElement.classList.add("sans-ouverture")}`;
+export const SCRIPT_OUVERTURE = `try{if(sessionStorage.getItem("groma-vu"))document.documentElement.classList.add("deja-vu")}catch(e){}try{if(localStorage.getItem("groma-ouverture")===new Date().toDateString()||matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("sans-ouverture")}catch(e){document.documentElement.classList.add("sans-ouverture")}`;
 
 const DUREE_MS = 950;
 
@@ -62,4 +62,20 @@ export function Ouverture() {
       </span>
     </div>
   );
+}
+
+// Les apparitions en cascade (cartes, chiffres, lignes de cote) ne jouent qu'à la
+// première page de la visite : ensuite, les transitions entre pages suffisent et la
+// cascade ne ferait que ralentir la lecture.
+export function PremiereVisite() {
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      document.documentElement.classList.add("deja-vu");
+      try {
+        sessionStorage.setItem("groma-vu", "1");
+      } catch {}
+    }, 1500);
+    return () => window.clearTimeout(t);
+  }, []);
+  return null;
 }
