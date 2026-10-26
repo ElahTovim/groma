@@ -125,7 +125,7 @@ describe("petits utilitaires d'affichage", () => {
   });
   it("la commande Claude Code garde le jeton dans une variable, jamais en clair", () => {
     const c = commandeClaudeCode("https://gromaa.vercel.app/");
-    expect(c).toBe('claude mcp add --transport http groma https://gromaa.vercel.app/api/mcp --header "Authorization: Bearer $GROMA_MCP"');
+    expect(c).toBe("claude mcp add --transport http groma https://gromaa.vercel.app/api/mcp --header 'Authorization: Bearer ${GROMA_MCP}'");
     expect(c).not.toMatch(/groma_[A-Za-z0-9_-]{20,}/);
   });
 });

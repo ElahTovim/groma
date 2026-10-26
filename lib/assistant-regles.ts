@@ -189,5 +189,5 @@ export const estIdentifiant = (v: unknown): v is string => typeof v === "string"
 
 // La marche à suivre pour Claude Code. Le jeton reste dans une variable du poste.
 export function commandeClaudeCode(site: string): string {
-  return `claude mcp add --transport http groma ${site.replace(/\/+$/, "")}/api/mcp --header "Authorization: Bearer $GROMA_MCP"`;
+  return `claude mcp add --transport http groma ${site.replace(/\/+$/, "")}/api/mcp --header 'Authorization: Bearer \${GROMA_MCP}'`;
 }
