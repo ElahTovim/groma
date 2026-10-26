@@ -22,7 +22,6 @@ export function RechercheAccueil(props: {
   entete: React.ReactNode;
   chantiers: ChantierCherche[];
   questions: boolean;
-  exemples?: readonly string[];
   acces?: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -77,19 +76,6 @@ export function RechercheAccueil(props: {
           )}
         </div>
         {!q && props.acces}
-        {!q && props.questions && props.exemples && (
-          <div
-            className="-mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-[1_1_0] md:px-0 md:[mask-image:linear-gradient(to_right,black_80%,transparent)]"
-            role="group"
-            aria-label="Exemples de demandes"
-          >
-            {props.exemples.map((s) => (
-              <button key={s} type="button" onClick={() => setQ(s)} title={s} className="h-10 max-w-[17rem] shrink-0 truncate rounded-full border border-input px-3.5 text-sm transition-colors hover:border-foreground active:scale-[0.97]">
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
         </div>
       </div>
 

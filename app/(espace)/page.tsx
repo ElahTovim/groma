@@ -13,9 +13,10 @@ import { donneesCote } from "@/lib/cote";
 import { appelantObligatoire, type Appelant } from "@/lib/session";
 import { lireTableauDeBord } from "@/lib/tableau-de-bord";
 import { lienAViser, Messages, Meteo, Titre } from "./accueil-blocs";
-import { EXEMPLES_DEMANDES } from "@/lib/assistant-regles";
+import { LIBELLE_PROPOSITION } from "@/lib/assistant-regles";
 import { propositionsEnAttente } from "@/lib/operations/propositions";
 import { RechercheAccueil } from "./recherche-accueil";
+import { TuileAttente } from "./attentes";
 import { BentoTelephone } from "./bento";
 import { Carte, type ChantierTerrain } from "./terrain";
 
@@ -110,7 +111,9 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
     }))
     .sort((a, b) => Number(Boolean(b.aViser)) - Number(Boolean(a.aViser)));
   const titreTerrain = t.actifs.length ? "Le terrain" : "Mes chantiers";
-  const aValider = questions ? await propositionsEnAttente(qui).then((p) => p.length, () => 0) : 0;
+  // Les propositions de l'assistant en attente ; si leur lecture échoue, l'accueil s'affiche sans elles.
+  const propositions = questions ? await propositionsEnAttente(qui).catch(() => []) : [];
+  const aValider = propositions.length;
 
   // Les accès rapides, sur la ligne du champ (ordinateur) : ce qui attend sur le terrain
   // (« à viser ») et ce que l'assistant a préparé (« à valider »). Le téléphone a son bento.
@@ -132,12 +135,15 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
   );
 
   return (
-    <RechercheAccueil entete={entete} chantiers={cherchables} questions={questions} exemples={EXEMPLES_DEMANDES.slice(1, 3)} acces={acces}>
+    <RechercheAccueil entete={entete} chantiers={cherchables} questions={questions} acces={acces}>
       <BentoTelephone t={t} terrain={terrain} aValider={aValider} equipe={questions} creer={peutCreerChantier(qui.role)} />
 
       {/* Ordinateur : le ciel (1/4) et les derniers messages (1/4) à gauche, les chantiers en
           cours (2/4) à droite ; la suite des chantiers sur une deuxième ligne, pleine largeur.
           Tablette : le ciel et les messages côte à côte, puis les chantiers. */}
+      {/* Ordinateur. Première ligne, l'accès rapide : le ciel (1/4), les derniers messages (1/4),
+          ce qui attend (2/4 : à viser, à valider). Deuxième ligne : les chantiers en cours.
+          Tablette : deux colonnes. */}
       <div className="hidden gap-x-5 gap-y-8 md:grid md:grid-cols-2 lg:grid-cols-4">
         <section className="flex min-w-0 flex-col gap-4">
           <Titre decor>Le ciel</Titre>
@@ -148,30 +154,42 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
           <Messages t={t} />
         </section>
 
-        <section aria-labelledby="titre-terrain" className="flex min-w-0 flex-col gap-4 md:col-span-2">
+        <section aria-labelledby="titre-attente" className="flex min-w-0 flex-col gap-4 md:col-span-2">
+          <Titre id="titre-attente">Ce qui attend</Titre>
+          <div className="grid flex-1 grid-cols-2 gap-5">
+            <TuileAttente
+              titre="À viser"
+              n={t.aTraiter.length}
+              icone="viser"
+              lignes={t.aTraiter.map((c) => ({ id: c.id, href: lienAViser(c.id, c.aTraiter), titre: c.nom, detail: texteATraiter(c.aTraiter) ?? "" }))}
+              tout={{ href: "/chantiers?statut=a_traiter", texte: "Tous les chantiers à viser" }}
+              vide="Rien à viser : aucun signalement, aucune réserve, aucun retard."
+            />
+            {questions && (
+              <TuileAttente
+                titre="À valider"
+                n={aValider}
+                icone="valider"
+                lignes={propositions.map((p) => ({ id: p.id, href: "/a-valider", titre: LIBELLE_PROPOSITION[p.type] ?? p.type, detail: p.chantier }))}
+                tout={{ href: "/a-valider", texte: "Toutes les propositions" }}
+                vide="L'assistant n'attend aucune validation."
+              />
+            )}
+          </div>
+        </section>
+
+        <section aria-labelledby="titre-terrain" className="flex min-w-0 flex-col gap-4 md:col-span-2 lg:col-span-4">
           <Titre id="titre-terrain" lien={{ href: "/chantiers", texte: `Tous (${terrain.length})`, label: `Voir les ${terrain.length} chantiers` }}>
             {titreTerrain}
           </Titre>
-          <ul className="grid flex-1 grid-cols-2 gap-5">
-            {terrain.slice(0, 2).map((c, i) => (
+          <ul className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+            {terrain.slice(0, 8).map((c, i) => (
               <li key={c.id} className="flex">
-                <Carte c={c} rang={i} className="apparait min-h-[21rem] flex-1" />
+                <Carte c={c} rang={i + 2} className="apparait h-[17rem] flex-1" />
               </li>
             ))}
           </ul>
         </section>
-
-        {terrain.length > 2 && (
-          <section aria-label={`${titreTerrain}, suite`} className="md:col-span-2 lg:col-span-4">
-            <ul className="grid grid-cols-2 gap-5 lg:grid-cols-4">
-              {terrain.slice(2, 6).map((c, i) => (
-                <li key={c.id} className="flex">
-                  <Carte c={c} rang={i + 2} className="apparait h-[17rem] flex-1" />
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </div>
     </RechercheAccueil>
   );
