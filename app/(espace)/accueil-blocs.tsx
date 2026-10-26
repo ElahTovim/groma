@@ -1,16 +1,14 @@
-import { ChevronRight, Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Snowflake, Sun } from "lucide-react";
+import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Snowflake, Sun } from "lucide-react";
 import Link from "next/link";
-import { texteATraiter } from "@/components/a-traiter";
 import { CielAnime } from "@/components/ciel-anime";
 import { PauseCiel } from "@/components/pause-ciel";
-import { Reticule } from "@/components/cote";
 import { VERS_FICHE } from "@/components/transitions";
 import { ambiance } from "@/lib/ambiance";
 import { LIBELLE_TYPE } from "@/lib/libelles";
-import { REGLAGES_TABLEAU, type TableauDeBord } from "@/lib/tableau-de-bord";
+import type { TableauDeBord } from "@/lib/tableau-de-bord";
 import { cn } from "@/lib/utils";
 
-// Les blocs de l'accueil : « À viser », le ciel, la semaine, les derniers messages.
+// Les blocs de l'accueil : le ciel et les derniers messages.
 
 const PARIS = "Europe/Paris";
 
@@ -22,12 +20,12 @@ function quand(iso: string) {
   return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: PARIS }).format(new Date(iso));
 }
 
-export function Titre({ children, lien, decor = false }: { children: React.ReactNode; lien?: { href: string; texte: string; label?: string }; decor?: boolean }) {
+export function Titre({ children, lien, decor = false, id }: { children: React.ReactNode; lien?: { href: string; texte: string; label?: string }; decor?: boolean; id?: string }) {
   // `decor` : simple étiquette visuelle, quand le bloc qui suit porte déjà son propre titre.
   const Balise = decor ? "p" : "h2";
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-foreground pb-2.5">
-      <Balise className="annotation font-semibold" aria-hidden={decor || undefined}>
+      <Balise id={id} className="annotation font-semibold" aria-hidden={decor || undefined}>
         {children}
       </Balise>
       {lien && (
@@ -45,39 +43,6 @@ export function lienAViser(id: string, a: { aQualifier: number; reservesOuvertes
   return a && a.aQualifier + a.reservesOuvertes > 0 ? `/chantiers/${id}?onglet=signalements` : `/chantiers/${id}`;
 }
 
-// « À viser » : chaque chantier qui attend un geste, marqué du réticule de la groma.
-// Une ligne calme quand tout est à jour.
-export function AViser({ t }: { t: TableauDeBord }) {
-  const total = t.aTraiter.length;
-  if (total === 0) {
-    return (
-      <p className="apparait flex min-h-14 items-center gap-3 border-y border-foreground/15 font-semibold">
-        <Reticule className="size-6 shrink-0" plein={false} />
-        Rien à viser aujourd&apos;hui
-        <span className="hidden font-normal text-muted-foreground md:inline">· aucun retard, aucun signalement, aucune réserve</span>
-      </p>
-    );
-  }
-  return (
-    <section className="apparait flex flex-col" aria-label="À viser">
-      <Titre lien={total > 5 ? { href: "/chantiers?statut=a_traiter", texte: `Les ${total}`, label: `Voir les ${total} chantiers à viser` } : undefined}>À viser · {total}</Titre>
-      <ul>
-        {t.aTraiter.slice(0, 5).map((c) => (
-          <li key={c.id} className="border-b border-foreground/10">
-            <Link href={lienAViser(c.id, c.aTraiter)} transitionTypes={VERS_FICHE} className="flex min-h-[4.25rem] items-center gap-3.5 transition-colors hover:bg-foreground/[0.03] active:scale-[0.99]">
-              <Reticule className="size-7 shrink-0" />
-              <span className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-baseline md:gap-6">
-                <span className="truncate font-semibold md:w-64 md:shrink-0">{c.nom}</span>
-                <span className="truncate text-sm text-muted-foreground md:text-base">{texteATraiter(c.aTraiter)}</span>
-              </span>
-              <ChevronRight className="size-4 shrink-0" aria-hidden />
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
 
 // L'icône d'un ciel décrit par OpenWeatherMap (en français), en simple trait.
 function IconeCiel({ ciel, className, trait }: { ciel: string; className: string; trait: number }) {
@@ -157,7 +122,7 @@ export function Meteo({ t, className }: { t: TableauDeBord; className?: string }
             return (
               <li key={j.date} className={cn("flex flex-col gap-2 rounded-2xl p-3 backdrop-blur-md", alerte ? "bg-black/75 text-white" : a.texteSombre ? "bg-white/35" : "bg-black/20")}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold capitalize">{jourCourt(j.date)}</span>
+                  <span className="font-semibold whitespace-nowrap capitalize">{jourCourt(j.date)}</span>
                   <IconeCiel ciel={j.ciel} className="size-6" trait={1.5} />
                 </div>
                 <span className="text-2xl font-bold tracking-tight tabular-nums">
@@ -173,43 +138,6 @@ export function Meteo({ t, className }: { t: TableauDeBord; className?: string }
   );
 }
 
-// La semaine en ligne de temps : un point par jour, plein pour aujourd'hui.
-export function Semaine({ t }: { t: TableauDeBord }) {
-  const parJour = new Map<string, typeof t.echeances>();
-  for (const e of t.echeances) parJour.set(e.date, [...(parJour.get(e.date) ?? []), e]);
-  return (
-    <section className="apparait flex flex-col gap-4 [--rang:4]">
-      <Titre>La semaine</Titre>
-      {parJour.size === 0 ? (
-        <p className="text-muted-foreground">Aucune livraison ni fin de lot prévue dans les {REGLAGES_TABLEAU.horizonJours} prochains jours.</p>
-      ) : (
-        <ol className="relative flex flex-col gap-4 before:absolute before:top-2 before:bottom-2 before:left-[4px] before:w-px before:bg-foreground/25">
-          {[...parJour.entries()].map(([date, es]) => {
-            const auj = date === t.aujourdhui;
-            return (
-              <li key={date} className="relative grid grid-cols-[9px_4rem_minmax(0,1fr)] items-baseline gap-3">
-                <span aria-hidden className={cn("size-[9px] translate-y-px rounded-full ring-[1.5px] ring-foreground ring-inset", auj ? "bg-foreground" : "bg-background")} />
-                <span className={cn("annotation", auj ? "font-semibold" : "text-muted-foreground")}>{auj ? "Auj." : jourCourt(date)}</span>
-                <ul className="flex flex-col gap-2">
-                  {es.map((e) => (
-                    <li key={`${e.chantierId}-${e.lot}-${e.quoi}`}>
-                      <Link href={`/chantiers/${e.chantierId}`} transitionTypes={VERS_FICHE} className="flex flex-col hover:underline">
-                        <span className="font-semibold">
-                          {e.lot} : {e.quoi === "livraison" ? "livraison" : "fin prévue"}
-                        </span>
-                        <span className="truncate text-sm text-muted-foreground">{e.chantier}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-    </section>
-  );
-}
 
 export function Messages({ t }: { t: TableauDeBord }) {
   return (
@@ -219,7 +147,7 @@ export function Messages({ t }: { t: TableauDeBord }) {
         <p className="pt-4 text-muted-foreground">Aucun message dans les fils pour l&apos;instant.</p>
       ) : (
         <ul>
-          {t.messages.map((m) => (
+          {t.messages.slice(0, 4).map((m) => (
             <li key={m.id} className="border-b border-foreground/10">
               <Link href={`/chantiers/${m.chantierId}#fil-${m.id}`} transitionTypes={VERS_FICHE} className="flex flex-col gap-1 py-3.5 transition-colors hover:bg-foreground/[0.03]">
                 <span className="annotation truncate text-muted-foreground">

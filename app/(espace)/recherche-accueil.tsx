@@ -2,6 +2,7 @@
 
 import { HelpCircle, Sparkles, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Reticule } from "@/components/cote";
 import { VERS_FICHE } from "@/components/transitions";
@@ -9,16 +10,23 @@ import { Vignette } from "@/components/vignette";
 
 export type ChantierCherche = { id: string; nom: string; ville: string; client: string; reference: string; etape: string; aPhoto: boolean };
 
-const SUGGESTIONS = ["Quel délai pour lever une réserve ?", "Qui doit fournir l'attestation de vigilance ?", "Que dit le contrat sur les pénalités de retard ?"];
-
 function aplatir(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
-// Un seul champ en tête de l'accueil : pendant la frappe, les chantiers qui
-// correspondent ; et, pour l'équipe, « Demander à groma » qui pose la question
-// sur les documents, et « Confier à l'assistant » qui ouvre l'assistant avec la phrase. Tant que le champ est vide, le reste de l'accueil s'affiche.
-export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: ChantierCherche[]; questions: boolean; children: React.ReactNode }) {
+// La barre d'assistant, en tête de l'accueil. Pour l'équipe, une phrase validée par
+// Entrée part à l'assistant (pré-remplie, lancée seulement par un clic là-bas) ; pendant
+// la frappe, on peut aussi la poser aux documents ou ouvrir un chantier qui correspond.
+// Tant que le champ est vide, le tableau de bord s'affiche, avec ses accès rapides.
+export function RechercheAccueil(props: {
+  entete: React.ReactNode;
+  chantiers: ChantierCherche[];
+  questions: boolean;
+  exemples?: readonly string[];
+  acces?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const champ = useRef<HTMLInputElement>(null);
   const n = aplatir(q.trim());
@@ -46,12 +54,16 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
           <input
             ref={champ}
             type="search"
-            aria-label={props.questions ? "Chercher un chantier ou poser une question" : "Chercher un chantier"}
+            aria-label={props.questions ? "Demander à l'assistant ou chercher un chantier" : "Chercher un chantier"}
             aria-keyshortcuts="Meta+K Control+K"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => e.key === "Escape" && setQ("")}
-            placeholder={props.questions ? "Un chantier, une question…" : "Chercher un chantier…"}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setQ("");
+              // Entrée confie la phrase à l'assistant (l'équipe seulement).
+              if (e.key === "Enter" && props.questions && q.trim().length >= 3) router.push(`/assistant?q=${encodeURIComponent(q.trim())}`);
+            }}
+            placeholder={props.questions ? "Demandez à l'assistant, ou cherchez un chantier…" : "Chercher un chantier…"}
             className="h-full min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-muted-foreground md:text-lg [&::-webkit-search-cancel-button]:hidden"
           />
           {q ? (
@@ -62,9 +74,10 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
             <kbd aria-hidden className="annotation hidden rounded-md border border-foreground/20 px-2 py-1 text-muted-foreground md:block">⌘ K</kbd>
           )}
         </div>
-        {!q && props.questions && (
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
-            {SUGGESTIONS.map((s) => (
+        {!q && props.acces}
+        {!q && props.questions && props.exemples && (
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0" role="group" aria-label="Exemples de demandes">
+            {props.exemples.map((s) => (
               <button key={s} type="button" onClick={() => setQ(s)} className="h-9 shrink-0 rounded-full border border-input px-3.5 text-sm transition-colors hover:border-foreground active:scale-[0.97]">
                 {s}
               </button>
@@ -80,23 +93,23 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
       {q.trim() ? (
         <div className="apparait flex flex-col gap-5">
           {props.questions && (
-            <Link href={`/questions?q=${encodeURIComponent(q.trim())}`} className="flex items-start gap-3.5 rounded-2xl bg-foreground p-4 text-background active:scale-[0.99] md:p-5">
-              <HelpCircle className="mt-0.5 size-5 shrink-0" aria-hidden />
+            // L'assistant (semaine 4) : il lit les chantiers et prépare le travail ; rien ne part sans validation.
+            <Link href={`/assistant?q=${encodeURIComponent(q.trim())}`} className="flex items-start gap-3.5 rounded-2xl bg-foreground p-4 text-background active:scale-[0.99] md:p-5">
+              <Sparkles className="mt-0.5 size-5 shrink-0" aria-hidden />
               <span className="flex min-w-0 flex-col gap-1">
-                <span className="font-semibold">Demander à groma</span>
+                <span className="font-semibold">Confier à l&apos;assistant</span>
                 <span className="text-background/85">« {q.trim()} »</span>
-                <span className="annotation mt-1 text-background/60">Réponse tirée des documents, avec ses sources</span>
+                <span className="annotation mt-1 text-background/70">Entrée · Il lit vos chantiers et prépare le travail ; ce qui part vers quelqu&apos;un attend votre validation</span>
               </span>
             </Link>
           )}
           {props.questions && (
-            // L'assistant (semaine 4) : il lit les chantiers et prépare le travail ; rien ne part sans validation.
-            <Link href={`/assistant?q=${encodeURIComponent(q.trim())}`} className="flex items-start gap-3.5 rounded-2xl border border-foreground bg-card p-4 active:scale-[0.99] md:p-5">
-              <Sparkles className="mt-0.5 size-5 shrink-0" aria-hidden />
+            <Link href={`/questions?q=${encodeURIComponent(q.trim())}`} className="flex items-start gap-3.5 rounded-2xl border border-foreground bg-card p-4 active:scale-[0.99] md:p-5">
+              <HelpCircle className="mt-0.5 size-5 shrink-0" aria-hidden />
               <span className="flex min-w-0 flex-col gap-1">
-                <span className="font-semibold">Confier à l&apos;assistant</span>
+                <span className="font-semibold">Chercher dans les documents</span>
                 <span className="text-muted-foreground">« {q.trim()} »</span>
-                <span className="annotation mt-1 text-muted-foreground">Il lit vos chantiers et prépare le travail ; ce qui part vers quelqu&apos;un attend votre validation</span>
+                <span className="annotation mt-1 text-muted-foreground">Réponse tirée des documents, avec ses sources</span>
               </span>
             </Link>
           )}
