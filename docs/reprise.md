@@ -1,5 +1,18 @@
 # État de reprise
 
+## 26 octobre 2026, soir (branche `badge-volume`)
+
+**Fait**
+- Badge « test à volume réaliste » : copie de la production restaurée dans un projet Neon séparé (`groma-volume`), remplie à 10 000 chantiers (`docs/volume/remplir.sql`), pages chronométrées avant et après (`docs/volume/mesurer.mjs`). Les pages restent rapides : au plus +0,36 s, aucune lecture en base au-delà de 7 ms. Compte rendu : `docs/volume.md`. Badge ajouté sur la page de présentation.
+
+**Reste**
+- Kerguelenn : fusionner `badge-volume`.
+- Décider de la correction de « À traiter » (voir Cassé).
+- Supprimer le projet Neon `groma-volume` une fois le badge présenté (il contient une copie de la production).
+
+**Cassé**
+- « À traiter » (onglet de Chantiers) et « À viser » (accueil) ne regardent que les 200 chantiers les plus récents. En production aujourd'hui : 21 chantiers demandent un geste, aucun n'est affiché. Révélé par le test, non corrigé.
+
 ## 26 octobre 2026, soir (branche `accessibilite`)
 
 **Fait**
