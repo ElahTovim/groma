@@ -32,6 +32,9 @@ export const OUTILS_AGENT: Record<string, { genre: Genre; description: string }>
 
 export const NOMS_OUTILS = Object.keys(OUTILS_AGENT);
 
+// Les trois actions ouvertes à Claude Code par un jeton personnel (en plus des lectures).
+export const ACTIONS_MCP = ["ecrire_note_interne", "creer_demande_interne", "proposer_courriel"];
+
 export function budgetOutilsAtteint(appelsDejaFaits: number): boolean {
   return appelsDejaFaits >= BUDGET_AGENT.appelsOutils;
 }

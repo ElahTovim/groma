@@ -28,7 +28,8 @@ export async function verifierJeton(entete: string | null): Promise<{ qui: Appel
     .innerJoin(comptes, eq(jetonsMcp.compteId, comptes.id))
     .where(and(eq(jetonsMcp.empreinte, empreinte(m[1])), isNull(jetonsMcp.revoqueLe), or(isNull(jetonsMcp.expireLe), gt(jetonsMcp.expireLe, new Date()))))
     .limit(1);
-  if (!l) return null;
+  // Un compte devenu externe perd l'accès au serveur MCP, comme à l'assistant.
+  if (!l || l.role === "externe") return null;
   await db.update(jetonsMcp).set({ derniereUtilisation: new Date() }).where(eq(jetonsMcp.id, l.id));
   return { qui: { id: l.compteId, nom: l.nom, role: l.role }, jetonId: l.id, executionId: l.executionId };
 }

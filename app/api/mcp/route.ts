@@ -3,7 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { count, eq } from "drizzle-orm";
 import { OUTILS } from "@/lib/agent/outils";
 import { verifierJeton } from "@/lib/agent/jetons";
-import { budgetOutilsAtteint, BUDGET_AGENT, OUTILS_AGENT, resumer } from "@/lib/agent-regles";
+import { ACTIONS_MCP, budgetOutilsAtteint, BUDGET_AGENT, OUTILS_AGENT, resumer } from "@/lib/agent-regles";
 import { db } from "@/lib/db";
 import { agentEtapes } from "@/lib/db/schema";
 import { journal } from "@/lib/journal";
@@ -25,7 +25,10 @@ async function traiter(requete: Request): Promise<Response> {
   const origine = executionId ? "assistant" : "mcp";
   const serveur = new McpServer({ name: "groma", version: "1.0.0" });
 
-  for (const [nom, outil] of Object.entries(OUTILS)) {
+  // Un jeton personnel (Claude Code) n'a que les lectures et trois actions, comme le prévoit la
+  // mission (section 9) ; l'assistant a tout son catalogue, dans son budget.
+  const permis = executionId ? Object.keys(OUTILS) : [...Object.keys(OUTILS).filter((n) => OUTILS_AGENT[n].genre === "lecture"), ...ACTIONS_MCP];
+  for (const [nom, outil] of Object.entries(OUTILS).filter(([n]) => permis.includes(n))) {
     serveur.registerTool(nom, { description: OUTILS_AGENT[nom].description, inputSchema: outil.schema }, async (args: Record<string, unknown>) => {
       // Le budget : par exécution pour l'assistant, par heure pour un jeton personnel.
       if (executionId) {

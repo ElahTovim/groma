@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { budgetOutilsAtteint, BUDGET_AGENT, consigneAgent, OUTILS_AGENT, resumer, statutFinal } from "./agent-regles";
+import { ACTIONS_MCP, budgetOutilsAtteint, BUDGET_AGENT, consigneAgent, OUTILS_AGENT, resumer, statutFinal } from "./agent-regles";
 
 describe("le catalogue des outils", () => {
   it("tout ce qui part vers quelqu'un est une proposition", () => {
@@ -8,6 +8,13 @@ describe("le catalogue des outils", () => {
   it("aucun outil pour changer une étape, clore, supprimer, inviter, signer ou payer", () => {
     const noms = Object.keys(OUTILS_AGENT).join(" ");
     for (const interdit of ["etape", "clore", "clot", "annuler", "supprim", "invit", "signer", "pv", "pai", "valider"]) expect(noms).not.toContain(interdit);
+  });
+});
+
+describe("Claude Code, par un jeton personnel", () => {
+  it("n'a que trois actions, dont une seule proposition, et aucune ne part sans validation", () => {
+    expect(ACTIONS_MCP).toHaveLength(3);
+    expect(ACTIONS_MCP.map((n) => OUTILS_AGENT[n].genre).sort()).toEqual(["direct", "direct", "proposition"]);
   });
 });
 
