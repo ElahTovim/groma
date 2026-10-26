@@ -82,7 +82,7 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
         </div>
       ) : (
         // En cartes (par défaut, avec la photo) ou en liste, au choix ; le choix est retenu sur l'appareil.
-        <Terrain chantiers={terrain} carrousel={false} cle="groma-vue-chantiers" />
+        <Terrain chantiers={terrain} cle="groma-vue-chantiers" />
       )}
     </div>
     </PageGlissante>
