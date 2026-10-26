@@ -3,7 +3,7 @@ import { z } from "zod";
 import { equipeVoitTout, peutVoirChantier, voitLInterne } from "@/lib/acces";
 import { db } from "@/lib/db";
 import { chantiers, comptes, fil, lots, participants, type StatutChantier } from "@/lib/db/schema";
-import { aujourdhuiParis, lotEnRetard, poidsATraiter, type ATraiter } from "@/lib/regles";
+import { aujourdhuiParis, lotEnRetard, poidsATraiter, reunirListe, type ATraiter } from "@/lib/regles";
 import { STATUTS } from "@/lib/chantier-forme";
 import { photoAffichee } from "@/lib/jeu-de-donnees";
 import type { Appelant } from "@/lib/session";
@@ -59,7 +59,21 @@ function conditionAcces(qui: Appelant) {
 
 export const ONGLET_A_TRAITER = "a_traiter";
 
-export async function listerChantiers(qui: Appelant, filtres: { statut?: string; q?: string }): Promise<ChantierListe[]> {
+// Le plafond d'une liste de chantiers à l'écran.
+const PLAFOND_LISTE = 200;
+
+// « Ce chantier attend un geste », traduit pour la base : un lot en retard (mêmes règles
+// que retardsLot), un signalement à qualifier ou une réserve ouverte. Sert à trouver
+// ces chantiers dans toute la base ; le décompte exact reste celui de compterATraiter.
+function attendUnGeste(jour: string) {
+  return sql`(exists (select 1 from ${lots} where ${lots.chantierId} = ${chantiers.id} and (
+      (${lots.statut} in ('a_commander', 'commande') and ${lots.livraisonPrevue} < ${jour})
+      or (${lots.statut} <> 'fini' and ${lots.finPrevue} < ${jour})))
+    or exists (select 1 from ${fil} where ${fil.chantierId} = ${chantiers.id} and ${fil.type} = 'signalement'
+      and ${fil.statutSignalement} in ('a_qualifier', 'reserve_ouverte')))`;
+}
+
+function conditionsListe(qui: Appelant, filtres: { statut?: string; q?: string }) {
   const conditions = [conditionAcces(qui)];
   if (filtres.statut && (STATUTS as string[]).includes(filtres.statut)) {
     conditions.push(eq(chantiers.statut, filtres.statut as StatutChantier));
@@ -68,12 +82,37 @@ export async function listerChantiers(qui: Appelant, filtres: { statut?: string;
     const motif = `%${filtres.q}%`;
     conditions.push(or(ilike(chantiers.nom, motif), ilike(chantiers.client, motif), ilike(chantiers.ville, motif), ilike(chantiers.reference, motif)));
   }
-  const lignes = await db
-    .select()
+  return conditions;
+}
+
+// Combien de chantiers visibles attendent un geste, dans toute la base (le chiffre
+// de l'onglet « À traiter » et de « À viser »). Rien pour un externe.
+export async function compterAttendantUnGeste(qui: Appelant): Promise<number | null> {
+  if (!voitLInterne(qui.role)) return null;
+  const [{ n }] = await db
+    .select({ n: count() })
     .from(chantiers)
-    .where(and(...conditions))
-    .orderBy(desc(chantiers.creeLe))
-    .limit(200);
+    .where(and(conditionAcces(qui), attendUnGeste(aujourdhuiParis())));
+  return n;
+}
+
+export async function listerChantiers(qui: Appelant, filtres: { statut?: string; q?: string }): Promise<ChantierListe[]> {
+  const conditions = conditionsListe(qui, filtres);
+  const interne = voitLInterne(qui.role);
+  const lire = (urgents: boolean) =>
+    db
+      .select()
+      .from(chantiers)
+      .where(and(...conditions, urgents ? attendUnGeste(aujourdhuiParis()) : undefined))
+      .orderBy(desc(chantiers.creeLe))
+      .limit(PLAFOND_LISTE);
+  // Pour l'équipe, ceux qui attendent un geste passent d'abord, même anciens.
+  // L'onglet « À traiter » n'a besoin que d'eux.
+  const [urgents, recents] = await Promise.all([
+    interne ? lire(true) : Promise.resolve([]),
+    filtres.statut === ONGLET_A_TRAITER && interne ? Promise.resolve([]) : lire(false),
+  ]);
+  const lignes = reunirListe(urgents, recents, PLAFOND_LISTE);
   const vus = lignes.map((c) => filtrerPour(qui, c));
   const aTraiter = voitLInterne(qui.role) ? await compterATraiter(vus.map((c) => c.id)) : new Map<string, ATraiter>();
   const liste = vus.map((c) => ({ ...c, aTraiter: aTraiter.get(c.id) ?? (voitLInterne(qui.role) ? { lotsEnRetard: 0, aQualifier: 0, reservesOuvertes: 0 } : null) }));

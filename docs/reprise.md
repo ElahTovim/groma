@@ -1,5 +1,18 @@
 # État de reprise
 
+## 26 octobre 2026, fin de journée (branche `a-traiter-complet`)
+
+**Fait**
+- « À traiter » et « À viser » regardent toute la base : les chantiers qui attendent un geste passent d'abord (même anciens), les plus récents complètent la liste de 200 (`reunirListe` dans `lib/regles.ts`, trois tests). Les chiffres sont comptés dans toute la base (`compterAttendantUnGeste`).
+- Vérifié sur une copie de la production (projet Neon temporaire, supprimé ensuite) : avant, 0 des 21 chantiers à viser n'apparaissait ; après, 21 listés, « 21 à viser ». Compte externe inchangé. 337 tests, lint, types, construction au vert.
+
+**Reste**
+- Kerguelenn : essayer la prévisualisation, puis fusionner.
+- Même plafond de 200 ailleurs : « À valider » (`propositionsEnAttente`) et certains outils de l'agent prennent la liste des chantiers comme liste complète. Sans effet tant que les propositions portent sur des chantiers de la liste ; à revoir si le volume grandit.
+
+**Cassé**
+- Rien de connu.
+
 ## 26 octobre 2026, soir (branche `badge-volume`)
 
 **Fait**

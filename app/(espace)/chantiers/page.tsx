@@ -3,11 +3,11 @@ import Link from "next/link";
 import { PageGlissante } from "@/components/transitions";
 import { texteATraiter } from "@/components/a-traiter";
 import { buttonVariants } from "@/components/ui/button";
-import { peutCreerChantier, voitLInterne } from "@/lib/acces";
+import { peutCreerChantier } from "@/lib/acces";
 import { LIBELLE_STATUT } from "@/lib/chantier-forme";
-import { avancementDes, compterParStatut, listerChantiers } from "@/lib/chantiers";
+import { avancementDes, compterAttendantUnGeste, compterParStatut, listerChantiers } from "@/lib/chantiers";
 import { donneesCote } from "@/lib/cote";
-import { aujourdhuiParis, poidsATraiter } from "@/lib/regles";
+import { aujourdhuiParis } from "@/lib/regles";
 import { appelantObligatoire } from "@/lib/session";
 import { Terrain } from "../terrain";
 import { FiltresChantiers } from "./filtres";
@@ -21,12 +21,11 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
   const params = await searchParams;
   const statut = typeof params.statut === "string" ? params.statut : "";
   const q = typeof params.q === "string" ? params.q.trim() : "";
-  const interne = voitLInterne(qui.role);
 
-  const [liste, compteurs, tous] = await Promise.all([
+  const [liste, compteurs, nbATraiter] = await Promise.all([
     listerChantiers(qui, { statut, q }),
     compterParStatut(qui),
-    interne ? listerChantiers(qui, {}) : Promise.resolve(null),
+    compterAttendantUnGeste(qui),
   ]);
   const avancement = await avancementDes(qui, liste.map((c) => c.id));
   const aujourdhui = aujourdhuiParis();
@@ -42,7 +41,6 @@ export default async function ListeChantiers({ searchParams }: PageProps<"/chant
     cote: donneesCote(c.debutPrevu, c.finPrevue, aujourdhui, avancement.get(c.id)),
   }));
   const total = Object.values(compteurs).reduce((s, n) => s + (n ?? 0), 0);
-  const nbATraiter = tous ? tous.filter((c) => poidsATraiter(c.aTraiter) > 0).length : null;
   const filtre = Boolean(statut || q);
 
   return (

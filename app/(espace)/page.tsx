@@ -118,7 +118,7 @@ async function Contenu({ qui, entete }: { qui: Appelant; entete: React.ReactNode
       {t.chiffres && (
         <Link href="/chantiers?statut=a_traiter" className={PUCE}>
           <Reticule className="size-4" />
-          {t.aTraiter.length} à viser
+          {t.nbATraiter} à viser
         </Link>
       )}
       {questions && (
