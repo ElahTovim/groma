@@ -25,7 +25,7 @@ export const PLAFONDS_IA = {
   // Un PDF déposé est limité par son poids (comme les autres fichiers), pas en caractères :
   // le modèle le lit page par page.
   pdfOctetsMax: 4 * 1024 * 1024,
-  budgetMensuelEuros: Number(process.env.IA_BUDGET_MENSUEL_EUR ?? 10),
+  budgetMensuelEuros: Number(process.env.IA_BUDGET_MENSUEL_EUR ?? 20),
 };
 
 export type Usage = { entree: number; sortie: number; cache: number };
