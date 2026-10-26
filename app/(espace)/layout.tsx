@@ -2,7 +2,9 @@ import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/auth";
 import { voitLInterne } from "@/lib/acces";
+import { propositionsEnAttente } from "@/lib/operations/propositions";
 import { appelantObligatoire } from "@/lib/session";
+import { LiensAgent, LiensAgentMenu, PastilleMobile } from "./liens-agent";
 import { BarreBas, LiensHaut, MargeBarreBas } from "./navigation";
 
 const LIBELLE_ROLE = { gerant: "gérant", equipe: "équipe", externe: "externe" } as const;
@@ -13,6 +15,8 @@ const LIBELLE_ROLE = { gerant: "gérant", equipe: "équipe", externe: "externe" 
 // page et chaque action : un cadre n'est pas un garde.
 export default async function Espace({ children }: LayoutProps<"/">) {
   const qui = await appelantObligatoire();
+  // La pastille « À valider » : si sa lecture échoue, l'en-tête s'affiche sans elle.
+  const enAttente = voitLInterne(qui.role) ? await propositionsEnAttente(qui).then((p) => p.length, () => 0) : 0;
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
@@ -23,14 +27,17 @@ export default async function Espace({ children }: LayoutProps<"/">) {
               groma
             </Link>
             <LiensHaut interne={voitLInterne(qui.role)} />
+            {voitLInterne(qui.role) && <LiensAgent enAttente={enAttente} />}
           </nav>
           <details className="group relative">
             <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm [&::-webkit-details-marker]:hidden">
               <span className="max-w-40 truncate">{qui.nom}</span>
+              <PastilleMobile enAttente={enAttente} />
               <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
             </summary>
             <div className="absolute right-0 mt-1 flex w-56 flex-col border bg-background py-1 shadow-sm">
               <p className="px-3 py-2 text-xs text-muted-foreground">Connecté en tant que {LIBELLE_ROLE[qui.role]}</p>
+              {voitLInterne(qui.role) && <LiensAgentMenu enAttente={enAttente} />}
               {qui.role === "gerant" && (
                 <>
                   <Link href="/nuit" className="flex min-h-11 items-center px-3 text-sm hover:bg-muted">
