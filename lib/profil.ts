@@ -11,6 +11,9 @@ export type Profil = {
   nom: string;
   depot: { adresse: string; codePostal: string; ville: string; latitude: number | null; longitude: number | null } | null;
   regle: boolean; // false : rien n'a encore été saisi dans Réglages
+  // La politique de l'entreprise sur les données personnelles (Réglages), et sa date.
+  politique: string | null;
+  politiqueModifieeLe: string | null;
 };
 
 export const NOM_PAR_DEFAUT = "L'entreprise";
@@ -22,7 +25,9 @@ export async function lireProfil(): Promise<Profil> {
       nom: p.nom,
       depot: p.depotAdresse ? { adresse: p.depotAdresse, codePostal: p.depotCodePostal ?? "", ville: p.depotVille ?? "", latitude: p.depotLatitude, longitude: p.depotLongitude } : null,
       regle: true,
+      politique: p.politiqueDonnees,
+      politiqueModifieeLe: p.politiqueModifieeLe?.toISOString() ?? null,
     };
   const ancien = process.env.DEPOT_ADRESSE?.trim();
-  return { nom: process.env.ENTREPRISE_NOM?.trim() || NOM_PAR_DEFAUT, depot: ancien ? { adresse: ancien, codePostal: "", ville: "", latitude: null, longitude: null } : null, regle: false };
+  return { nom: process.env.ENTREPRISE_NOM?.trim() || NOM_PAR_DEFAUT, depot: ancien ? { adresse: ancien, codePostal: "", ville: "", latitude: null, longitude: null } : null, regle: false, politique: null, politiqueModifieeLe: null };
 }

@@ -55,6 +55,9 @@ export default async function Espace({ children }: LayoutProps<"/">) {
                   </Link>
                 </>
               )}
+              <Link href="/mes-donnees" className="flex min-h-11 items-center px-3 text-sm hover:bg-muted">
+                Mes données
+              </Link>
               <form
                 action={async () => {
                   "use server";
