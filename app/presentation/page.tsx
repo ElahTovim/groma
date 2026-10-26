@@ -85,6 +85,12 @@ const FONCTIONS = [
   },
 ];
 
+// Les badges : seulement ce qui est fait et vérifié. « obtenu » passe à true une fois la preuve faite.
+const BADGES = [
+  { titre: "Une sauvegarde restaurée sur une copie", detail: "La base de production sauvegardée, restaurée ailleurs, les 29 tables comptées : identiques. Procédure dans docs/sauvegarde.md.", obtenu: true },
+  { titre: "Le serveur MCP dans Claude Desktop", detail: "groma piloté depuis Claude Desktop, avec un jeton personnel : lectures et trois actions.", obtenu: false },
+];
+
 export default function Presentation() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-24 px-4 pt-10 pb-24 md:px-8 md:pt-16">
@@ -156,6 +162,25 @@ export default function Presentation() {
             <li key={t} className="flex gap-3">
               <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-background" />
               {t}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
+          <h2 className="font-display text-3xl font-extrabold tracking-tight">Les badges</h2>
+          <p className="max-w-2xl text-sm text-pretty text-muted-foreground">Les briques en plus du programme du séminaire, chacune vérifiée et documentée.</p>
+        </div>
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {BADGES.map((b) => (
+            <li key={b.titre} className="flex flex-col gap-1.5 rounded-3xl bg-card p-5">
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <span aria-hidden className={b.obtenu ? "size-2.5 rounded-full bg-foreground" : "size-2.5 rounded-full border border-foreground"} />
+                {b.titre}
+              </span>
+              <span className="text-sm text-pretty text-muted-foreground">{b.detail}</span>
+              <span className="text-xs font-medium">{b.obtenu ? "Obtenu" : "En cours"}</span>
             </li>
           ))}
         </ul>
