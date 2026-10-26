@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { db } from "@/lib/db";
 import { chantiers } from "@/lib/db/schema";
 import { lireJeton } from "@/lib/jetons";
+import { lireProfil, NOM_PAR_DEFAUT } from "@/lib/profil";
 import { accepterInvitation } from "./actions";
 
 export const metadata: Metadata = { title: "Invitation" };
@@ -18,6 +19,8 @@ export const dynamic = "force-dynamic";
 export default async function PageInvitation({ params }: PageProps<"/invitation/[jeton]">) {
   const { jeton } = await params;
   const j = await lireJeton(jeton, "invitation");
+  const profil = await lireProfil();
+  const nomEntreprise = profil.nom === NOM_PAR_DEFAUT ? "l'entreprise qui m'invite" : profil.nom;
   // Quelqu'un est déjà connecté dans ce navigateur (souvent : le gérant qui essaie
   // son propre lien). Sans ce garde, il créerait le compte puis retomberait dans le sien.
   const connecte = await appelant();
@@ -64,7 +67,7 @@ export default async function PageInvitation({ params }: PageProps<"/invitation/
                   </form>
                 </>
               ) : (
-                <FormulaireMotDePasse action={accepterInvitation.bind(null, jeton)} avecNom bouton="Créer mon compte" />
+                <FormulaireMotDePasse action={accepterInvitation.bind(null, jeton)} avecNom bouton="Créer mon compte" autorisations={{ entreprise: nomEntreprise }} />
               )}
             </CardContent>
           </>
