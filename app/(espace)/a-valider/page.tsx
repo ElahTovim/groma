@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { voitLInterne } from "@/lib/acces";
 import { executionsOuvrables } from "@/lib/assistant";
@@ -5,6 +6,8 @@ import { LIBELLE_PROPOSITION } from "@/lib/assistant-regles";
 import { propositionsEnAttente } from "@/lib/operations/propositions";
 import { appelantObligatoire } from "@/lib/session";
 import { Carte, type CarteProposition } from "./carte";
+
+export const metadata: Metadata = { title: "À valider" };
 
 export const dynamic = "force-dynamic";
 // Valider un courriel l'envoie depuis cette page : on laisse au service d'envoi le temps de répondre.
@@ -37,9 +40,9 @@ export default async function AValider() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <h1 className="font-display text-[2.5rem] leading-[0.95] font-extrabold tracking-tight md:text-6xl">
+        <h1 id="titre-a-valider" tabIndex={-1} className="font-display text-[2.5rem] leading-[0.95] font-extrabold tracking-tight outline-none md:text-6xl">
           À valider
-          <span className="block text-muted-foreground/70">{cartes.length === 0 ? "rien en attente" : `${cartes.length} en attente`}</span>
+          <span className="block text-muted-foreground">{cartes.length === 0 ? "rien en attente" : `${cartes.length} en attente`}</span>
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Ce que l&apos;assistant propose et qui part vers quelqu&apos;un : un courriel, une demande à un externe, un partage. Rien n&apos;est parti. Valider l&apos;exécute à votre nom, avec vos droits, une seule fois. Refuser demande un motif, gardé au journal.

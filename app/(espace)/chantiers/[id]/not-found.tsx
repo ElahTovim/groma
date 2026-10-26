@@ -6,7 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 export default function ChantierIntrouvable() {
   return (
     <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed p-10 text-center">
-      <p className="font-medium">Chantier introuvable.</p>
+      <h1 className="font-medium">Chantier introuvable.</h1>
       <p className="text-sm text-muted-foreground">Il n&apos;existe pas, ou vous n&apos;y êtes pas invité.</p>
       <Link href="/chantiers" className={buttonVariants({ variant: "outline" })}>
         Retour aux chantiers

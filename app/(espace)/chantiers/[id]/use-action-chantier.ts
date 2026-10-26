@@ -25,7 +25,8 @@ export function useActionChantier() {
       } else {
         // Un refus motivé s'affiche une seule fois, dans l'encadré ; sinon, un message.
         if (r.raisons?.length) setRaisons(r.raisons);
-        else toast.error(r.erreur);
+        // L'erreur reste affichée jusqu'à ce qu'on la ferme : le temps de la lire.
+        else toast.error(r.erreur, { duration: Infinity, closeButton: true });
         if (r.erreur.includes("entre-temps")) router.refresh();
         options.siEchec?.();
       }

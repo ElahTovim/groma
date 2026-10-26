@@ -61,7 +61,7 @@ export function FormulaireDepot() {
 
   return (
     <form onSubmit={envoyer} className="flex flex-col gap-4 rounded-3xl bg-card p-5">
-      <div role="radiogroup" aria-label="Forme du courrier" className="flex flex-wrap gap-2">
+      <div role="group" aria-label="Forme du courrier" className="flex flex-wrap gap-2">
         {(
           [
             ["texte", "Coller le texte"],
@@ -71,8 +71,7 @@ export function FormulaireDepot() {
           <button
             key={m}
             type="button"
-            role="radio"
-            aria-checked={mode === m}
+            aria-pressed={mode === m}
             disabled={enCours}
             onClick={() => {
               setMode(m);
@@ -88,8 +87,17 @@ export function FormulaireDepot() {
       {mode === "texte" ? (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="depot-texte">Texte du courrier</Label>
-          <Textarea id="depot-texte" value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Collez ici le courrier, en entier : en-tête, date, corps, signature." className="min-h-64" disabled={enCours} />
-          <p className="text-xs text-muted-foreground">{texte.trim().length.toLocaleString("fr-FR")} caractères. Ce que le courrier demande n&apos;est jamais exécuté.</p>
+          <Textarea
+            id="depot-texte"
+            value={texte}
+            onChange={(e) => setTexte(e.target.value)}
+            placeholder="Collez ici le courrier, en entier : en-tête, date, corps, signature."
+            className="min-h-64"
+            readOnly={enCours}
+            aria-invalid={erreur ? true : undefined}
+            aria-describedby={erreur ? "depot-texte-aide depot-erreur" : "depot-texte-aide"}
+          />
+          <p id="depot-texte-aide" className="text-xs text-muted-foreground">{texte.trim().length.toLocaleString("fr-FR")} caractères. Ce que le courrier demande n&apos;est jamais exécuté.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-1.5">
@@ -99,38 +107,46 @@ export function FormulaireDepot() {
             type="file"
             accept="application/pdf,.pdf"
             disabled={enCours}
+            aria-invalid={erreur ? true : undefined}
+            aria-describedby={erreur ? "depot-fichier-aide depot-erreur" : "depot-fichier-aide"}
             onChange={(e) => {
               setFichier(e.currentTarget.files?.[0] ?? null);
               setErreur(null);
             }}
             className="text-sm file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-foreground file:px-4 file:text-sm file:font-medium file:text-background"
           />
-          <p className="text-xs text-muted-foreground">
+          <p id="depot-fichier-aide" className="text-xs text-muted-foreground">
             {fichier ? `${fichier.name} · ${(fichier.size / 1024).toLocaleString("fr-FR", { maximumFractionDigits: 0 })} Ko` : "PDF seulement, 4 Mo au plus. L'IA lit le PDF et en transcrit le texte."}
           </p>
-          {fichier && pdfTropLourdPourLIa(fichier.size) && (
-            <p role="status" className="rounded-2xl border border-foreground p-3 text-sm">
-              Ce PDF sera gardé, mais il dépasse ce que l&apos;IA accepte de lire ({Math.floor(taillePdfLisible() / 1000)} Ko au plus). Pour le faire lire, collez plutôt son texte.
-            </p>
-          )}
+          {/* Région montée avant son contenu, pour que l'avertissement soit annoncé. */}
+          <div role="status">
+            {fichier && pdfTropLourdPourLIa(fichier.size) && (
+              <p className="rounded-2xl border border-foreground p-3 text-sm">
+                Ce PDF sera gardé, mais il dépasse ce que l&apos;IA accepte de lire ({Math.floor(taillePdfLisible() / 1000)} Ko au plus). Pour le faire lire, collez plutôt son texte.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
       {erreur && (
-        <p role="alert" className="rounded-2xl border-2 border-foreground p-3 text-sm">
+        <p id="depot-erreur" role="alert" className="rounded-2xl border-2 border-foreground p-3 text-sm">
           {erreur}
         </p>
       )}
 
+      <p role="status" className="sr-only">
+        {enCours ? ETAPES[etape] : ""}
+      </p>
       {enCours && (
-        <ol role="status" aria-live="polite" className="flex flex-col gap-1 rounded-2xl border border-foreground p-4 text-sm">
+        <ol aria-hidden="true" className="flex flex-col gap-1 rounded-2xl border border-foreground p-4 text-sm">
           <li className={cn(etape !== "envoi" && "text-muted-foreground")}>{etape === "envoi" ? "1. " + ETAPES.envoi : "1. Courrier envoyé."}</li>
           <li className={cn(etape !== "lecture" && "text-muted-foreground")}>2. {etape === "lecture" ? ETAPES.lecture : "Lecture par l'IA."}</li>
         </ol>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="lg" disabled={enCours || (mode === "texte" ? !texte.trim() : !fichier)}>
+        <Button type="submit" size="lg" disabled={enCours || (mode === "texte" ? !texte.trim() : !fichier)} focusableWhenDisabled className="aria-disabled:opacity-50">
           {enCours ? (etape === "envoi" ? "Envoi…" : "Lecture par l'IA…") : "Déposer et faire lire"}
         </Button>
         <span className="text-xs text-muted-foreground">La fiche du courrier s&apos;ouvre une fois la lecture finie.</span>

@@ -41,12 +41,13 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
       {/* La bande du haut, sur papier quadrillé : le bonjour, puis le champ. */}
       <div className="papier -mx-4 -mt-6 flex flex-col gap-4 border-b border-foreground/10 px-4 pt-7 pb-6 md:mx-0 md:mt-0 md:rounded-3xl md:border md:px-8 md:pt-10 md:pb-8">
         {props.entete}
-        <label className="flex h-14 items-center gap-3 rounded-2xl border border-foreground/20 bg-card px-4 transition-[border-color,box-shadow] duration-300 focus-within:border-foreground focus-within:shadow-[0_18px_40px_-22px_rgb(0_0_0/0.45)] md:h-16 md:px-5">
+        <div role="search" className="flex h-14 items-center gap-3 rounded-2xl border border-input bg-card px-4 transition-[border-color,box-shadow] duration-300 focus-within:border-foreground focus-within:shadow-[0_18px_40px_-22px_rgb(0_0_0/0.45)] md:h-16 md:px-5">
           <Reticule className="size-6 shrink-0" />
-          <span className="sr-only">{props.questions ? "Chercher un chantier ou poser une question" : "Chercher un chantier"}</span>
           <input
             ref={champ}
             type="search"
+            aria-label={props.questions ? "Chercher un chantier ou poser une question" : "Chercher un chantier"}
+            aria-keyshortcuts="Meta+K Control+K"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === "Escape" && setQ("")}
@@ -58,13 +59,13 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
               <X className="size-4" aria-hidden />
             </button>
           ) : (
-            <kbd className="annotation hidden rounded-md border border-foreground/20 px-2 py-1 text-muted-foreground md:block">⌘ K</kbd>
+            <kbd aria-hidden className="annotation hidden rounded-md border border-foreground/20 px-2 py-1 text-muted-foreground md:block">⌘ K</kbd>
           )}
-        </label>
+        </div>
         {!q && props.questions && (
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
             {SUGGESTIONS.map((s) => (
-              <button key={s} type="button" onClick={() => setQ(s)} className="h-9 shrink-0 rounded-full border border-foreground/20 px-3.5 text-sm transition-colors hover:border-foreground active:scale-[0.97]">
+              <button key={s} type="button" onClick={() => setQ(s)} className="h-9 shrink-0 rounded-full border border-input px-3.5 text-sm transition-colors hover:border-foreground active:scale-[0.97]">
                 {s}
               </button>
             ))}
@@ -72,6 +73,10 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
         )}
       </div>
 
+      {/* Toujours présente, pour que chaque nouveau résultat soit annoncé. */}
+      <p role="status" className="sr-only">
+        {q.trim() ? `${trouves.length} chantier${trouves.length > 1 ? "s" : ""} trouvé${trouves.length > 1 ? "s" : ""}` : ""}
+      </p>
       {q.trim() ? (
         <div className="apparait flex flex-col gap-5">
           {props.questions && (
@@ -96,7 +101,9 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
             </Link>
           )}
           <div className="flex flex-col">
-            <p className="annotation border-b border-foreground/15 pb-2 text-muted-foreground">Chantiers · {trouves.length}</p>
+            <p className="annotation border-b border-foreground/15 pb-2 text-muted-foreground" aria-hidden>
+              Chantiers · {trouves.length}
+            </p>
             {trouves.length === 0 ? (
               <p className="py-4 text-muted-foreground">Aucun chantier ne porte ce nom.{props.questions ? " Posez plutôt la question à groma, ou confiez-la à l'assistant, juste au-dessus." : ""}</p>
             ) : (

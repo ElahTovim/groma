@@ -36,7 +36,7 @@ export function Inviter({ chantierId }: { chantierId: string }) {
         {lien ? (
           <div className="flex flex-col gap-3">
             <p className="text-sm">Voici le lien d&apos;invitation, valable 7 jours et une seule fois. Transmettez-le à la personne :</p>
-            <Input readOnly value={lien} onFocus={(e) => e.currentTarget.select()} aria-label="Lien d'invitation" className="font-mono text-xs" />
+            <Input readOnly value={lien} onFocus={(e) => e.currentTarget.select()} aria-label="Lien d'invitation" className="font-mono text-xs" autoFocus />
             <DialogFooter>
               <Button
                 onClick={() =>
@@ -66,14 +66,18 @@ export function Inviter({ chantierId }: { chantierId: string }) {
               });
             }}
           >
-            {erreur && <p className="text-sm text-destructive">{erreur}</p>}
+            {erreur && (
+              <p id="inv-erreur" role="alert" className="text-sm text-destructive">
+                {erreur}
+              </p>
+            )}
             <div className="flex flex-col gap-2">
               <Label htmlFor="inv-email">Adresse courriel</Label>
-              <Input id="inv-email" name="email" type="email" required />
+              <Input id="inv-email" name="email" type="email" required autoComplete="email" aria-invalid={erreur ? true : undefined} aria-describedby={erreur ? "inv-erreur" : undefined} />
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="inv-role">Rôle</Label>
-              <select id="inv-role" name="role" defaultValue="externe" className="h-8 rounded-lg border bg-background px-2 text-sm">
+              <select id="inv-role" name="role" defaultValue="externe" className="h-8 rounded-lg border border-input bg-background px-2 text-sm">
                 <option value="externe">Externe : ne voit que ce qu&apos;on lui partage</option>
                 <option value="equipe">Équipe : travaille sur le chantier</option>
               </select>

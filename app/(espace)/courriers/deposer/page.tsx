@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { voitLInterne } from "@/lib/acces";
 import { appelantObligatoire } from "@/lib/session";
 import { FormulaireDepot } from "./formulaire";
+
+export const metadata: Metadata = { title: "Déposer un courrier" };
 
 export const dynamic = "force-dynamic";
 // Le dépôt envoie le courrier puis le fait lire par l'IA dans la même action : on lui laisse le temps.

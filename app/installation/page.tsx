@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { count } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { comptes } from "@/lib/db/schema";
 import { FormulaireInstallation } from "./formulaire";
+
+export const metadata: Metadata = { title: "Première installation" };
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +18,7 @@ export default async function PageInstallation() {
     <main className="flex flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Première installation</CardTitle>
+          <CardTitle as="h1">Première installation</CardTitle>
           <CardDescription>
             Créez le compte du gérant. Seule l&apos;adresse prévue dans les réglages est acceptée, et cette page
             disparaît une fois le compte créé.

@@ -1,11 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { appelerFlux } from "@/lib/flux";
 import { aujourdhuiParis } from "@/lib/regles";
 import { appelantObligatoire } from "@/lib/session";
+
+export const metadata: Metadata = { title: "Flux de nuit" };
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +41,10 @@ export default async function LireLeFlux({ searchParams }: PageProps<"/reglages/
         Lecture seule : rien n&apos;est importé. Sans date, c&apos;est la nuit qui vient de se terminer ({aujourdhuiParis()}).
       </p>
       <form className="flex items-end gap-2">
-        <Input name="date" type="date" defaultValue={nuit} aria-label="Nuit" className="w-44" />
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="flux-nuit">Nuit à lire</Label>
+          <Input id="flux-nuit" name="date" type="date" defaultValue={nuit} className="w-44" />
+        </div>
         <Button type="submit" variant="outline">
           Lire cette nuit
         </Button>
@@ -66,7 +73,7 @@ export default async function LireLeFlux({ searchParams }: PageProps<"/reglages/
             </p>
           </Section>
           <Section titre="Réponse brute">
-            <pre className="max-h-[70vh] overflow-auto border p-3 font-mono text-xs whitespace-pre-wrap">{JSON.stringify(r.corps, null, 2)}</pre>
+            <pre tabIndex={0} role="region" aria-label="Réponse brute du flux, défilable" className="max-h-[70vh] overflow-auto border p-3 font-mono text-xs whitespace-pre-wrap">{JSON.stringify(r.corps, null, 2)}</pre>
           </Section>
         </>
       )}

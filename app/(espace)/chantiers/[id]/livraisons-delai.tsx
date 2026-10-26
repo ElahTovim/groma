@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DELAI_FOURNISSEUR_MAX_JOURS } from "@/lib/distances-regles";
@@ -11,6 +11,18 @@ import { useActionChantier } from "./use-action-chantier";
 export function DelaiFournisseur(props: { chantierId: string; lotId: string; lot: string; delai: number | null; modifiable: boolean }) {
   const { enCours, lancer } = useActionChantier();
   const [edition, setEdition] = useState(false);
+  // Après OK ou Annuler, le focus revient sur « Modifier » (ou « Indiquer »).
+  const bouton = useRef<HTMLButtonElement>(null);
+  const revenir = useRef(false);
+  useEffect(() => {
+    if (edition || !revenir.current) return;
+    revenir.current = false;
+    bouton.current?.focus();
+  }, [edition]);
+  const fermer = () => {
+    revenir.current = true;
+    setEdition(false);
+  };
   const texte = props.delai === null ? "à indiquer" : `${props.delai} jour${props.delai > 1 ? "s" : ""} ouvré${props.delai > 1 ? "s" : ""}`;
 
   if (!edition) {
@@ -18,8 +30,9 @@ export function DelaiFournisseur(props: { chantierId: string; lotId: string; lot
       <span className="flex flex-wrap items-center gap-x-2">
         <span>{texte}</span>
         {props.modifiable && (
-          <Button variant="link" className="h-auto p-0 text-sm" onClick={() => setEdition(true)}>
+          <Button ref={bouton} variant="link" className="h-auto p-0 text-sm" onClick={() => setEdition(true)}>
             {props.delai === null ? "Indiquer" : "Modifier"}
+            <span className="sr-only"> le délai du fournisseur pour {props.lot}</span>
           </Button>
         )}
       </span>
@@ -32,7 +45,7 @@ export function DelaiFournisseur(props: { chantierId: string; lotId: string; lot
       onSubmit={(e) => {
         e.preventDefault();
         const valeur = String(new FormData(e.currentTarget).get("delai") ?? "");
-        lancer(() => fixerDelaiFournisseur(props.chantierId, props.lotId, valeur), () => setEdition(false));
+        lancer(() => fixerDelaiFournisseur(props.chantierId, props.lotId, valeur), fermer);
       }}
     >
       <Input
@@ -50,7 +63,7 @@ export function DelaiFournisseur(props: { chantierId: string; lotId: string; lot
       <Button type="submit" size="sm" disabled={enCours}>
         {enCours ? "…" : "OK"}
       </Button>
-      <Button type="button" size="sm" variant="ghost" onClick={() => setEdition(false)}>
+      <Button type="button" size="sm" variant="ghost" onClick={fermer}>
         Annuler
       </Button>
     </form>

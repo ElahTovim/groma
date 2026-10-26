@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,8 @@ import { raisonsARegarder } from "@/lib/assistant-regles";
 import { appelantObligatoire } from "@/lib/session";
 import { BadgeStatutAgent, BilanExecution, eurosFins, heureCourte } from "./bilan";
 import { FormulaireAssistant } from "./formulaire";
+
+export const metadata: Metadata = { title: "Assistant" };
 
 export const dynamic = "force-dynamic";
 // L'assistant tourne depuis l'action serveur de cette page : de 15 à 90 secondes, plus la mise en route.

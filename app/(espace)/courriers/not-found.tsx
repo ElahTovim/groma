@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 export default function CourrierIntrouvable() {
   return (
     <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed p-10 text-center">
-      <p className="font-medium">Courrier introuvable.</p>
+      <h1 className="font-medium">Courrier introuvable.</h1>
       <Link href="/" className={buttonVariants({ variant: "outline" })}>
         Retour à l&apos;accueil
       </Link>

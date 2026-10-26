@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { signOut } from "@/auth";
@@ -9,6 +10,8 @@ import { db } from "@/lib/db";
 import { chantiers } from "@/lib/db/schema";
 import { lireJeton } from "@/lib/jetons";
 import { accepterInvitation } from "./actions";
+
+export const metadata: Metadata = { title: "Invitation" };
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +29,7 @@ export default async function PageInvitation({ params }: PageProps<"/invitation/
         {!j || !chantier ? (
           <>
             <CardHeader>
-              <CardTitle>Lien expiré</CardTitle>
+              <CardTitle as="h1">Lien expiré</CardTitle>
               <CardDescription>Ce lien d&apos;invitation n&apos;est plus valable : il a expiré ou a déjà servi. Demandez-en un nouveau à la personne qui vous a invité.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -38,7 +41,7 @@ export default async function PageInvitation({ params }: PageProps<"/invitation/
         ) : (
           <>
             <CardHeader>
-              <CardTitle>Bienvenue sur groma</CardTitle>
+              <CardTitle as="h1">Bienvenue sur groma</CardTitle>
               <CardDescription>
                 Vous êtes invité sur le chantier « {chantier.nom} » ({chantier.ville}), en tant que {j.qualite}. Créez votre compte pour {j.email}.
               </CardDescription>

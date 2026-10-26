@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { voitLInterne } from "@/lib/acces";
@@ -15,6 +16,8 @@ import {
 } from "@/lib/courriers-regles";
 import { appelantObligatoire } from "@/lib/session";
 import { FicheCourrier } from "./fiche";
+
+export const metadata: Metadata = { title: "Courrier" };
 
 export const dynamic = "force-dynamic";
 // « Relire » relance la lecture par l'IA depuis cette page.

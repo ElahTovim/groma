@@ -16,7 +16,7 @@ export function FormulaireAssistant({ demandeInitiale = "" }: { demandeInitiale?
   const [demande, setDemande] = useState(demandeInitiale);
   const [enCours, demarrer] = useTransition();
   const [secondes, setSecondes] = useState(0);
-  const [erreur, setErreur] = useState<{ texte: string; executionId?: string } | null>(null);
+  const [erreur, setErreur] = useState<{ texte: string; executionId?: string; champ?: boolean } | null>(null);
   const champ = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export function FormulaireAssistant({ demandeInitiale = "" }: { demandeInitiale?
   const envoyer = () => {
     const texte = demande.trim();
     if (texte.length < 3) {
-      setErreur({ texte: "Écrivez votre demande." });
+      setErreur({ texte: "Écrivez votre demande.", champ: true });
       champ.current?.focus();
       return;
     }
@@ -72,12 +72,14 @@ export function FormulaireAssistant({ demandeInitiale = "" }: { demandeInitiale?
         }}
         maxLength={LONGUEUR_MAX}
         rows={3}
-        disabled={enCours}
+        readOnly={enCours}
+        aria-disabled={enCours || undefined}
         placeholder="Par exemple : qu'est-ce qui bloque le chantier CH-2026-0007 ?"
         className="min-h-24 bg-background"
-        aria-describedby="aide-demande"
+        aria-invalid={erreur?.champ || undefined}
+        aria-describedby={erreur?.champ ? "aide-demande erreur-demande" : "aide-demande"}
       />
-      <div className="flex flex-wrap gap-2" aria-label="Exemples de demandes">
+      <div role="group" className="flex flex-wrap gap-2" aria-label="Exemples de demandes">
         {EXEMPLES_DEMANDES.map((x) => (
           <button
             key={x}
@@ -95,21 +97,26 @@ export function FormulaireAssistant({ demandeInitiale = "" }: { demandeInitiale?
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="lg" disabled={enCours}>
+        {/* focusableWhenDisabled : le bouton reste focalisable (aria-disabled) pendant l'exécution. */}
+        <Button type="submit" size="lg" disabled={enCours} focusableWhenDisabled className="aria-disabled:opacity-50">
           {enCours ? "En cours…" : "Demander"}
         </Button>
         <p id="aide-demande" className="text-xs text-muted-foreground">
           Il lit les chantiers, fait ce qui reste interne, et propose le reste : rien ne part sans votre clic dans « À valider ».
         </p>
       </div>
+      {/* Annonce la phase seulement ; le compteur de secondes reste visuel. */}
+      <p role="status" className="sr-only">
+        {enCours ? phaseExecution(secondes) : ""}
+      </p>
       {enCours && (
-        <p role="status" aria-live="polite" className="rounded-2xl bg-background p-3 text-sm">
+        <p aria-hidden="true" className="rounded-2xl bg-background p-3 text-sm">
           <span className="font-medium">{phaseExecution(secondes)}</span> <span className="tabular-nums text-muted-foreground">{secondes} s</span>
           <span className="block text-xs text-muted-foreground">Cela prend jusqu&apos;à une minute et demie. Gardez la page ouverte.</span>
         </p>
       )}
       {erreur && (
-        <p role="alert" className="rounded-2xl border border-foreground p-3 text-sm">
+        <p id="erreur-demande" role="alert" className="rounded-2xl border border-foreground p-3 text-sm">
           {erreur.texte}
           {erreur.executionId && (
             <>

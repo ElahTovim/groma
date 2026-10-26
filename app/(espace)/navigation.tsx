@@ -55,7 +55,7 @@ export function BarreBas({ interne }: { interne: boolean }) {
   if (!liens.some((l) => l.href === chemin)) return null;
   return (
     <nav
-      aria-label="Navigation principale"
+      aria-label="Onglets de navigation"
       className="fixed inset-x-0 bottom-0 z-30 grid border-t bg-background/90 px-2 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg md:hidden"
       style={{ gridTemplateColumns: `repeat(${liens.length}, minmax(0, 1fr))`, viewTransitionName: "barre-bas" }}
     >

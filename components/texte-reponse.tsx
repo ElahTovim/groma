@@ -27,10 +27,12 @@ export function TexteReponse({ texte }: { texte: string }) {
     <div className="flex max-w-3xl flex-col gap-3 text-sm leading-relaxed">
       {blocs.map((b, i) => {
         if (b.type === "titre") {
+          // De vrais titres, sous le titre de la section qui affiche la réponse : h3, puis h4.
+          const Titre = b.niveau <= 2 ? "h3" : "h4";
           return (
-            <p key={i} className={b.niveau <= 2 ? "pt-1 font-display text-base font-bold" : "pt-1 font-semibold"}>
+            <Titre key={i} className={b.niveau <= 2 ? "pt-1 font-display text-base font-bold" : "pt-1 font-semibold"}>
               <EnLigne texte={b.texte} />
-            </p>
+            </Titre>
           );
         }
         if (b.type === "liste") {

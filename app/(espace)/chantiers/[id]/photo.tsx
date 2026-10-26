@@ -25,6 +25,7 @@ export function PhotoChantier(props: { chantierId: string; aPhoto: boolean; nom:
             type="file"
             accept="image/jpeg,image/png,image/webp,image/heic"
             className="sr-only"
+            tabIndex={-1}
             aria-label="Choisir la photo du chantier"
             onChange={(e) => {
               const f = e.currentTarget.files?.[0];

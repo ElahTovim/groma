@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FormulaireMotDePasse } from "@/components/formulaire-mot-de-passe";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { lireJeton } from "@/lib/jetons";
 import { reinitialiser } from "./actions";
+
+export const metadata: Metadata = { title: "Nouveau mot de passe" };
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +17,7 @@ export default async function PageReinitialiser({ params }: PageProps<"/reinitia
     <main className="flex flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{j ? "Nouveau mot de passe" : "Lien expiré"}</CardTitle>
+          <CardTitle as="h1">{j ? "Nouveau mot de passe" : "Lien expiré"}</CardTitle>
           <CardDescription>
             {j ? `Pour le compte ${j.email}.` : "Ce lien n'est plus valable : il a expiré ou a déjà servi."}
           </CardDescription>

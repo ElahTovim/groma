@@ -35,7 +35,10 @@ function Deposer(props: { chantierId: string; x: ExigenceVue }) {
   const t = TYPES_PIECES[props.x.type];
   return (
     <Dialog open={ouvert} onOpenChange={setOuvert}>
-      <DialogTrigger render={<Button variant="outline" size="xs" />}>{props.x.piece ? "Nouvelle version" : "Déposer"}</DialogTrigger>
+      <DialogTrigger render={<Button variant="outline" size="xs" />}>
+        {props.x.piece ? "Nouvelle version" : "Déposer"}
+        <span className="sr-only"> : {props.x.libelle}</span>
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t.libelle}</DialogTitle>
@@ -79,24 +82,24 @@ function Deposer(props: { chantierId: string; x: ExigenceVue }) {
   );
 }
 
-function Trancher(props: { chantierId: string; pieceId: string }) {
+function Trancher(props: { chantierId: string; pieceId: string; libelle: string }) {
   const { enCours, lancer } = useActionChantier();
   const [refus, setRefus] = useState(false);
   const [motif, setMotif] = useState("");
   return refus ? (
     <span className="flex flex-wrap items-center gap-2">
-      <Input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Motif du refus" aria-label="Motif du refus" className="h-7 w-48" />
+      <Input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Motif du refus" aria-label={`Motif du refus : ${props.libelle}`} className="h-7 w-48" autoFocus />
       <Button size="xs" variant="outline" disabled={enCours || !motif.trim()} onClick={() => lancer(() => refuserPiece(props.chantierId, props.pieceId, motif))}>
-        Refuser
+        Refuser<span className="sr-only"> : {props.libelle}</span>
       </Button>
     </span>
   ) : (
     <span className="flex flex-wrap items-center gap-2">
       <Button size="xs" disabled={enCours} onClick={() => lancer(() => validerPiece(props.chantierId, props.pieceId))}>
-        Valider
+        Valider<span className="sr-only"> : {props.libelle}</span>
       </Button>
       <Button size="xs" variant="ghost" onClick={() => setRefus(true)}>
-        Refuser…
+        Refuser…<span className="sr-only"> : {props.libelle}</span>
       </Button>
     </span>
   );
@@ -123,17 +126,17 @@ function LignePiece(props: { chantierId: string; x: ExigenceVue; interne: boolea
       <span className="flex flex-wrap items-center gap-2 sm:justify-end">
         <EtatBadge etat={x.etat} />
         {x.piece && (
-          <a href={`/api/pieces/${x.piece.id}`} target="_blank" rel="noopener" className="text-xs underline underline-offset-2">
-            voir
+          <a href={`/api/pieces/${x.piece.id}`} target="_blank" rel="noopener" className="inline-flex min-h-6 items-center text-xs underline underline-offset-2">
+            voir<span className="sr-only"> : {x.libelle} (nouvel onglet)</span>
           </a>
         )}
-        {props.interne && x.etat.etat === "a_valider" && x.piece && <Trancher chantierId={props.chantierId} pieceId={x.piece.id} />}
+        {props.interne && x.etat.etat === "a_valider" && x.piece && <Trancher chantierId={props.chantierId} pieceId={x.piece.id} libelle={x.libelle} />}
         {peutDeposer && <Deposer chantierId={props.chantierId} x={x} />}
         {props.interne && props.modifiable && (
           <>
             <select
-              aria-label="Étape bloquée"
-              className="h-7 rounded-md border bg-background px-1.5 text-xs"
+              aria-label={`Étape bloquée par : ${x.libelle}`}
+              className="h-7 rounded-md border border-input bg-background px-1.5 text-xs"
               value={x.bloque ?? ""}
               disabled={enCours}
               onChange={(e) => lancer(() => reglerBlocagePiece(props.chantierId, x.id, e.target.value))}
@@ -143,7 +146,7 @@ function LignePiece(props: { chantierId: string; x: ExigenceVue; interne: boolea
               <option value="cloture">Bloque la clôture</option>
             </select>
             <Button size="xs" variant="ghost" disabled={enCours} onClick={() => lancer(() => retirerPiece(props.chantierId, x.id))}>
-              Retirer
+              Retirer<span className="sr-only"> : {x.libelle}</span>
             </Button>
           </>
         )}
@@ -182,7 +185,7 @@ function Demander(props: { chantierId: string; intervenants: Intervenant[]; exig
         </DialogHeader>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="pieces-pour">À qui</Label>
-          <select id="pieces-pour" className="h-8 rounded-lg border bg-background px-2 text-sm" value={pour} onChange={(e) => ouvrir(e.target.value)}>
+          <select id="pieces-pour" className="h-8 rounded-lg border border-input bg-background px-2 text-sm" value={pour} onChange={(e) => ouvrir(e.target.value)}>
             {props.intervenants.map((i) => (
               <option key={i.compteId} value={i.compteId}>
                 {i.nom} · {i.qualite}

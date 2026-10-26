@@ -8,22 +8,41 @@ import { Label } from "@/components/ui/label";
 import { seConnecter, type EtatConnexion } from "./actions";
 
 export function FormulaireConnexion() {
-  const [etat, action, enCours] = useActionState<EtatConnexion, FormData>(seConnecter, {});
+  const [etat, action, enCours] = useActionState<EtatConnexion, FormData>(
+    seConnecter,
+    {},
+  );
 
   return (
     <form action={action} className="flex flex-col gap-4">
       {etat.erreur && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" id="erreur-formulaire">
           <AlertDescription>{etat.erreur}</AlertDescription>
         </Alert>
       )}
       <div className="flex flex-col gap-2">
         <Label htmlFor="email">Adresse courriel</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Input
+          aria-invalid={etat.erreur ? true : undefined}
+          aria-describedby={etat.erreur ? "erreur-formulaire" : undefined}
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+        />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="motDePasse">Mot de passe</Label>
-        <Input id="motDePasse" name="motDePasse" type="password" autoComplete="current-password" required />
+        <Input
+          aria-invalid={etat.erreur ? true : undefined}
+          aria-describedby={etat.erreur ? "erreur-formulaire" : undefined}
+          id="motDePasse"
+          name="motDePasse"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
       </div>
       <Button type="submit" disabled={enCours}>
         {enCours ? "Connexion…" : "Se connecter"}

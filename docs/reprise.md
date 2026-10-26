@@ -1,5 +1,26 @@
 # État de reprise
 
+## 26 octobre 2026, soir (branche `accessibilite`)
+
+**Fait**
+- Audit WCAG 2.2 AA de tout le code (trois relectures : accueil et cadre, fiche chantier, autres pages), puis corrections.
+- Contrastes calculés : sous-titres gris passés au gris plein (3,5 → 7,1:1) ; contour des champs à 4,3:1 (`--input` 0.58) ; météo : couleur du texte et voile calculés pour chaque ciel (`lisibilite()` dans `lib/ambiance.ts`, test sur les 24 ciels, ≥ 4,5:1) ; voile plus fort sous le texte des cartes photo.
+- Ciel animé : bouton pause (WCAG 2.2.2), choix retenu sur l'appareil.
+- Titres : un titre de page par écran (« Chantiers · groma », nom du chantier sur la fiche) ; un h1 par page, y compris erreurs, introuvable et pages de compte ; CardTitle devient un vrai titre.
+- Navigation : lien « Aller au contenu », repères nommés, menu du compte qui se ferme (Échap, clic à côté, changement de page), focus visible partout, contenu jamais caché sous l'en-tête ou la barre du bas.
+- Lecteurs d'écran : recherche et filtres annoncent leur résultat ; chargements, erreurs et actions longues annoncés sans bavardage (réponse de Questions et compteur de l'assistant n'annoncent plus que l'étape) ; noms explicites des cartes et des boutons répétés ; dialogues en français.
+- Clavier : suggestions d'adresse au clavier, onglets de la fiche aux flèches, focus qui ne se perd plus après une action.
+- Formulaires : libellés visibles, aides et erreurs reliées aux champs.
+- Tableau des lots : plus rien de coupé sur ordinateur.
+- 331 tests, lint, types, construction au vert.
+
+**Reste**
+- Vérification au lecteur d'écran (VoiceOver) et au clavier sur la prévisualisation : non faite par l'IA.
+- Pièces attendues : le nom de l'intervenant n'est pas encore lu avec les boutons (deux pièces identiques pour deux intervenants se confondent à l'oreille).
+
+**Cassé**
+- Rien de connu.
+
 ## 26 octobre 2026 (branche `fluidite`)
 
 **Fait**

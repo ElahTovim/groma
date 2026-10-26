@@ -21,12 +21,12 @@ export function BoutonJeu() {
       <form action={action} className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex flex-1 flex-col gap-2">
           <Label htmlFor="motDePasse">Mot de passe des comptes fictifs</Label>
-          <Input id="motDePasse" name="motDePasse" type="text" autoComplete="off" minLength={8} required />
-          <p className="text-xs text-muted-foreground">
+          <Input id="motDePasse" name="motDePasse" type="text" autoComplete="off" minLength={8} required aria-describedby="motDePasse-aide" />
+          <p id="motDePasse-aide" className="text-xs text-muted-foreground">
             Choisissez-le maintenant : les dix comptes fictifs l&apos;auront tous. Au moins 8 caractères.
           </p>
         </div>
-        <Button type="submit" variant="outline" disabled={enCours}>
+        <Button type="submit" variant="outline" disabled={enCours} focusableWhenDisabled className="aria-disabled:opacity-50">
           {enCours ? "Rejeu en cours…" : "Rejouer le jeu de données"}
         </Button>
       </form>

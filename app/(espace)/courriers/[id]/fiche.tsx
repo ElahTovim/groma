@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ const LIBELLES: Record<NomChamp, string> = {
   montant: "Montant (euros)",
 };
 
+const DEBUT = { valider: "Validation en cours…", rejeter: "Rejet en cours…", relire: "Lecture en cours par l'IA…" } as const;
+
 const enTexte = (v: string | number | null) => (v === null ? "" : typeof v === "number" ? String(v).replace(".", ",") : v);
 
 // Une valeur du bilan, telle qu'une personne la lit.
@@ -35,6 +37,13 @@ function lisible(k: NomChamp, v: string | number | null, categories: { code: str
     return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${v}T00:00:00Z`));
   }
   return String(v);
+}
+
+// Le libellé d'un champ : un vrai label quand le champ se modifie, du texte en lecture seule
+// (un label doit viser un champ de formulaire).
+function Libelle({ pour, modifiable, children }: { pour: string; modifiable: boolean; children: ReactNode }) {
+  if (modifiable) return <Label htmlFor={pour}>{children}</Label>;
+  return <span className="flex items-center gap-2 text-sm leading-none font-medium">{children}</span>;
 }
 
 // Le bilan d'un courrier validé : une ligne par champ, avec son verdict.
@@ -50,8 +59,9 @@ function BilanCourrier({ lignes, categories }: { lignes: LigneBilan[]; categorie
           {justes} champ{justes > 1 ? "s" : ""} juste{justes > 1 ? "s" : ""} sur {lignes.length}
         </p>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau du bilan, défilable">
         <table className="w-full text-left text-sm">
+          <caption className="sr-only">Bilan de l&apos;IA, champ par champ</caption>
           <thead className="text-xs text-muted-foreground">
             <tr>
               <th scope="col" className="py-2 pr-3 font-medium">Champ</th>
@@ -117,12 +127,16 @@ export function FicheCourrier(props: {
   const [chantierId, setChantierId] = useState(props.chantierPropose ?? "");
   const [rejet, setRejet] = useState(false);
   const [motif, setMotif] = useState("");
+  const [annonce, setAnnonce] = useState("");
   const modifiable = props.statut === "a_relire";
 
   function lancer(nom: "valider" | "rejeter" | "relire", action: () => Promise<Resultat>) {
+    if (enCours) return;
     setQuoi(nom);
+    setAnnonce(DEBUT[nom]);
     demarrer(async () => {
       const r = await action();
+      setAnnonce(r.ok ? r.message : r.erreur);
       if (r.ok) toast.success(r.message, { duration: 8000 });
       else toast.error(r.erreur, { duration: 10000 });
       if (nom === "relire" && r.ok) {
@@ -168,35 +182,43 @@ export function FicheCourrier(props: {
           </a>
         )}
         {props.texte ? (
-          <pre className="max-h-[70vh] overflow-auto font-sans text-sm leading-relaxed whitespace-pre-wrap">{props.texte}</pre>
+          <pre tabIndex={0} role="region" aria-label="Texte d'origine du courrier, défilable" className="max-h-[70vh] overflow-auto font-sans text-sm leading-relaxed whitespace-pre-wrap">{props.texte}</pre>
         ) : (
           <p className="text-sm text-muted-foreground italic">Pas encore de transcription : l&apos;IA n&apos;a pas lu ce PDF. Ouvrez le PDF, puis relancez la lecture ou remplissez les champs à la main.</p>
         )}
       </section>
 
       <div className="flex min-w-0 flex-col gap-5">
+        {/* Toujours montée : annonce le début et la fin de chaque action. */}
+        <p role="status" className="sr-only">
+          {annonce}
+        </p>
         {enCours && quoi === "relire" && (
-          <div role="status" className="rounded-2xl border border-foreground p-4 text-sm">
+          <div className="rounded-2xl border border-foreground p-4 text-sm">
             Lecture en cours par l&apos;IA : elle lit le courrier, puis groma vérifie chaque champ proposé (date, montant, référence). Quelques secondes.
           </div>
         )}
 
         {props.echec && (
-          <div role="alert" className="rounded-2xl bg-foreground p-4 text-sm text-background">
-            <p className="font-semibold">L&apos;IA n&apos;a pas pu lire ce courrier.</p>
+          <section aria-labelledby="titre-echec-lecture" className="rounded-2xl bg-foreground p-4 text-sm text-background">
+            <h2 id="titre-echec-lecture" className="font-semibold">
+              L&apos;IA n&apos;a pas pu lire ce courrier.
+            </h2>
             <p className="mt-1">{props.echec}</p>
             <p className="mt-1">Les champs sont vides. Relancez la lecture, ou remplissez-les à la main.</p>
-          </div>
+          </section>
         )}
         {!props.lu && !props.echec && modifiable && (
-          <div role="status" className="rounded-2xl border p-4 text-sm">
+          <div className="rounded-2xl border p-4 text-sm">
             Ce courrier n&apos;a pas encore été lu par l&apos;IA. Lancez « Relire », ou remplissez les champs à la main.
           </div>
         )}
 
         {props.incertitudes.length > 0 && (
-          <section role="alert" className="rounded-2xl border-2 border-foreground p-4">
-            <h2 className="font-semibold">À relire avec attention</h2>
+          <section aria-labelledby="titre-incertitudes" className="rounded-2xl border-2 border-foreground p-4">
+            <h2 id="titre-incertitudes" className="font-semibold">
+              À relire avec attention
+            </h2>
             <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-sm">
               {props.incertitudes.map((i) => (
                 <li key={i}>{i}</li>
@@ -223,11 +245,13 @@ export function FicheCourrier(props: {
             {(["expediteur", "societe", "reference", "date", "categorie", "montant"] as NomChamp[]).map((k) => (
               <div key={k} className="flex flex-col gap-1.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Label htmlFor={`champ-${k}`}>{LIBELLES[k]}</Label>
+                  <Libelle pour={`champ-${k}`} modifiable={modifiable}>
+                    {LIBELLES[k]}
+                  </Libelle>
                   {etiquette(k)}
                 </div>
                 {!modifiable ? (
-                  <p id={`champ-${k}`} className={cn("min-h-8 text-sm", !valeurs[k] && "text-muted-foreground italic")}>
+                  <p className={cn("min-h-8 text-sm", !valeurs[k] && "text-muted-foreground italic")}>
                     {k === "categorie" ? props.libelleCategorie : valeurs[k] || "absent du courrier"}
                   </p>
                 ) : k === "categorie" ? (
@@ -261,7 +285,9 @@ export function FicheCourrier(props: {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="champ-chantier">Rattacher au chantier</Label>
+            <Libelle pour="champ-chantier" modifiable={modifiable}>
+              Rattacher au chantier
+            </Libelle>
             {modifiable ? (
               <>
                 <select id="champ-chantier" value={chantierId} onChange={(e) => setChantierId(e.target.value)} className="h-8 rounded-lg border bg-background px-2 text-sm" disabled={enCours}>
@@ -279,7 +305,7 @@ export function FicheCourrier(props: {
                 </p>
               </>
             ) : (
-              <p id="champ-chantier" className="text-sm">
+              <p className="text-sm">
                 {props.chantierRattache ? `${props.chantierRattache.reference} · ${props.chantierRattache.nom}` : <span className="text-muted-foreground italic">Aucun</span>}
               </p>
             )}
@@ -289,7 +315,9 @@ export function FicheCourrier(props: {
         <section className="flex flex-col gap-4 rounded-3xl bg-card p-5">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="champ-resume">Résumé</Label>
+              <Libelle pour="champ-resume" modifiable={modifiable}>
+                Résumé
+              </Libelle>
               {props.resume && <Badge variant="outline">proposé par l&apos;IA</Badge>}
             </div>
             {modifiable ? (
@@ -300,7 +328,9 @@ export function FicheCourrier(props: {
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="champ-brouillon">Brouillon de réponse</Label>
+              <Libelle pour="champ-brouillon" modifiable={modifiable}>
+                Brouillon de réponse
+              </Libelle>
               {props.brouillon && <Badge variant="outline">proposé par l&apos;IA</Badge>}
             </div>
             {modifiable ? (
@@ -323,19 +353,32 @@ export function FicheCourrier(props: {
               <Button
                 size="lg"
                 disabled={enCours}
+                focusableWhenDisabled
+                className="aria-disabled:opacity-50"
                 onClick={() => lancer("valider", () => validerCourrier(props.id, { ...valeurs, resume, brouillon, chantierId }))}
               >
                 {enCours && quoi === "valider" ? "Validation…" : "Valider"}
               </Button>
-              <Button size="lg" variant="outline" disabled={enCours} onClick={() => setRejet((r) => !r)}>
+              <Button
+                size="lg"
+                variant="outline"
+                disabled={enCours}
+                focusableWhenDisabled
+                className="aria-disabled:opacity-50"
+                aria-expanded={rejet}
+                aria-controls={rejet ? "form-rejet" : undefined}
+                onClick={() => setRejet((r) => !r)}
+              >
                 Rejeter
               </Button>
-              <Button size="lg" variant="outline" disabled={enCours} onClick={() => lancer("relire", () => relireCourrier(props.id))}>
+              <Button size="lg" variant="outline" disabled={enCours} focusableWhenDisabled className="aria-disabled:opacity-50" onClick={() => lancer("relire", () => relireCourrier(props.id))}>
                 {enCours && quoi === "relire" ? "Lecture en cours…" : "Relire avec l'IA"}
               </Button>
             </div>
             {rejet && (
               <form
+                id="form-rejet"
+                aria-label="Rejeter le courrier"
                 className="flex flex-wrap items-end gap-2"
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -346,7 +389,7 @@ export function FicheCourrier(props: {
                   <Label htmlFor="motif-rejet">Motif du rejet</Label>
                   <Input id="motif-rejet" value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Par exemple : publicité, doublon, hors sujet" disabled={enCours} />
                 </div>
-                <Button type="submit" variant="outline" disabled={enCours || !motif.trim()}>
+                <Button type="submit" variant="outline" disabled={enCours || !motif.trim()} focusableWhenDisabled className="aria-disabled:opacity-50">
                   {enCours && quoi === "rejeter" ? "Rejet…" : "Confirmer le rejet"}
                 </Button>
               </form>

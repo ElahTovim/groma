@@ -1,7 +1,7 @@
 "use client";
 
 import { Info } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,25 @@ export function EtapeChantier(props: { chantierId: string; statut: StatutChantie
   // Si un refus arrive quand même (quelqu'un a changé le chantier entre-temps), il prime.
   const aFaire = raisons.length ? raisons : props.blocages;
   const bloque = aFaire.length > 0;
+  const idRaisons = useId();
+  const idMotif = useId();
+
+  // Sur téléphone, la barre est fixée en bas : sa hauteur réelle (une ou plusieurs raisons
+  // de blocage) est publiée dans --barre-etape pour que la page garde une marge suffisante.
+  const barre = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barre.current;
+    if (!el) return;
+    const racine = document.documentElement;
+    const mesurer = () => racine.style.setProperty("--barre-etape", `${el.offsetHeight}px`);
+    mesurer();
+    const observateur = new ResizeObserver(mesurer);
+    observateur.observe(el);
+    return () => {
+      observateur.disconnect();
+      racine.style.removeProperty("--barre-etape");
+    };
+  }, [suivante]);
 
   return (
     <div className="flex flex-col gap-3 md:items-stretch">
@@ -58,7 +77,10 @@ export function EtapeChantier(props: { chantierId: string; statut: StatutChantie
               </DialogHeader>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="motif">Motif</Label>
-                <Textarea id="motif" value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Par exemple : le client renonce après le devis." />
+                <Textarea id="motif" required aria-describedby={idMotif} value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Par exemple : le client renonce après le devis." />
+                <p id={idMotif} className="text-xs text-muted-foreground">
+                  Motif obligatoire
+                </p>
               </div>
               <DialogFooter>
                 <Button disabled={enCours || !motif.trim()} onClick={() => lancer(() => annulerChantier(props.chantierId, motif), () => setOuvert(false))}>
@@ -71,26 +93,34 @@ export function EtapeChantier(props: { chantierId: string; statut: StatutChantie
       </div>
 
       {suivante && (
-        <div className="fixed inset-x-0 bottom-0 z-20 flex flex-col gap-2 border-t bg-background px-4 pt-3 pb-[max(1.75rem,env(safe-area-inset-bottom))] md:static md:order-first md:border-0 md:bg-transparent md:p-0">
+        <div ref={barre} className="fixed inset-x-0 bottom-0 z-20 flex flex-col gap-2 border-t bg-background px-4 pt-3 pb-[max(1.75rem,env(safe-area-inset-bottom))] md:static md:order-first md:border-0 md:bg-transparent md:p-0">
           <Button
             size="lg"
-            className="order-last h-14 w-full text-base md:order-first md:h-12"
-            disabled={enCours || bloque}
-            onClick={() => lancer(() => avancerChantier(props.chantierId, suivante))}
+            className="order-last h-14 w-full text-base aria-disabled:cursor-not-allowed aria-disabled:opacity-50 md:order-first md:h-12"
+            disabled={enCours}
+            aria-disabled={bloque || undefined}
+            aria-describedby={bloque ? idRaisons : undefined}
+            onClick={() => {
+              if (bloque) return;
+              lancer(() => avancerChantier(props.chantierId, suivante));
+            }}
           >
             {enCours ? "Un instant…" : LIBELLE_ACTION[suivante]}
           </Button>
           {/* Ce qui bloque, dit avant le clic : au-dessus du bouton sous le pouce, en dessous sur ordinateur. */}
-          {bloque && (
-            <div className="flex gap-2 text-sm md:justify-end md:text-right" role="status">
-              <Info className="mt-0.5 size-4 shrink-0 md:hidden" aria-hidden />
-              <ul className="flex flex-col">
-                {aFaire.map((r) => (
-                  <li key={r}>{r}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* La région reste montée : un lecteur d'écran annonce ce qui y apparaît. */}
+          <div id={idRaisons} role="status" className={bloque ? "flex gap-2 text-sm md:justify-end md:text-right" : "sr-only"}>
+            {bloque && (
+              <>
+                <Info className="mt-0.5 size-4 shrink-0 md:hidden" aria-hidden />
+                <ul className="flex flex-col">
+                  {aFaire.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,13 +37,27 @@ export function Entreprise(props: { chantierId: string; cible: string; suggestio
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState("");
   const [fiches, setFiches] = useState<FicheEntreprise[]>([]);
+  // Le nombre de résultats de la dernière recherche, annoncé aux lecteurs d'écran.
+  const [trouvees, setTrouvees] = useState<number | null>(null);
+  // Lier ou retirer change ce qui est affiché (le bouton d'ouverture change de place) :
+  // une fois la fiche à jour, le focus revient sur ce bouton plutôt que de se perdre.
+  const declencheur = useRef<HTMLButtonElement>(null);
+  const refocaliser = useRef(false);
+  useEffect(() => {
+    if (!refocaliser.current) return;
+    refocaliser.current = false;
+    declencheur.current?.focus();
+  }, [e]);
 
   const chercher = (saisie: string) => {
     setErreur("");
+    setTrouvees(null);
     demarrer(async () => {
       const r = await chercherEntreprise(props.chantierId, saisie);
-      if (r.ok) setFiches(r.fiches);
-      else {
+      if (r.ok) {
+        setFiches(r.fiches);
+        setTrouvees(r.fiches.length);
+      } else {
         setFiches([]);
         setErreur(r.erreur);
       }
@@ -55,6 +69,7 @@ export function Entreprise(props: { chantierId: string; cible: string; suggestio
       const r = await lierEntreprise(props.chantierId, props.cible, s);
       if (r.ok) {
         toast.success(r.message);
+        refocaliser.current = true;
         setOuvert(false);
       } else setErreur(r.erreur);
     });
@@ -62,8 +77,10 @@ export function Entreprise(props: { chantierId: string; cible: string; suggestio
   const retirer = () =>
     demarrer(async () => {
       const r = await delierEntreprise(props.chantierId, props.cible);
-      if (r.ok) toast.success(r.message);
-      else toast.error(r.erreur);
+      if (r.ok) {
+        toast.success(r.message);
+        refocaliser.current = true;
+      } else toast.error(r.erreur);
     });
 
   const fenetre = (
@@ -74,10 +91,19 @@ export function Entreprise(props: { chantierId: string; cible: string; suggestio
         if (o) {
           setErreur("");
           setFiches([]);
+          setTrouvees(null);
         }
       }}
     >
-      <DialogTrigger render={<Button variant={e ? "ghost" : "outline"} size="xs" />}>{e ? "Changer" : "Vérifier l'entreprise"}</DialogTrigger>
+      <DialogTrigger ref={declencheur} render={<Button variant={e ? "ghost" : "outline"} size="xs" />}>
+        {e ? (
+          <>
+            Changer<span className="sr-only"> l&apos;entreprise {e.nom}</span>
+          </>
+        ) : (
+          "Vérifier l'entreprise"
+        )}
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Vérifier l&apos;entreprise</DialogTitle>
@@ -92,22 +118,25 @@ export function Entreprise(props: { chantierId: string; cible: string; suggestio
         >
           <Label htmlFor={`q-${props.cible}`}>Nom, SIREN ou SIRET</Label>
           <div className="flex gap-2">
-            <Input id={`q-${props.cible}`} name="q" defaultValue={props.suggestion} autoComplete="off" aria-describedby={erreur ? `err-${props.cible}` : undefined} />
+            <Input id={`q-${props.cible}`} name="q" defaultValue={props.suggestion} autoComplete="off" aria-invalid={erreur ? true : undefined} aria-describedby={erreur ? `err-${props.cible}` : undefined} />
             <Button type="submit" disabled={enCours}>
               {enCours ? "Recherche…" : "Chercher"}
             </Button>
           </div>
           {erreur && (
-            <p id={`err-${props.cible}`} className="text-sm text-destructive">
+            <p id={`err-${props.cible}`} role="alert" className="text-sm text-destructive">
               {erreur}
             </p>
           )}
         </form>
+        <p role="status" className="sr-only">
+          {trouvees === null ? "" : trouvees === 0 ? "Aucune entreprise trouvée." : `${trouvees} entreprise${trouvees > 1 ? "s" : ""} trouvée${trouvees > 1 ? "s" : ""}.`}
+        </p>
         {fiches.length > 0 && (
           <ul className="flex max-h-80 flex-col divide-y overflow-y-auto border-y">
             {fiches.map((f) => (
               <li key={f.siren}>
-                <button type="button" disabled={enCours} onClick={() => choisir(f.siren)} className="flex w-full flex-col gap-1 py-3 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none disabled:opacity-50">
+                <button type="button" disabled={enCours} onClick={() => choisir(f.siren)} className="flex w-full flex-col gap-1 py-3 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foreground disabled:opacity-50">
                   <span className="flex flex-wrap items-center gap-2 font-medium">
                     {f.nom} <Etat ferme={f.ferme} fermeeLe={f.fermeeLe} />
                   </span>
@@ -153,7 +182,7 @@ export function Entreprise(props: { chantierId: string; cible: string; suggestio
           <>
             {fenetre}
             <Button variant="ghost" size="xs" disabled={enCours} onClick={retirer}>
-              Retirer
+              Retirer<span className="sr-only"> l&apos;entreprise {e.nom}</span>
             </Button>
           </>
         )}

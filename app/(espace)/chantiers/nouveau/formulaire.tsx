@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +32,13 @@ function Champ(props: {
         defaultValue={props.defaut}
         inputMode={props.inputMode}
         autoComplete={props.autoComplete}
+        aria-describedby={props.aide ? `${props.id}-aide` : undefined}
       />
-      {props.aide && <p className="text-xs text-muted-foreground">{props.aide}</p>}
+      {props.aide && (
+        <p id={`${props.id}-aide`} className="text-xs text-muted-foreground">
+          {props.aide}
+        </p>
+      )}
     </div>
   );
 }
@@ -41,11 +46,17 @@ function Champ(props: {
 export function FormulaireNouveauChantier() {
   const [etat, action, enCours] = useActionState<EtatNouveauChantier, FormData>(creerChantier, {});
   const v = etat.champs ?? {};
+  const alerte = useRef<HTMLDivElement>(null);
+
+  // L'action ne dit pas quel champ est en cause : le focus va sur le message d'erreur.
+  useEffect(() => {
+    if (etat.erreur) alerte.current?.focus();
+  }, [etat]);
 
   return (
     <form action={action} className="flex flex-col gap-4">
       {etat.erreur && (
-        <Alert variant="destructive">
+        <Alert ref={alerte} id="erreur-nouveau-chantier" tabIndex={-1} variant="destructive">
           <AlertDescription>{etat.erreur}</AlertDescription>
         </Alert>
       )}

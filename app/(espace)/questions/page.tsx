@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { voitLInterne } from "@/lib/acces";
@@ -6,6 +7,8 @@ import { nombreDeDocuments } from "@/lib/recherche";
 import { appelantObligatoire } from "@/lib/session";
 import { BoutonIndexer } from "./bouton-indexer";
 import { Questions } from "./questions";
+
+export const metadata: Metadata = { title: "Questions" };
 
 export const dynamic = "force-dynamic";
 // Le bouton d'indexation lance la lecture des 20 documents depuis cette page.

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Section } from "@/components/section";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,8 @@ import { consommationDuMois, dernieresExecutions, derniersRejets } from "@/lib/n
 import { aujourdhuiParis } from "@/lib/regles";
 import { appelantObligatoire } from "@/lib/session";
 import { BoutonsNuit } from "./boutons";
+
+export const metadata: Metadata = { title: "Machine de nuit" };
 
 export const dynamic = "force-dynamic";
 // Les boutons lancent l'import depuis cette page : on lui laisse le temps de finir.
@@ -89,20 +92,21 @@ export default async function MachineDeNuit() {
         {executions.length === 0 ? (
           <p className="text-sm text-muted-foreground">Rien encore. Lancez « Importer les nuits manquantes ».</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau des exécutions, défilable">
             <table className="w-full min-w-[46rem] border-collapse text-sm">
+              <caption className="sr-only">Exécutions de la machine de nuit, des plus récentes aux plus anciennes</caption>
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="py-2 font-medium">Lancée</th>
-                  <th className="py-2 font-medium">Nuit</th>
-                  <th className="py-2 font-medium">Par</th>
-                  <th className="py-2 font-medium">Résultat</th>
-                  <th className="py-2 text-right font-medium">Reçus</th>
-                  <th className="py-2 text-right font-medium">Appliqués</th>
-                  <th className="py-2 text-right font-medium">Doublons</th>
-                  <th className="py-2 text-right font-medium">Mis de côté</th>
-                  <th className="py-2 text-right font-medium">Appels</th>
-                  <th className="py-2 text-right font-medium">Durée</th>
+                  <th scope="col" className="py-2 font-medium">Lancée</th>
+                  <th scope="col" className="py-2 font-medium">Nuit</th>
+                  <th scope="col" className="py-2 font-medium">Par</th>
+                  <th scope="col" className="py-2 font-medium">Résultat</th>
+                  <th scope="col" className="py-2 text-right font-medium">Reçus</th>
+                  <th scope="col" className="py-2 text-right font-medium">Appliqués</th>
+                  <th scope="col" className="py-2 text-right font-medium">Doublons</th>
+                  <th scope="col" className="py-2 text-right font-medium">Mis de côté</th>
+                  <th scope="col" className="py-2 text-right font-medium">Appels</th>
+                  <th scope="col" className="py-2 text-right font-medium">Durée</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,21 +163,25 @@ export default async function MachineDeNuit() {
           <p className="text-sm text-muted-foreground">Aucun appel à l&apos;IA ce mois-ci. Budget du mois : {euros(ia.budget)}.</p>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tableau des coûts de l'IA, défilable">
               <table className="w-full min-w-[36rem] border-collapse text-sm">
+                <caption className="sr-only">Coût de l&apos;IA ce mois-ci, par fonction</caption>
                 <thead>
                   <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="py-2 font-medium">Fonction</th>
-                    <th className="py-2 text-right font-medium">Appels</th>
-                    <th className="py-2 text-right font-medium">Échecs</th>
-                    <th className="py-2 text-right font-medium">Coût moyen par appel</th>
-                    <th className="py-2 text-right font-medium">Coût du mois</th>
+                    <th scope="col" className="py-2 font-medium">Fonction</th>
+                    <th scope="col" className="py-2 text-right font-medium">Appels</th>
+                    <th scope="col" className="py-2 text-right font-medium">Échecs</th>
+                    <th scope="col" className="py-2 text-right font-medium">Coût moyen par appel</th>
+                    <th scope="col" className="py-2 text-right font-medium">Coût du mois</th>
                   </tr>
                 </thead>
                 <tbody>
                   {ia.fonctions.map((f) => (
                     <tr key={f.fonction} className="border-b">
-                      <td className="py-2" title={f.fonction}>{f.nom}</td>
+                      <td className="py-2">
+                        {f.nom}
+                        <span className="block font-mono text-xs text-muted-foreground">{f.fonction}</span>
+                      </td>
                       <td className="py-2 text-right tabular-nums">{f.appels}</td>
                       <td className="py-2 text-right tabular-nums">{f.echecs}</td>
                       <td className="py-2 text-right tabular-nums">{euros(f.coutMoyen, 4)}</td>

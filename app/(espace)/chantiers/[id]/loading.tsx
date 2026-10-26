@@ -11,14 +11,17 @@ export default function Chargement() {
   const { id } = useParams<{ id: string }>();
   return (
     <PageGlissante>
-      <div className="flex flex-col gap-6" aria-busy="true" aria-label="Chargement du chantier">
-        <Skeleton className="h-5 w-28" />
+      <div className="flex flex-col gap-6" aria-busy="true">
+        <p role="status" className="sr-only">
+          Chargement du chantier…
+        </p>
+        <Skeleton className="h-5 w-28" aria-hidden />
         <PhotoPartagee chantierId={id}>
           <Vignette chantierId={id} aPhoto alt="" className="aspect-[16/9] w-full rounded-3xl md:aspect-[3/1]" />
         </PhotoPartagee>
-        <Skeleton className="h-4 w-48" />
-        <Skeleton className="h-12 w-2/3" />
-        <Skeleton className="h-24 w-full rounded-md" />
+        <Skeleton className="h-4 w-48" aria-hidden />
+        <Skeleton className="h-12 w-2/3" aria-hidden />
+        <Skeleton className="h-24 w-full rounded-md" aria-hidden />
       </div>
     </PageGlissante>
   );
