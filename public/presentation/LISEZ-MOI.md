@@ -1,6 +1,6 @@
 # Les captures de la page de présentation
 
-Déposez ici les captures d'écran de groma, au nom exact ci-dessous. Elles sont publiques : utilisez les données fictives, jamais de vraies personnes. Format conseillé : PNG, 1 600 px de large, fenêtre d'ordinateur.
+Déposez ici les captures d'écran de groma, au nom exact ci-dessous. Elles sont publiques : utilisez les données fictives, jamais de vraies personnes. Chaque vue existe en deux formats : l'ordinateur (PNG, 1 600 px de large) et le téléphone, au même nom suivi de `-mobile` (PNG, 390 × 844, par exemple `02-fiche-mobile.png`). Le téléphone se pose sur le coin de la vue d'ordinateur.
 
 | Fichier | Ce qu'il montre |
 | --- | --- |
