@@ -217,3 +217,41 @@ export function genererChantiers(aujourdhui = new Date("2026-10-05")): ChantierF
   resultat[6] = { ...resultat[6], nom: "Gros chantier", montantHt: "248000" };
   return resultat;
 }
+
+// Trois propositions de l'assistant, en attente de validation, pour que la file « À valider »
+// ne soit pas vide en démonstration : un courriel, une demande à un externe, un partage, sur
+// trois chantiers actifs différents, chacune adressée à un externe qui participe au chantier.
+// Le partage porte sur un élément du fil encore interne. Indices dans les chantiers, les
+// personnes et le fil du chantier ; le rejeu les traduit en identifiants.
+export type PropositionFictive =
+  | { chantier: number; type: "courriel"; externe: number; sujet: string; texte: string }
+  | { chantier: number; type: "demande_externe"; externe: number; texte: string; dansJours: number }
+  | { chantier: number; type: "partage"; externe: number; element: number };
+
+export function propositionsFictives(chantiersFictifs: ChantierFictif[]): PropositionFictive[] {
+  const candidats = chantiersFictifs
+    .map((c, i) => ({ c, i, externe: c.participants.find((p) => PERSONNES[p].role === "externe") }))
+    .filter((x): x is { c: ChantierFictif; i: number; externe: number } => x.externe !== undefined && (x.c.statut === "en_cours" || x.c.statut === "reception"));
+  if (candidats.length < 3) return [];
+  const [a, b] = candidats;
+  // Le partage : le premier chantier (après les deux autres) qui a un élément du fil encore interne.
+  const c = candidats.slice(2).map((x) => ({ ...x, element: x.c.fil.findIndex((e) => e.visiblePar.length === 0 && e.type === "message") })).find((x) => x.element >= 0);
+  const props: PropositionFictive[] = [
+    {
+      chantier: a.i,
+      type: "courriel",
+      externe: a.externe,
+      sujet: "Passage du carreleur avancé à jeudi",
+      texte: `Bonjour ${PERSONNES[a.externe].nom.split(" ")[0]},\n\nLe carreleur peut passer jeudi plutôt que vendredi. Pouvez-vous être présent à partir de 9 h pour lui ouvrir ?\n\nBien cordialement,\nL'équipe`,
+    },
+    {
+      chantier: b.i,
+      type: "demande_externe",
+      externe: b.externe,
+      texte: "Merci de nous transmettre votre choix définitif de faïence pour la salle de bain.",
+      dansJours: 5,
+    },
+  ];
+  if (c) props.push({ chantier: c.i, type: "partage", externe: c.externe, element: c.element });
+  return props;
+}

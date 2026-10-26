@@ -2,8 +2,9 @@ import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { chantiers, comptes, fil, lots, participants } from "@/lib/db/schema";
-import { genererChantiers, PERSONNES } from "@/lib/jeu-de-donnees";
+import { chantiers, comptes, fil, lots, participants, propositions } from "@/lib/db/schema";
+import { genererChantiers, PERSONNES, propositionsFictives } from "@/lib/jeu-de-donnees";
+import { aujourdhuiParis } from "@/lib/regles";
 
 // Rejoue le jeu de données : efface tout ce qui est marqué fictif, puis le recrée
 // à l'identique. Les vrais comptes et les vrais chantiers ne sont jamais touchés.
@@ -11,7 +12,8 @@ import { genererChantiers, PERSONNES } from "@/lib/jeu-de-donnees";
 export async function rejouerJeuDeDonnees(motDePasse: string) {
   const hash = await bcrypt.hash(motDePasse, 10);
   const idsComptes = PERSONNES.map(() => randomUUID());
-  const lignesChantiers = genererChantiers().map((c) => ({ ...c, id: randomUUID() }));
+  const lignesChantiers = genererChantiers().map((c) => ({ ...c, id: randomUUID(), idsFil: c.fil.map(() => randomUUID()) }));
+  const aPropose = PERSONNES.findIndex((p) => p.role === "equipe");
 
   await db.batch([
     // Les participants partent avec leurs chantiers et leurs comptes (suppression en cascade).
@@ -23,7 +25,7 @@ export async function rejouerJeuDeDonnees(motDePasse: string) {
     db.insert(chantiers).values(
       lignesChantiers.map((c) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { participants: _, lots: _l, fil: _f, ...chantier } = c;
+        const { participants: _, lots: _l, fil: _f, idsFil: _i, ...chantier } = c;
         return { ...chantier, fictif: true };
       }),
     ),
@@ -35,6 +37,7 @@ export async function rejouerJeuDeDonnees(motDePasse: string) {
     db.insert(fil).values(
       lignesChantiers.flatMap((c) =>
         c.fil.map((e, k) => ({
+          id: c.idsFil[k],
           chantierId: c.id,
           auteurId: idsComptes[e.auteur],
           type: e.type,
@@ -53,7 +56,27 @@ export async function rejouerJeuDeDonnees(motDePasse: string) {
         c.participants.map((i) => ({ chantierId: c.id, compteId: idsComptes[i], qualite: PERSONNES[i].qualite })),
       ),
     ),
+    // Trois propositions de l'assistant en attente, pour que « À valider » ne soit pas vide en
+    // démonstration. Elles partent avec leurs chantiers fictifs au prochain rejeu (cascade).
+    db.insert(propositions).values(
+      propositionsFictives(lignesChantiers).map((p) => {
+        const c = lignesChantiers[p.chantier];
+        const destinataire = PERSONNES[p.externe].nom;
+        const contenu =
+          p.type === "courriel"
+            ? { destinataireId: idsComptes[p.externe], destinataire, sujet: p.sujet, texte: p.texte }
+            : p.type === "demande_externe"
+              ? { destinataireId: idsComptes[p.externe], destinataire, texte: p.texte, echeance: dansJours(p.dansJours) }
+              : { elementId: c.idsFil[p.element], compteId: idsComptes[p.externe], destinataire, extrait: c.fil[p.element].texte.slice(0, 160) };
+        return { proposePar: idsComptes[aPropose], chantierId: c.id, type: p.type, contenu };
+      }),
+    ),
   ]);
 
-  return { comptes: PERSONNES.length, chantiers: lignesChantiers.length };
+  return { comptes: PERSONNES.length, chantiers: lignesChantiers.length, propositions: propositionsFictives(lignesChantiers).length };
+}
+
+function dansJours(n: number): string {
+  const [a, m, j] = aujourdhuiParis().split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, j + n)).toISOString().slice(0, 10);
 }
