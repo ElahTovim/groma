@@ -53,3 +53,12 @@ export async function exporterMesDonnees(qui: Appelant) {
     jetonsClaude: mesJetons,
   };
 }
+
+// À la création d'un compte : la décision de la personne sur ses deux autorisations, cochée ou non.
+export async function noterAutorisationsInitiales(compteId: string, choix: { groma: boolean; entreprise: boolean }) {
+  const profil = await lireProfil();
+  await db.insert(consentements).values([
+    { compteId, destinataire: "groma", accepte: choix.groma, versionPolitique: "groma-2026-10" },
+    { compteId, destinataire: "entreprise", accepte: choix.entreprise, versionPolitique: profil.politiqueModifieeLe },
+  ]);
+}

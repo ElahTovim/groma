@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { appelant } from "@/lib/session";
 import { db } from "@/lib/db";
+import { noterAutorisationsInitiales } from "@/lib/donnees-personnelles";
 import { comptes, participants } from "@/lib/db/schema";
 import { formulaireCompte } from "@/lib/invitation";
 import { consommerJeton } from "@/lib/jetons";
@@ -34,6 +35,8 @@ export async function accepterInvitation(jeton: string, _: EtatInvitation, formD
         .returning({ id: comptes.id })
     )[0].id;
   await db.insert(participants).values({ chantierId: j.chantierId, compteId, qualite: j.qualite }).onConflictDoNothing();
+  // Les deux autorisations (RGPD), telles que la personne les a cochées ou non.
+  await noterAutorisationsInitiales(compteId, { groma: formData.get("autorisationGroma") === "on", entreprise: formData.get("autorisationEntreprise") === "on" });
 
   journal("invitation_acceptee", { compte: compteId, chantier: j.chantierId, role: j.role, qualite: j.qualite });
   redirect("/connexion?invite=1");

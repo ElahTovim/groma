@@ -14,6 +14,8 @@ export function FormulaireMotDePasse(props: {
   action: (etat: Etat, formData: FormData) => Promise<Etat>;
   avecNom: boolean;
   bouton: string;
+  // À la création d'un compte : les deux autorisations (RGPD), décochées par défaut.
+  autorisations?: { entreprise: string };
 }) {
   const [etat, action, enCours] = useActionState<Etat, FormData>(
     props.action,
@@ -69,6 +71,20 @@ export function FormulaireMotDePasse(props: {
           required
         />
       </div>
+      {props.autorisations && (
+        <fieldset className="flex flex-col gap-3 rounded-xl border p-3">
+          <legend className="px-1 text-sm font-medium">Vos données</legend>
+          <label className="flex cursor-pointer items-start gap-3 text-sm">
+            <input type="checkbox" name="autorisationGroma" className="mt-0.5 size-4 accent-foreground" />
+            <span>J&apos;autorise groma, l&apos;éditeur du logiciel, à traiter mes données pour faire fonctionner le service.</span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-3 text-sm">
+            <input type="checkbox" name="autorisationEntreprise" className="mt-0.5 size-4 accent-foreground" />
+            <span>J&apos;autorise {props.autorisations.entreprise} à utiliser mes données pour suivre les chantiers où j&apos;interviens.</span>
+          </label>
+          <p className="text-xs text-muted-foreground">Vous pourrez les retirer à tout moment, et exporter vos données, dans « Mes données ».</p>
+        </fieldset>
+      )}
       <Button type="submit" disabled={enCours}>
         {enCours ? "Un instant…" : props.bouton}
       </Button>
