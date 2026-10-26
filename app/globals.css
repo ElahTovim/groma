@@ -395,3 +395,48 @@ html {
 .ciel-pause .ciel * {
   animation-play-state: paused !important;
 }
+
+/* ——— Page de présentation : un plan d'architecte ———
+   Papier millimétré à deux trames (1 mm et 5 mm), repères de coupe autour des captures,
+   tampons encreurs posés de travers. Noir et blanc, rien d'autre. */
+.plan {
+  background-color: var(--background);
+  background-image:
+    linear-gradient(color-mix(in oklch, var(--foreground) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklch, var(--foreground) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(color-mix(in oklch, var(--foreground) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklch, var(--foreground) 3%, transparent) 1px, transparent 1px);
+  background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+  background-position: -1px -1px;
+}
+.coupe { position: relative; }
+.coupe::before, .coupe::after, .coupe > .coupe-bas::before, .coupe > .coupe-bas::after {
+  content: ""; position: absolute; width: 18px; height: 18px; border-color: var(--foreground); border-style: solid; pointer-events: none;
+}
+.coupe::before { top: -10px; left: -10px; border-width: 1px 0 0 1px; }
+.coupe::after { top: -10px; right: -10px; border-width: 1px 1px 0 0; }
+.coupe > .coupe-bas::before { bottom: -10px; left: -10px; border-width: 0 0 1px 1px; }
+.coupe > .coupe-bas::after { bottom: -10px; right: -10px; border-width: 0 1px 1px 0; }
+
+.tampon {
+  transform: rotate(var(--penche, -6deg));
+  transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (hover: hover) {
+  .tampon:hover { transform: rotate(0deg) scale(1.06); }
+}
+@keyframes tampon-pose {
+  0% { opacity: 0; transform: rotate(var(--penche, -6deg)) scale(1.35); }
+  70% { opacity: 1; transform: rotate(var(--penche, -6deg)) scale(0.96); }
+  100% { opacity: 1; transform: rotate(var(--penche, -6deg)) scale(1); }
+}
+@supports (animation-timeline: view()) {
+  .tampon-anime {
+    animation: tampon-pose linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 30%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tampon, .tampon-anime { transition: none; animation: none; }
+}
