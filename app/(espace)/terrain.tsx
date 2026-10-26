@@ -2,7 +2,7 @@
 
 import { LayoutGrid, List } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { Cote, Reticule } from "@/components/cote";
 import { PhotoPartagee, VERS_FICHE } from "@/components/transitions";
 import type { DonneesCote } from "@/lib/cote";
@@ -49,9 +49,8 @@ function abonner(f: () => void) {
 }
 
 // Les chantiers en cartes (par défaut) ou en liste. Le choix est retenu sur cet
-// appareil. Sur téléphone, les cartes défilent sur le côté (accueil) ou s'empilent
-// (page Chantiers, `carrousel={false}`) ; sur ordinateur, une grille.
-export function Terrain({ titre, chantiers, carrousel = true, cle = CLE_VUE }: { titre?: string; chantiers: ChantierTerrain[]; carrousel?: boolean; cle?: string }) {
+// appareil. Sur téléphone, les cartes forment une pile ; sur ordinateur, une grille.
+export function Terrain({ titre, chantiers, cle = CLE_VUE }: { titre?: string; chantiers: ChantierTerrain[]; cle?: string }) {
   // Cartes par défaut, y compris au premier affichage par le serveur.
   const vue = useSyncExternalStore(abonner, () => lireVue(cle), () => "cartes" as Vue);
   const choisir = (v: Vue) => ecrireVue(cle, v);
@@ -96,9 +95,14 @@ export function Terrain({ titre, chantiers, carrousel = true, cle = CLE_VUE }: {
           </div>
         </div>
       </div>
-      {vue === "cartes" ? <Cartes chantiers={chantiers} carrousel={carrousel} /> : <Liste chantiers={chantiers} />}
+      {vue === "cartes" ? <Cartes chantiers={chantiers} /> : <Liste chantiers={chantiers} />}
     </section>
   );
+}
+
+// Ce qu'un lecteur d'écran dit d'une carte : le nom d'abord, puis l'essentiel.
+function nomCarte(c: ChantierTerrain) {
+  return `${c.nom}, ${c.ville}, ${c.etape}${c.aViser ? `, à viser : ${c.aViser}` : ""}${c.cote.total ? `, lots finis ${c.cote.finis} sur ${c.cote.total}` : ""}`;
 }
 
 function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string; rang: number }) {
@@ -106,7 +110,7 @@ function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string;
     <Link
       href={`/chantiers/${c.id}`}
       transitionTypes={VERS_FICHE}
-      aria-label={`${c.nom}, ${c.ville}, ${c.etape}${c.aViser ? `, à viser : ${c.aViser}` : ""}${c.cote.total ? `, lots finis ${c.cote.finis} sur ${c.cote.total}` : ""}`}
+      aria-label={nomCarte(c)}
       className={cn("carte-photo relative isolate flex flex-col justify-between overflow-hidden rounded-3xl bg-foreground p-4 text-white md:p-5", className)}
     >
       {c.aPhoto ? (
@@ -140,51 +144,69 @@ function Carte({ c, className, rang }: { c: ChantierTerrain; className?: string;
   );
 }
 
-function Cartes({ chantiers, carrousel }: { chantiers: ChantierTerrain[]; carrousel: boolean }) {
-  const piste = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
+// Téléphone : une pile, comme des dossiers posés les uns sur les autres. Chaque carte
+// laisse voir son bandeau (le titre en entier sur deux lignes, la ville, l'étape) ; la
+// dernière se voit en entier. On fait défiler la page pour parcourir la pile, dans
+// l'ordre de lecture ; la carte qui reçoit le focus clavier sort de la pile.
+function Pile({ chantiers }: { chantiers: ChantierTerrain[] }) {
+  return (
+    <ul className="flex flex-col pt-1 pb-2 md:hidden">
+      {chantiers.map((c, i) => (
+        <li
+          key={c.id}
+          className={cn("relative z-(--rang-pile) transition-transform duration-300 ease-out focus-within:z-50 focus-within:-translate-y-3", i > 0 && "-mt-[13rem]")}
+          style={{ "--rang-pile": i + 1 } as React.CSSProperties}
+        >
+          <CartePile c={c} rang={i} />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
-  function suivre() {
-    const el = piste.current;
-    const premiere = el?.firstElementChild as HTMLElement | null;
-    if (!el || !premiere) return;
-    const pas = premiere.offsetWidth + 12;
-    setIndex(Math.min(chantiers.length - 1, Math.max(0, Math.round(el.scrollLeft / pas))));
-  }
+function CartePile({ c, rang }: { c: ChantierTerrain; rang: number }) {
+  return (
+    <Link
+      href={`/chantiers/${c.id}`}
+      transitionTypes={VERS_FICHE}
+      aria-label={nomCarte(c)}
+      className="carte-photo relative isolate flex h-[20rem] flex-col justify-between overflow-hidden rounded-3xl bg-foreground p-4 text-white shadow-[0_-10px_28px_-14px_rgb(0_0_0/0.55)] ring-1 ring-white/20 ring-inset active:scale-[0.99]"
+    >
+      {c.aPhoto ? (
+        <PhotoPartagee chantierId={c.id}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- image privée, servie après vérification des droits */}
+          <img src={`/api/photos/${c.id}`} alt="" loading="lazy" className="absolute inset-0 -z-20 size-full object-cover" />
+        </PhotoPartagee>
+      ) : (
+        <Reticule className="absolute top-1/2 left-1/2 -z-20 size-40 -translate-1/2 text-white/10" plein={false} />
+      )}
+      {/* Voile sombre en haut (le bandeau qui reste visible) et en bas (la cote). */}
+      <span aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-b from-black/80 via-black/35 to-black/85" />
+      <span className="flex items-start justify-between gap-3">
+        <span className="flex min-w-0 flex-col gap-1.5">
+          <span className="line-clamp-2 font-display text-[1.55rem] leading-[1.02] font-extrabold tracking-tight">{c.nom}</span>
+          <span className="annotation truncate text-white">
+            {c.ville} · {c.etape}
+          </span>
+        </span>
+        {c.aViser && (
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-black" title="À viser">
+            <Reticule className="size-5" />
+          </span>
+        )}
+      </span>
+      <span className="flex flex-col gap-3">
+        {c.aViser && <span className="w-fit rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-black">{c.aViser}</span>}
+        <Cote c={c.cote} clair rang={rang} />
+      </span>
+    </Link>
+  );
+}
 
-  // Sans carrousel : une grille, une colonne sur téléphone.
-  if (!carrousel) {
-    return (
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] md:gap-4">
-        {chantiers.map((c, i) => (
-          <Carte key={c.id} c={c} rang={i} className="apparait h-[22rem] md:h-[21rem]" />
-        ))}
-      </div>
-    );
-  }
-
+function Cartes({ chantiers }: { chantiers: ChantierTerrain[] }) {
   return (
     <>
-      {/* Téléphone : un carrousel, la carte suivante dépasse sur le bord. */}
-      <div className="flex flex-col gap-3 md:hidden">
-        <div ref={piste} onScroll={suivre} role="region" aria-roledescription="carrousel" aria-label="Chantiers, à faire défiler" className="carrousel -mx-4 flex gap-3 overflow-x-auto px-4 pt-1 pb-2">
-          {chantiers.map((c, i) => (
-            <Carte key={c.id} c={c} rang={i} className="h-[26rem] w-[80%] shrink-0" />
-          ))}
-        </div>
-        {chantiers.length > 1 && (
-          <div className="flex items-center gap-3" aria-hidden>
-            <span className="annotation min-w-14 tabular-nums">
-              {String(index + 1).padStart(2, "0")} / {String(chantiers.length).padStart(2, "0")}
-            </span>
-            <span className="flex flex-1 gap-1">
-              {chantiers.map((c, i) => (
-                <span key={c.id} className={cn("h-0.5 flex-1 rounded-full transition-colors duration-300", i === index ? "bg-foreground" : "bg-foreground/15")} />
-              ))}
-            </span>
-          </div>
-        )}
-      </div>
+      <Pile chantiers={chantiers} />
       {/* Ordinateur : une grille. */}
       <div className="hidden grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4 md:grid">
         {chantiers.map((c, i) => (

@@ -285,31 +285,6 @@
   transition: transform 0.36s cubic-bezier(0.23, 1, 0.32, 1), width 0.36s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-/* Le carrousel des chantiers sur téléphone : chaque carte s'aligne d'elle-même ;
-   celle du centre est pleine, ses voisines rétrécissent et pâlissent. */
-.carrousel {
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: 1rem;
-  scrollbar-width: none;
-}
-.carrousel::-webkit-scrollbar {
-  display: none;
-}
-.carrousel > * {
-  scroll-snap-align: start;
-}
-@supports (animation-timeline: view()) {
-  .carrousel > * {
-    animation: carte-centre linear both;
-    animation-timeline: view(x);
-    animation-range: cover 0% cover 100%;
-  }
-}
-@keyframes carte-centre {
-  0% { transform: scale(0.93); opacity: 0.55; }
-  35%, 65% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.93); opacity: 0.55; }
-}
 .carte-photo img {
   transition: transform 0.9s cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -318,7 +293,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .glisse, .carte-photo img { transition: none; }
-  .carrousel > * { animation: none; }
 }
 /* L'étape en cours d'un jalon : hachurée, comme une zone en travaux sur un plan. */
 .hachure {
