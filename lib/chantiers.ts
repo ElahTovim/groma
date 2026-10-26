@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { chantiers, comptes, fil, lots, participants, type StatutChantier } from "@/lib/db/schema";
 import { aujourdhuiParis, lotEnRetard, poidsATraiter, type ATraiter } from "@/lib/regles";
 import { STATUTS } from "@/lib/chantier-forme";
+import { photoAffichee } from "@/lib/jeu-de-donnees";
 import type { Appelant } from "@/lib/session";
 
 // Le chantier tel qu'un écran a le droit de le voir : le montant n'existe pas
@@ -45,7 +46,7 @@ function filtrerPour(qui: Appelant, c: typeof chantiers.$inferSelect): ChantierV
     montantHt: voitLInterne(qui.role) ? c.montantHt : undefined,
     latitude: c.latitude,
     longitude: c.longitude,
-    aPhoto: Boolean(c.photoUrl),
+    aPhoto: Boolean(photoAffichee(c.photoUrl, c.reference)),
     clientSiren: voitLInterne(qui.role) ? c.clientSiren : null,
   };
 }

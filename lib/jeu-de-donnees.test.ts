@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { DOMAINE_FICTIF, estPhotoFictive, genererChantiers, PERSONNES, PHOTOS_FICTIVES } from "./jeu-de-donnees";
+import { DOMAINE_FICTIF, estPhotoFictive, genererChantiers, PERSONNES, photoAffichee, PHOTOS_FICTIVES } from "./jeu-de-donnees";
 
 describe("le jeu de données fictif", () => {
   it("contient dix personnes et cinquante chantiers", () => {
@@ -50,5 +50,17 @@ describe("le jeu de données fictif", () => {
     expect(cs.find((c) => c.nom === "Devis sans montant")?.photoUrl).toBeNull();
     expect(cs.filter((c) => c.photoUrl).length).toBe(49);
     expect(estPhotoFictive("https://x.private.blob.vercel-storage.com/jeu-de-donnees/interieur-1.jpg")).toBe(false);
+  });
+});
+
+describe("photoAffichee", () => {
+  it("garde la photo déposée pour le chantier", () => {
+    expect(photoAffichee("https://x.private.blob.vercel-storage.com/a.jpg", "CHA-1")).toBe("https://x.private.blob.vercel-storage.com/a.jpg");
+  });
+
+  it("sans photo, prend une photo du jeu de données, toujours la même pour la référence", () => {
+    const p = photoAffichee(null, "CHA-20261010-06");
+    expect(PHOTOS_FICTIVES).toContain(p);
+    expect(photoAffichee(null, "CHA-20261010-06")).toBe(p);
   });
 });
