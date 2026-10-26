@@ -11,9 +11,9 @@ import { demanderALAssistant } from "./actions";
 const LONGUEUR_MAX = 2000;
 
 // Le champ de demande. L'exécution dure de 15 à 90 secondes : on dit ce qui se passe.
-export function FormulaireAssistant() {
+export function FormulaireAssistant({ demandeInitiale = "" }: { demandeInitiale?: string }) {
   const router = useRouter();
-  const [demande, setDemande] = useState("");
+  const [demande, setDemande] = useState(demandeInitiale);
   const [enCours, demarrer] = useTransition();
   const [secondes, setSecondes] = useState(0);
   const [erreur, setErreur] = useState<{ texte: string; executionId?: string } | null>(null);

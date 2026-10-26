@@ -1,6 +1,6 @@
 "use client";
 
-import { HelpCircle, X } from "lucide-react";
+import { HelpCircle, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Reticule } from "@/components/cote";
@@ -17,7 +17,7 @@ function aplatir(s: string) {
 
 // Un seul champ en tête de l'accueil : pendant la frappe, les chantiers qui
 // correspondent ; et, pour l'équipe, « Demander à groma » qui pose la question
-// sur les documents. Tant que le champ est vide, le reste de l'accueil s'affiche.
+// sur les documents, et « Confier à l'assistant » qui ouvre l'assistant avec la phrase. Tant que le champ est vide, le reste de l'accueil s'affiche.
 export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: ChantierCherche[]; questions: boolean; children: React.ReactNode }) {
   const [q, setQ] = useState("");
   const champ = useRef<HTMLInputElement>(null);
@@ -84,10 +84,21 @@ export function RechercheAccueil(props: { entete: React.ReactNode; chantiers: Ch
               </span>
             </Link>
           )}
+          {props.questions && (
+            // L'assistant (semaine 4) : il lit les chantiers et prépare le travail ; rien ne part sans validation.
+            <Link href={`/assistant?q=${encodeURIComponent(q.trim())}`} className="flex items-start gap-3.5 rounded-2xl border border-foreground bg-card p-4 active:scale-[0.99] md:p-5">
+              <Sparkles className="mt-0.5 size-5 shrink-0" aria-hidden />
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="font-semibold">Confier à l&apos;assistant</span>
+                <span className="text-muted-foreground">« {q.trim()} »</span>
+                <span className="annotation mt-1 text-muted-foreground">Il lit vos chantiers et prépare le travail ; ce qui part vers quelqu&apos;un attend votre validation</span>
+              </span>
+            </Link>
+          )}
           <div className="flex flex-col">
             <p className="annotation border-b border-foreground/15 pb-2 text-muted-foreground">Chantiers · {trouves.length}</p>
             {trouves.length === 0 ? (
-              <p className="py-4 text-muted-foreground">Aucun chantier ne porte ce nom.{props.questions ? " Posez plutôt la question à groma, juste au-dessus." : ""}</p>
+              <p className="py-4 text-muted-foreground">Aucun chantier ne porte ce nom.{props.questions ? " Posez plutôt la question à groma, ou confiez-la à l'assistant, juste au-dessus." : ""}</p>
             ) : (
               <ul>
                 {trouves.slice(0, 8).map((c) => (
