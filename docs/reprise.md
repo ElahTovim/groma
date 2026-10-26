@@ -4,7 +4,7 @@
 
 **Fait**
 - « À traiter » et « À viser » regardent toute la base : les chantiers qui attendent un geste passent d'abord (même anciens), les plus récents complètent la liste de 200 (`reunirListe` dans `lib/regles.ts`, trois tests). Les chiffres sont comptés dans toute la base (`compterAttendantUnGeste`).
-- Vérifié sur une copie de la production (projet Neon temporaire, supprimé ensuite) : avant, 0 des 21 chantiers à viser n'apparaissait ; après, 21 listés, « 21 à viser ». Compte externe inchangé. 337 tests, lint, types, construction au vert.
+- Vérifié sur une copie de la production (projet Neon temporaire, supprimé ensuite) : avant, 0 des 21 chantiers à viser n'apparaissait ; après, 21 listés, « 21 à viser ». Compte externe inchangé. 334 tests, lint, types, construction au vert.
 
 **Reste**
 - Kerguelenn : essayer la prévisualisation, puis fusionner.
