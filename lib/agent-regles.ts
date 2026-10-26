@@ -21,6 +21,7 @@ export const OUTILS_AGENT: Record<string, { genre: Genre; description: string }>
   },
   lister_pieces_a_obtenir: { genre: "lecture", description: "Les pièces attendues qui manquent, ont été refusées ou expirent, sur les chantiers accessibles." },
   lister_demandes_en_retard: { genre: "lecture", description: "Les demandes du fil dont l'échéance est passée, sur les chantiers accessibles." },
+  lire_courriers: { genre: "lecture", description: "Les derniers courriers reçus (flux ou déposés) : expéditeur, chantier rattaché, catégorie, résumé et texte. Facultatif : un texte à chercher (expéditeur, société)." },
   chercher_dans_les_documents: { genre: "lecture", description: "Cherche dans les documents de référence (procédures, contrats types…) et rend les passages pertinents avec leur document et leur page." },
   ecrire_note_interne: { genre: "direct", description: "Écrit une note interne dans le fil d'un chantier (vue par l'équipe seulement)." },
   creer_demande_interne: { genre: "direct", description: "Crée une demande pour un membre de l'équipe participant au chantier, avec une échéance (AAAA-MM-JJ)." },

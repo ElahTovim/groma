@@ -1,10 +1,10 @@
-import { and, eq, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, lt } from "drizzle-orm";
 import { z } from "zod";
 import { voitLInterne } from "@/lib/acces";
 import { listerChantiers, lireChantier } from "@/lib/chantiers";
 import { consigneCacheeDans } from "@/lib/courriers-regles";
 import { db } from "@/lib/db";
-import { chantiers, comptes, fil, propositions } from "@/lib/db/schema";
+import { chantiers, comptes, courriers, fil, propositions } from "@/lib/db/schema";
 import { contexteChantier, lireFil, lireLots, lireParticipants } from "@/lib/fiche";
 import { ecrireDansLeFil } from "@/lib/operations/chantier";
 import { exiger } from "@/lib/operations/pieces";
@@ -111,6 +111,22 @@ export const OUTILS: Record<string, Outil> = {
         .leftJoin(comptes, eq(fil.destinataireId, comptes.id))
         .where(and(inArray(fil.chantierId, ids), eq(fil.type, "demande"), lt(fil.dateCible, aujourdhuiParis())));
       return donnees(lignes.slice(0, 60).map((l) => ({ ...l, texte: l.texte.slice(0, 200) })));
+    },
+  },
+
+  lire_courriers: {
+    schema: { texte: z.string().optional() },
+    async executer({ qui }, a) {
+      if (!voitLInterne(qui.role)) return refus("Réservé à l'équipe.");
+      const lignes = await db
+        .select({ id: courriers.id, champs: courriers.champs, resume: courriers.resume, texte: courriers.texte, categorie: courriers.categorie, statut: courriers.statut, chantier: chantiers.reference })
+        .from(courriers)
+        .leftJoin(chantiers, eq(courriers.chantierId, chantiers.id))
+        .orderBy(desc(courriers.recuLe))
+        .limit(40);
+      const cherche = typeof a.texte === "string" ? a.texte.toLowerCase().trim() : "";
+      const choisis = lignes.filter((c) => !cherche || JSON.stringify(c.champs ?? {}).toLowerCase().includes(cherche) || c.texte.toLowerCase().includes(cherche)).slice(0, 10);
+      return donnees(choisis.map((c) => ({ id: c.id, expediteur: c.champs?.expediteur ?? null, societe: c.champs?.societe ?? null, chantier: c.chantier, categorie: c.categorie, statut: c.statut, resume: c.resume, texte: c.texte.slice(0, 1500) })));
     },
   },
 

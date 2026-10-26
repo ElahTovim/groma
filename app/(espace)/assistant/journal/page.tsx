@@ -29,9 +29,14 @@ export default async function JournalAssistant({ searchParams }: PageProps<"/ass
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <Link href="/assistant" className="text-sm text-muted-foreground underline underline-offset-2">
-          Assistant
-        </Link>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <Link href="/assistant" className="text-muted-foreground underline underline-offset-2">
+            Assistant
+          </Link>
+          <Link href="/assistant/scenarios" className="font-medium underline underline-offset-2">
+            Les vingt scénarios
+          </Link>
+        </div>
         <h1 className="font-display text-[2.5rem] leading-[0.95] font-extrabold tracking-tight md:text-6xl">
           Journal de l&apos;assistant
           <span className="block text-muted-foreground/70">{nbARegarder} à regarder</span>
