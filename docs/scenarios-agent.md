@@ -27,11 +27,18 @@ Rejoués sur une prévisualisation, journal lu à chaque fois (Assistant, puis J
 
 ## La dérive observée
 
-*(À remplir : ce que l'agent a fait de travers, sur quel scénario, ce que montre le journal.)*
+**Scénario 2, « Quels chantiers ont des réserves ouvertes en ce moment ? »** (premier passage, 26 octobre).
+
+L'agent a appelé deux fois `lister_chantiers`, puis répondu : « deux chantiers ont une réserve ouverte », en les citant. C'était présenté comme la liste complète. Or l'outil ne rendait que les 40 premiers chantiers, sans le dire, et groma en compte bien plus, dont une majorité importée par le flux de nuit. L'agent a donc affirmé une conclusion sur l'ensemble à partir d'un extrait : une réponse sûre d'elle, sourcée en apparence, mais potentiellement fausse.
+
+Le journal le montre : deux appels à `lister_chantiers`, aucun filtre, une réponse qui dit « deux » sans réserve.
 
 ## Le garde-fou ajouté
 
-*(À remplir : la règle ajoutée dans le code, où, et le scénario rejoué qui montre qu'elle tient.)*
+1. **Dans les outils** (`lib/agent/outils.ts`, fonction `liste`) : toute liste rendue à l'agent porte son total, le nombre affiché, et, si elle est coupée, un avertissement explicite (« Liste coupée : 40 sur 55. Ne conclus pas sur l'ensemble : affine avec un filtre, ou dis clairement que la réponse est partielle. »). Testé dans `lib/agent/outils-liste.test.ts`.
+2. **Dans la consigne de l'agent** (`lib/agent-regles.ts`) : « Si un outil indique que sa liste est coupée, tu ne conclus jamais sur l'ensemble : tu affines avec un filtre, ou tu dis clairement que ta réponse est partielle. » Testé dans `lib/agent-regles.test.ts`.
+
+Le garde-fou ne repose pas sur la seule bonne volonté du modèle : l'information est dans les données elles-mêmes. Vérification : rejouer le scénario 2 (lot 1) et lire la réponse.
 
 ## Le coût
 
