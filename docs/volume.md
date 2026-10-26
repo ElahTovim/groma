@@ -33,7 +33,7 @@ Multiplier les chantiers par 18 ajoute au plus 0,36 s (l'accueil du gérant, qui
 
 **Pourquoi** : les listes s'arrêtent à 200 chantiers, et chaque lecture en base reste courte. Mesurées directement dans la base à 10 000 chantiers, les plus lourdes prennent moins de 7 millisecondes (la liste d'un externe, qui passe par les participants : 6 ms ; la recherche : 6 ms ; la fiche : 1 ms). Le temps d'une page vient du nombre d'allers-retours avec la base, pas du volume.
 
-**Le prochain seuil** : la base lit encore les tables en entier (pas d'index sur `lots.chantier_id`, `fil.chantier_id`, `participants.compte_id`, `chantiers.cree_le`). C'est sans effet à 10 000 ; vers 100 000 chantiers, ces index deviendraient utiles.
+**Les index** : ce compte rendu a été fait avant la migration 0016, qui ajoute les index sur le chantier du fil et des lots (voir `docs/test-volume.md`, mené en parallèle le même jour).
 
 ## Ce que le volume a révélé : « À traiter » ne regarde que les 200 plus récents
 
