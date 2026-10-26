@@ -1,4 +1,5 @@
 import type { StatutChantier, StatutLot, StatutSignalement, TypeFil } from "@/lib/db/schema";
+import { photoDuFlux } from "@/lib/flux-regles";
 
 // Le jeu de données fictif : dix personnes, cinquante chantiers, des cas normaux
 // et des cas tordus. Tiré au sort avec une graine fixe : rejouer donne
@@ -91,6 +92,13 @@ export const PHOTOS_FICTIVES = [1, 2, 3, 4, 5, 6].map((n) => `/jeu-de-donnees/in
 
 export function estPhotoFictive(url: string): boolean {
   return PHOTOS_FICTIVES.includes(url);
+}
+
+// La photo à montrer pour un chantier : la sienne s'il en a une ; sinon l'une des
+// photos du jeu de données, toujours la même pour sa référence. Ainsi chaque chantier
+// a une image, qu'il vienne du flux, du jeu de données ou du formulaire.
+export function photoAffichee(photoUrl: string | null, reference: string): string | null {
+  return photoUrl ?? photoDuFlux(reference, PHOTOS_FICTIVES);
 }
 
 export type ChantierFictif = {
