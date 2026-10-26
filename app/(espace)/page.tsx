@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { texteATraiter } from "@/components/a-traiter";
 import { Reticule } from "@/components/cote";
+import { Ouverture } from "@/components/ouverture";
 import { PageGlissante } from "@/components/transitions";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,6 +46,7 @@ export default async function Accueil() {
 
   return (
     <PageGlissante>
+      <Ouverture />
       <div className="flex flex-col gap-8">
         <Suspense fallback={<Chargement entete={entete} />}>
           <Contenu qui={qui} entete={entete} />

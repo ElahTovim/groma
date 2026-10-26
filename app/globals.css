@@ -254,7 +254,7 @@
 }
 .ouverture-lettre {
   font-weight: 200;
-  animation: ouverture-graisse 0.9s cubic-bezier(0.5, 0, 0.2, 1) calc(var(--i) * 90ms) forwards;
+  animation: ouverture-graisse 0.6s cubic-bezier(0.5, 0, 0.2, 1) calc(var(--i) * 70ms) forwards;
 }
 .ouverture-part {
   background-color: transparent;
@@ -382,4 +382,9 @@
     animation-duration: 0s !important;
     animation-delay: 0s !important;
   }
+}
+
+/* En très grand, le logo se desserre un peu : les lettres ne se chevauchent pas. */
+.ouverture .logo-groma {
+  letter-spacing: -0.03em;
 }
