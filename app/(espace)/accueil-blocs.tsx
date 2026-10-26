@@ -165,7 +165,8 @@ export function Messages({ t }: { t: TableauDeBord }) {
 }
 
 // Le ciel en une ligne (bento du téléphone), de la hauteur de la barre de recherche :
-// l'icône, la température, le temps, le minimum, et l'alerte du lendemain s'il y en a une.
+// l'icône, la température, le temps, le minimum, et l'alerte du lendemain s'il y en a une ;
+// sur ordinateur, en plus : le vent, la pluie, le temps de demain, les chantiers concernés.
 // Le fond garde la couleur du ciel et sa lisibilité calculée ; pas d'animation à cette taille.
 export function TuileMeteo({ t, className }: { t: TableauDeBord; className?: string }) {
   const jours = t.meteo.jours;
@@ -191,8 +192,32 @@ export function TuileMeteo({ t, className }: { t: TableauDeBord; className?: str
       <p className="min-w-0 flex-1 truncate text-sm font-medium">
         <span className="first-letter:uppercase">{auj.ciel}</span>
         <span className="tabular-nums"> · mini {auj.min}°</span>
+        {/* Sur ordinateur, la ligne a la place de dire le reste. */}
+        <span className="hidden tabular-nums md:inline">
+          {" "}
+          · vent {auj.ventKmh} km/h · pluie {auj.pluieMm} mm
+        </span>
       </p>
-      {alerteDemain && <p className="shrink-0 rounded-full bg-black/80 px-2.5 py-1 text-xs font-semibold text-white">{alerteDemain}</p>}
+      {demain && (
+        <p className="hidden shrink-0 items-center gap-2 text-sm font-medium md:flex">
+          <span className="opacity-90">Demain</span>
+          <IconeCiel ciel={demain.ciel} className="size-5" trait={1.5} />
+          <span className="tabular-nums">
+            {demain.max}° / {demain.min}°
+          </span>
+        </p>
+      )}
+      {alerteDemain && (
+        <p className="shrink-0 rounded-full bg-black/80 px-2.5 py-1 text-xs font-semibold text-white">
+          {alerteDemain}
+          {t.actifs.length > 0 && (
+            <span className="hidden md:inline">
+              {" "}
+              · {t.actifs.length} chantier{t.actifs.length > 1 ? "s" : ""} concerné{t.actifs.length > 1 ? "s" : ""}
+            </span>
+          )}
+        </p>
+      )}
     </section>
   );
 }
